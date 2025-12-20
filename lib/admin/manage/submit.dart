@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../public/config.dart';
 import '../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class SubmitTicketPage extends StatefulWidget {
   const SubmitTicketPage({super.key});
@@ -51,17 +51,17 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt("lodgeId");
+      final shopId = prefs.getInt("shopId");
       final userId = prefs.getString("userId");
 
-      if (lodgeId == null || userId == null) {
-        _showMessage("❌ Lodge ID or User ID not found");
+      if (shopId == null || userId == null) {
+        _showMessage("❌ Shop ID or User ID not found");
         setState(() => _isLoading = false);
         return;
       }
 
       final body = {
-        "lodge_id": lodgeId,
+        "shop_id": shopId,
         "user_id": userId,
         "issue": _issueController.text.trim(),
       };

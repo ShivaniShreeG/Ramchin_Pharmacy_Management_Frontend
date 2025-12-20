@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class TransactionHistoryPage extends StatefulWidget {
   final dynamic hall;
@@ -54,7 +54,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   Future<void> _fetchTransactions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/app-payment/history/${widget.hall['lodge_id']}'),
+        Uri.parse('$baseUrl/api/app-payment/history/${widget.hall['shop_id']}'),
       );
 
       if (response.statusCode == 200) {
@@ -100,7 +100,7 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          "Transactions - ${widget.hall['name'] ?? 'Lodge'}",
+          "Transactions - ${widget.hall['name'] ?? 'Shop'}",
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: royal,

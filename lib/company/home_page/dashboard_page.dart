@@ -5,9 +5,9 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../public/config.dart';
 import 'package:intl/intl.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class DashboardPage extends StatefulWidget {
   final dynamic selectedHall;
@@ -55,10 +55,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _fetchHallStats() async {
     try {
-      final lodgeId =
-          widget.selectedHall['lodgeId'] ?? widget.selectedHall['lodge_id'];
+      final shopId =
+          widget.selectedHall['shopId'] ?? widget.selectedHall['shop_id'];
       final response =
-      await http.get(Uri.parse("$baseUrl/dashboard/$lodgeId/stats"));
+      await http.get(Uri.parse("$baseUrl/dashboard/$shopId/stats"));
 
       if (response.statusCode == 200) {
         setState(() {
@@ -82,7 +82,6 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final hall = widget.selectedHall;
-    final screenWidth = MediaQuery.of(context).size.width;
     String formattedDueDate = "No Due Date";
     if (hall['duedate'] != null && hall['duedate'].toString().isNotEmpty) {
       try {
@@ -115,7 +114,7 @@ class _DashboardPageState extends State<DashboardPage> {
       body: hall == null
           ? const Center(
         child: Text(
-          "No lodge selected",
+          "No shop selected",
           style: TextStyle(fontSize: 16, color: royal),
         ),
       )
@@ -167,32 +166,6 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
 
             const SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                    width: (screenWidth - 48) / 3,
-                    child: _buildStatCard(
-                        label: "Bookings",
-                        value:
-                        (stats?['totalBookings'] ?? 0).toString())),
-                SizedBox(
-                    width: (screenWidth - 48) / 3,
-                    child: _buildStatCard(
-                        label: "Cancelled",
-                        value:
-                        (stats?['totalCancelled'] ?? 0).toString())),
-                SizedBox(
-                    width: (screenWidth - 48) / 3,
-                    child: _buildStatCard(
-                        label: "Users",
-                        value:
-                        (stats?['totalUsers'] ?? 0).toString())),
-              ],
-            ),
-
-            const SizedBox(height: 24),
             Card(
               color: Colors.white,
               shape: RoundedRectangleBorder(
@@ -223,7 +196,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     // Hall ID row added here
                     _buildDetailRow(
                         icon: Icons.perm_identity,
-                        text: "Lodge ID: ${hall['lodgeId'] ?? hall['lodge_id'] ?? 'N/A'}"),
+                        text: "Shop ID: ${hall['shopId'] ?? hall['shop_id'] ?? 'N/A'}"),
                     const SizedBox(height: 8),
                     _buildDetailRow(
                         icon: Icons.location_on,
@@ -261,39 +234,6 @@ class _DashboardPageState extends State<DashboardPage> {
               style: const TextStyle(fontSize: 16, color: royal)),
         ),
       ],
-    );
-  }
-
-  Widget _buildStatCard({required String label, required String value}) {
-    return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                  color: royal,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                  color: royal,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -6,9 +6,9 @@ import 'payment_history.dart';
 import 'add_message.dart';
 import 'view_tickets.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class ManagePage extends StatelessWidget {
   final dynamic selectedHall;
@@ -22,7 +22,7 @@ class ManagePage extends StatelessWidget {
         backgroundColor: Colors.white,
         body: Center(
           child: Text(
-            "⚠ No lodge selected",
+            "⚠ No shop selected",
             style: TextStyle(
               color: royal,
               fontSize: 18,
@@ -37,7 +37,7 @@ class ManagePage extends StatelessWidget {
       backgroundColor: royalLight.withValues(alpha: 0.3),
       appBar: AppBar(
         title: Text(
-          "Manage ${selectedHall['name'] ?? 'Lodge'}",
+          "Manage ${selectedHall['name'] ?? 'Shop'}",
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,

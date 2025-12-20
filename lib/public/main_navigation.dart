@@ -14,9 +14,9 @@ import 'login_page.dart';
 import '../public/config.dart';
 
 /// 🎨 Royal Theme
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class MainNavigation extends StatefulWidget {
   final int? initialIndex;
@@ -30,7 +30,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   String? role;
   String? userId;
-  int? lodgeId;
+  int? shopId;
   int _selectedIndex = 0;
   bool isLoading = true;
   late List<Widget> _pages;
@@ -89,10 +89,10 @@ class _MainNavigationState extends State<MainNavigation> {
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final savedRole = prefs.getString('role');
-    final savedLodgeId = prefs.getInt('lodgeId');
+    final savedShopId = prefs.getInt('shopId');
     final savedUserId = prefs.getString('userId');
 
-    if (savedRole == null || savedLodgeId == null || savedUserId == null) {
+    if (savedRole == null || savedShopId == null || savedUserId == null) {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -103,7 +103,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
     setState(() {
       role = savedRole;
-      lodgeId = savedLodgeId;
+      shopId = savedShopId;
       userId = savedUserId;
     });
 
@@ -130,29 +130,29 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   Future<void> _validateSession() async {
-    if (_isDialogShown || userId == null || lodgeId == null) return;
+    if (_isDialogShown || userId == null || shopId == null) return;
 
     try {
-      final url = Uri.parse('$baseUrl/users/$lodgeId/$userId');
+      final url = Uri.parse('$baseUrl/users/$shopId/$userId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final isUserActive = data['is_active'] ?? false;
         final userBlockReason = data['userBlockReason'] ?? '';
-        final lodge = data['lodge'];
+        final shop = data['shop'];
 
-        if (lodge != null) {
-          final isLodgeActive = lodge['is_active'] ?? false;
-          final lodgeBlockReason = lodge['lodgeBlockReason'] ?? '';
+        if (shop != null) {
+          final isShopActive = shop['is_active'] ?? false;
+          final shopBlockReason = shop['shopBlockReason'] ?? '';
 
-          if (!isLodgeActive) {
+          if (!isShopActive) {
             _isDialogShown = true;
             try {
               await _showInactiveDialog(
-                lodgeBlockReason.isNotEmpty
-                    ? "This lodge is inactive:\n\"$lodgeBlockReason\"\nPlease contact administrator."
-                    : "This lodge is inactive.\nPlease contact administrator.",
+                shopBlockReason.isNotEmpty
+                    ? "This shop is inactive:\n\"$shopBlockReason\"\nPlease contact administrator."
+                    : "This shop is inactive.\nPlease contact administrator.",
               );
             } finally {
               _isDialogShown = false;
@@ -241,10 +241,10 @@ class _MainNavigationState extends State<MainNavigation> {
   Future<void> _checkNotifications() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt('lodgeId');
-      if (lodgeId == null) return;
+      final shopId = prefs.getInt('shopId');
+      if (shopId == null) return;
 
-      final msgRes = await http.get(Uri.parse('$baseUrl/message/lodge/$lodgeId'));
+      final msgRes = await http.get(Uri.parse('$baseUrl/message/shop/$shopId'));
       bool hasMessages = false;
       if (msgRes.statusCode == 200) {
         final data = jsonDecode(msgRes.body);
@@ -252,9 +252,9 @@ class _MainNavigationState extends State<MainNavigation> {
       }
 
       bool hasDue = false;
-      final lodgeRes = await http.get(Uri.parse('$baseUrl/lodges/$lodgeId'));
-      if (lodgeRes.statusCode == 200) {
-        final data = jsonDecode(lodgeRes.body);
+      final shopRes = await http.get(Uri.parse('$baseUrl/shops/$shopId'));
+      if (shopRes.statusCode == 200) {
+        final data = jsonDecode(shopRes.body);
         if (data['duedate'] != null) {
           final duedate = DateTime.tryParse(data['duedate']);
           if (duedate != null) {

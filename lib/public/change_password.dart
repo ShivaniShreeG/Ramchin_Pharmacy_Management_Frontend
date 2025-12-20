@@ -4,9 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -22,7 +22,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
-  int? lodgeId;
+  int? shopId;
   String? userId;
 
   bool _oldPasswordVisible = false;
@@ -85,7 +85,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    lodgeId = prefs.getInt('lodgeId');
+    shopId = prefs.getInt('shopId');
     userId = prefs.getString('userId');
   }
 
@@ -138,7 +138,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       return;
     }
 
-    if (lodgeId == null || userId == null) {
+    if (shopId == null || userId == null) {
       _showMessage("⚠️ User not found. Please login again.");
       return;
     }
@@ -151,7 +151,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "lodgeId": lodgeId,
+          "shopId": shopId,
           "userId": userId,
           "oldPassword": _oldPasswordController.text,
           "newPassword": _newPasswordController.text,

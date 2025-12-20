@@ -6,9 +6,9 @@ import '../../public/config.dart';
 import '../../public/main_navigation.dart';
 import 'package:flutter/services.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class CreateAdminPage extends StatefulWidget {
   const CreateAdminPage({super.key});
@@ -31,7 +31,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
   bool _isLoadingAdmins = true;
   bool _showForm = false;
   List<Map<String, dynamic>> _admins = [];
-  Map<String, dynamic>? lodgeDetails;
+  Map<String, dynamic>? shopDetails;
   bool _obscurePassword = true;
 
   @override
@@ -66,20 +66,20 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId != null) {
-      await _fetchHallDetails(lodgeId);
+    final shopId = prefs.getInt("shopId");
+    if (shopId != null) {
+      await _fetchHallDetails(shopId);
       await _fetchAdmins();
     }
   }
 
   Future<void> _fetchAdmins() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId == null) return;
+    final shopId = prefs.getInt("shopId");
+    if (shopId == null) return;
 
     try {
-      final url = Uri.parse("$baseUrl/admins/$lodgeId");
+      final url = Uri.parse("$baseUrl/admins/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -103,15 +103,15 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     setState(() => _isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId == null) {
-      _showMessage("❌ Lodge ID not found in session");
+    final shopId = prefs.getInt("shopId");
+    if (shopId == null) {
+      _showMessage("❌ shop ID not found in session");
       setState(() => _isLoading = false);
       return;
     }
 
     try {
-      final url = Uri.parse("$baseUrl/users/$lodgeId/admin");
+      final url = Uri.parse("$baseUrl/users/$shopId/admin");
       final body = jsonEncode({
         "user_id": _userIdController.text.trim(),
         "password": _passwordController.text.trim(),
@@ -154,11 +154,11 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
 
   Future<void> _deleteAdmin(String userId) async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId == null) return;
+    final shopId = prefs.getInt("shopId");
+    if (shopId == null) return;
 
     try {
-      final url = Uri.parse("$baseUrl/admins/$lodgeId/admin/$userId");
+      final url = Uri.parse("$baseUrl/admins/$shopId/admin/$userId");
       final response = await http.delete(url);
 
       if (response.statusCode == 200) {
@@ -257,7 +257,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
               labeledTanRow(
                 label: "DESIGNATION",
                 dropdownItems: const [
-                  DropdownMenuItem(value: "Manager", child: Text("Manager")),
+                  DropdownMenuItem(value: "Manager", child: Text("Staff")),
                   DropdownMenuItem(value: "Owner", child: Text("Owner")),
                 ],
                 dropdownValue: _designation,
@@ -369,7 +369,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
           Expanded(
             child: Center(
               child: Text(
-                hall['name']?.toString().toUpperCase() ?? "LODGE NAME",
+                hall['name']?.toString().toUpperCase() ?? "SHOP NAME",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -453,12 +453,12 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     );
   }
 
-  Future<void> _fetchHallDetails(int lodgeId) async {
+  Future<void> _fetchHallDetails(int shopId) async {
     try {
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        lodgeDetails = jsonDecode(response.body);
+        shopDetails = jsonDecode(response.body);
       }
     } catch (e) {
       _showMessage("Error fetching hall details: $e");
@@ -605,7 +605,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 16),
-            if (lodgeDetails != null) _buildHallCard(lodgeDetails!),
+            if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
             Text(
               "No admins found.",
@@ -634,7 +634,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            if (lodgeDetails != null) _buildHallCard(lodgeDetails!),
+            if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
             if (!_showForm)
               ElevatedButton(

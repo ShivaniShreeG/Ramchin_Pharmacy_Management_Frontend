@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class BlockHallPage extends StatefulWidget {
   final dynamic hall;
@@ -55,7 +55,7 @@ class _BlockHallPageState extends State<BlockHallPage> {
   Future<void> _fetchHallDetails() async {
     setState(() => _isLoading = true);
     try {
-      final url = Uri.parse('$baseUrl/lodges/${widget.hall['lodge_id']}');
+      final url = Uri.parse('$baseUrl/shops/${widget.hall['shop_id']}');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -84,7 +84,7 @@ class _BlockHallPageState extends State<BlockHallPage> {
     setState(() => _isBlocking = true);
 
     try {
-      final url = Uri.parse('$baseUrl/lodges/${widget.hall['lodge_id']}/block');
+      final url = Uri.parse('$baseUrl/shops/${widget.hall['shop_id']}/block');
       final response = await http.patch(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -131,7 +131,7 @@ class _BlockHallPageState extends State<BlockHallPage> {
           backgroundColor: royal,
           elevation: 6,
           title: Text(
-            "${_isActive == true ? 'Block' : 'Unblock'} - ${widget.hall['name'] ?? 'Lodge'}",
+            "${_isActive == true ? 'Block' : 'Unblock'} - ${widget.hall['name'] ?? 'Shop'}",
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -159,7 +159,7 @@ class _BlockHallPageState extends State<BlockHallPage> {
             children: [
               Text(
                 _isActive == true
-                    ? 'Reason for blocking the lodge:'
+                    ? 'Reason for blocking the shop:'
                     : 'Block Reason(s):',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
@@ -233,7 +233,7 @@ class _BlockHallPageState extends State<BlockHallPage> {
                   child: _isBlocking
                       ? const CircularProgressIndicator(color: Colors.white)
                       : Text(
-                    _isActive == true ? 'Block Lodge' : 'Unblock Lodge',
+                    _isActive == true ? 'Block Shop' : 'Unblock Shop',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,

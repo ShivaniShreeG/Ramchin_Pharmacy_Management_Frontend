@@ -7,9 +7,9 @@ import '../../public/config.dart';
 import 'package:intl/intl.dart';
 import '../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class AppPaymentPage extends StatefulWidget {
   const AppPaymentPage({super.key});
@@ -23,8 +23,8 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   bool isLoading = true;
   Map<String, dynamic>? currentPayment;
   List<dynamic> paymentHistory = [];
-  int? lodgeId;
-  Map<String, dynamic>? lodgeData;
+  int? shopId;
+  Map<String, dynamic>? shopData;
 
   
   String formatDate(String dateStr) {
@@ -53,9 +53,9 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
 
   Future<void> _initHallAndData() async {
     final prefs = await SharedPreferences.getInstance();
-    lodgeId = prefs.getInt('lodgeId');
-    if (lodgeId == null) {
-      _showMessage("Lodge ID not found in saved preferences.");
+    shopId = prefs.getInt('shopId');
+    if (shopId == null) {
+      _showMessage("Shop ID not found in saved preferences.");
       return;
     }
     await _fetchPaymentData();
@@ -64,16 +64,16 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   Future<void> _fetchPaymentData() async {
     setState(() => isLoading = true);
     try {
-      final hallRes = await http.get(Uri.parse('$baseUrl/lodges/$lodgeId'));
-      lodgeData = hallRes.statusCode == 200 ? json.decode(hallRes.body) : null;
+      final hallRes = await http.get(Uri.parse('$baseUrl/shops/$shopId'));
+      shopData = hallRes.statusCode == 200 ? json.decode(hallRes.body) : null;
 
       final currentRes =
-      await http.get(Uri.parse('$baseUrl/api/app-payment/current/$lodgeId'));
+      await http.get(Uri.parse('$baseUrl/api/app-payment/current/$shopId'));
       currentPayment =
       currentRes.statusCode == 200 ? json.decode(currentRes.body) : null;
 
       final historyRes =
-      await http.get(Uri.parse('$baseUrl/api/app-payment/history/$lodgeId'));
+      await http.get(Uri.parse('$baseUrl/api/app-payment/history/$shopId'));
       paymentHistory = historyRes.statusCode == 200
           ? json.decode(historyRes.body)
           : [];
@@ -84,10 +84,10 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   }
 
   Future<void> _createPayment() async {
-    if (lodgeId == null) return _showMessage("Invalid hall ID.");
+    if (shopId == null) return _showMessage("Invalid hall ID.");
     try {
       final res = await http.post(
-        Uri.parse('$baseUrl/api/app-payment/create/$lodgeId'),
+        Uri.parse('$baseUrl/api/app-payment/create/$shopId'),
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
         final payment = json.decode(res.body);
@@ -126,12 +126,12 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
     final options = {
       'key': 'rzp_live_RTDsYRSviCdE7N',
       'amount': (total * 100).toInt(),
-      'name': 'Ramchin Lodge Management',
+      'name': 'Ramchin Shop Management',
       'description': '',
       'prefill': {'contact': '', 'email': ''},
       'external': {'wallets': ['paytm']},
       'theme.color': '#19527A',
-      'notes': {'lodge_id': lodgeId.toString()},
+      'notes': {'shop_id': shopId.toString()},
     };
 
     try {
@@ -241,7 +241,7 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if(lodgeData!=null)
+            if(shopData!=null)
               _buildStatusCard(),
             if (currentPayment != null &&
                 currentPayment!['status'] != 'COMPLETED')
@@ -420,12 +420,12 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   }
 
   Widget _buildStatusCard() {
-    if (lodgeData == null) return const SizedBox.shrink();
+    if (shopData == null) return const SizedBox.shrink();
 
     final now = DateTime.now();
-    final hallDueStr = lodgeData?['duedate'];
+    final hallDueStr = shopData?['duedate'];
     final hallDueDate = hallDueStr != null ? DateTime.tryParse(hallDueStr) : null;
-    final createdAt = lodgeData?['created_at'];
+    final createdAt = shopData?['created_at'];
     final created = formatDate(createdAt ?? '');
 
     if (paymentHistory.isEmpty) {

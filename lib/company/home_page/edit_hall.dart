@@ -5,9 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import '../../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class EditHallPage extends StatefulWidget {
   final dynamic hall;
@@ -184,7 +184,7 @@ class _EditHallPageState extends State<EditHallPage> {
 
     try {
       final response = await http.patch(
-        Uri.parse('$baseUrl/lodges/${widget.hall['lodge_id']}'),
+        Uri.parse('$baseUrl/shops/${widget.hall['shop_id']}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(hallData),
       );
@@ -192,13 +192,13 @@ class _EditHallPageState extends State<EditHallPage> {
       setState(() => _isLoading = false);
 
       if (response.statusCode == 200) {
-        _showMessage("Lodge updated successfully!");
+        _showMessage("Shop updated successfully!");
       } else {
-        _showMessage("Failed to update lodge: ${response.statusCode}");
+        _showMessage("Failed to update shop: ${response.statusCode}");
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showMessage("Error updating lodge: $e");
+      _showMessage("Error updating shop: $e");
     }
   }
 
@@ -244,7 +244,7 @@ class _EditHallPageState extends State<EditHallPage> {
         backgroundColor: royal,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          "Edit Lodge",
+          "Edit Shop",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,

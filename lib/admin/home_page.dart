@@ -4,9 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -57,20 +57,19 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadHall() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt('lodgeId');
-    if (lodgeId != null) {
-      await fetchHallDetails(lodgeId);
-      await fetchCurrentBalance(lodgeId);
-      await fetchRoomStats(lodgeId);
+    final shopId = prefs.getInt('shopId');
+    if (shopId != null) {
+      await fetchHallDetails(shopId);
+      await fetchCurrentBalance(shopId);
     } else {
       setState(() => _isLoading = false);
-      _showMessage("No Lodge ID found in saved data", isError: true);
+      _showMessage("No Shop ID found in saved data", isError: true);
     }
   }
 
-  Future<void> fetchHallDetails(int lodgeId) async {
+  Future<void> fetchHallDetails(int shopId) async {
     try {
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -81,7 +80,7 @@ class _HomePageState extends State<HomePage> {
       } else {
         setState(() => _isLoading = false);
         _showMessage(
-          "Failed to load lodge details (Code: ${response.statusCode})",
+          "Failed to load shop details (Code: ${response.statusCode})",
           isError: true,
         );
       }
@@ -91,30 +90,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> fetchRoomStats(int lodgeId) async {
+
+  Future<void> fetchCurrentBalance(int shopId) async {
     try {
-      final now = DateTime.now().toIso8601String();
-
-      final url = Uri.parse(
-          '$baseUrl/home/availability/7days/$lodgeId?time=$now'
-      );
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        setState(() {
-          roomStats = jsonDecode(response.body);
-        });
-      } else {
-        _showMessage("Failed to load room availability", isError: true);
-      }
-    } catch (e) {
-      _showMessage("Error loading room stats: $e", isError: true);
-    }
-  }
-
-  Future<void> fetchCurrentBalance(int lodgeId) async {
-    try {
-      final url = Uri.parse('$baseUrl/home/current-balance/$lodgeId');
+      final url = Uri.parse('$baseUrl/home/current-balance/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -163,13 +142,6 @@ class _HomePageState extends State<HomePage> {
                       alignment: Alignment.center,
                       child: _buildHallCard(selectedHall!, textScale, boxScale, screenWidth),
                     ),
-
-                  if (roomStats.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.only(top: 20 * textScale),
-                      child: _buildRoomAvailabilityBox(roomStats, textScale, boxScale),
-                    ),
-
                   Padding(
                     padding: EdgeInsets.only(top: 20 * textScale),
                     child: _buildCurrentBalanceBox(currentBalance, textScale, boxScale),
@@ -181,187 +153,6 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-  }
-
-  Widget buildRoomTypeCards(
-      List<dynamic> stats, double textScale, double boxScale) {
-
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    // Auto width based on screen size
-    final double nameColumnWidth =
-    screenWidth > 900 ? 200 : screenWidth > 600 ? 150 : 120;
-
-    final double dayColumnWidth =
-    screenWidth > 900 ? 90 : screenWidth > 600 ? 70 : 55;
-
-    Map<String, Map<String, dynamic>> roomMap = {};
-
-    for (var dayEntry in stats) {
-      final String date = dayEntry["date"];
-      final List availability = dayEntry["availability"] ?? [];
-
-      for (var room in availability) {
-        final String type = room["room_type"] ?? "";
-        final String name = room["room_name"] ?? "";
-        final int total = (room["total_rooms"] ?? 0).toInt();
-        final int availableCount =
-            (room["available_rooms"] as List?)?.length ?? 0;
-
-        roomMap.putIfAbsent(type, () => {});
-        roomMap[type]!.putIfAbsent(name, () {
-          return {
-            "room_type": type,
-            "room_name": name,
-            "total_count": total,
-            "days": []
-          };
-        });
-
-        roomMap[type]![name]["days"].add({
-          "date": date,
-          "available_count": availableCount
-        });
-      }
-    }
-
-    List<Map<String, dynamic>> flattened = [];
-    roomMap.forEach((type, rooms) => rooms.forEach(
-            (name, info) => flattened.add(info)));
-
-    Map<String, List<dynamic>> grouped = {};
-    for (var r in flattened) {
-      grouped.putIfAbsent(r["room_type"], () => []);
-      grouped[r["room_type"]]!.add(r);
-    }
-
-    return Column(
-      children: grouped.entries.map((entry) {
-        final type = entry.key;
-        final rooms = entry.value;
-        final days = rooms.first["days"] as List;
-
-        final int totalCount = rooms.fold<int>(0, (sum, r) {
-          final value = r["total_count"];
-
-          if (value is int) return sum + value;
-          if (value is double) return sum + value.toInt();
-
-          return sum;
-        });
-
-
-        return Container(
-          margin: EdgeInsets.only(bottom: 20 * boxScale),
-          padding: EdgeInsets.all(16 * boxScale),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20 * boxScale),
-            border: Border.all(color: royal, width: 1.4),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Text(
-                  "$type Rooms ($totalCount)",
-                  style: TextStyle(
-                    fontSize: 18 * textScale,
-                    fontWeight: FontWeight.bold,
-                    color: royal,
-                  ),
-                ),
-              ),
-              SizedBox(height: 16 * boxScale),
-
-              // Responsive horizontal scroll
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Table(
-                  border: TableBorder.all(color: royal, width: 1.2),
-                  columnWidths: {
-                    0: FixedColumnWidth(nameColumnWidth),
-                    for (int i = 1; i <= days.length; i++)
-                      i: FixedColumnWidth(dayColumnWidth),
-                  },
-                  children: [
-                    // HEADER ROW
-                    TableRow(
-                      decoration: BoxDecoration(
-                          color: royalLight.withValues(alpha: 0.2)),
-                      children: [
-                        _headerCell("Room Name", textScale, boxScale),
-                        ...days.map((d) {
-                          final parsed = DateTime.tryParse(d["date"]);
-                          final label = parsed != null
-                              ? "${parsed.day}-${parsed.month}"
-                              : "--";
-                          return _headerCell(label, textScale, boxScale);
-                        })
-                      ],
-                    ),
-
-                    // BODY ROWS
-                    ...rooms.map((room) {
-                      return TableRow(
-                        children: [
-                          _bodyCell(
-                              "${room["room_name"]} (${room["total_count"]})",
-                              textScale,
-                              boxScale),
-                          ...room["days"].map((d) {
-                            return _bodyCell(
-                              d["available_count"].toString(),
-                              textScale,
-                              boxScale,
-                            );
-                          }).toList()
-                        ],
-                      );
-                    })
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _headerCell(String text, double ts, double bs) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12 * bs),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 14 * ts,
-          color: royal,
-        ),
-      ),
-    );
-  }
-
-  Widget _bodyCell(String text, double ts, double bs) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12 * bs),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14 * ts,
-          color: royal,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoomAvailabilityBox(
-      List<dynamic> stats, double textScale, double boxScale) {
-    return buildRoomTypeCards(stats, textScale, boxScale);
   }
 
   Widget _buildHallCard(

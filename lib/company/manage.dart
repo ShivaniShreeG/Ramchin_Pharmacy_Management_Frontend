@@ -5,9 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import '../public/config.dart';
 import 'home.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -87,7 +87,7 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
 
   Future<void> fetchHalls() async {
     try {
-      final url = Uri.parse('$baseUrl/lodges');
+      final url = Uri.parse('$baseUrl/shops');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -95,7 +95,7 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
           _halls = jsonDecode(response.body);
         });
       } else {
-        _showMessage('❌ Failed to fetch lodges: ${response.body}');
+        _showMessage('❌ Failed to fetch shops: ${response.body}');
       }
     } catch (e) {
       _showMessage('❌ Error: $e');
@@ -110,7 +110,7 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
         final data = jsonDecode(response.body);
         setState(() {
           totalUsers = data['activeUsersCount'] ?? 0;
-          totalBookings = data['totalBookingsCount'] ?? 0;
+          totalBookings = data['totalBillingsCount'] ?? 0;
         });
       }
     } catch (e) {
@@ -121,18 +121,18 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
   Future<void> addHall() async {
     setState(() => _isLoading = true);
 
-    int? lodgeId;
+    int? shopId;
     if (_hallIdController.text.isNotEmpty) {
-      lodgeId = int.tryParse(_hallIdController.text);
-      if (lodgeId == null) {
-        _showMessage('❌ Lodge ID must be a number');
+      shopId = int.tryParse(_hallIdController.text);
+      if (shopId == null) {
+        _showMessage('❌ Shop ID must be a number');
         setState(() => _isLoading = false);
         return;
       }
     }
 
     final hall = {
-      if (lodgeId != null)'lodge_id': lodgeId,
+      if (shopId != null)'shop_id': shopId,
       'name': _nameController.text,
       'phone': _phoneController.text,
       'email': _emailController.text,
@@ -141,7 +141,7 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
     };
 
     try {
-      final url = Uri.parse('$baseUrl/lodges');
+      final url = Uri.parse('$baseUrl/shops');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -161,9 +161,9 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
 
         fetchHalls();
         fetchCounts();
-        _showMessage("✅ Lodge registered successfully");
+        _showMessage("✅ Shop registered successfully");
       } else {
-        _showMessage('❌ Failed to add lodge: ${response.body}');
+        _showMessage('❌ Failed to add shop: ${response.body}');
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -218,7 +218,7 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
           children: [
-            _buildTextField(_hallIdController, 'Lodge ID (optional)'),
+            _buildTextField(_hallIdController, 'Shop ID (optional)'),
             const SizedBox(height: 16),
             _buildTextField(_nameController, 'Name'),
             const SizedBox(height: 16),
@@ -395,7 +395,7 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
                 color: Colors.white,
               ),
               label: Text(
-                _showForm ? "Close Form" : "Register Lodge",
+                _showForm ? "Close Form" : "Register Shop",
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
@@ -408,18 +408,18 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
             const SizedBox(height: 16),
             Row(
               children: [
-                _buildCountBox('Lodges', _halls.length),
+                _buildCountBox('Shops', _halls.length),
                 const SizedBox(width: 12),
                 _buildCountBox('Users', totalUsers),
                 const SizedBox(width: 12),
-                _buildCountBox('Bookings', totalBookings),
+                _buildCountBox('Billings', totalBookings),
               ],
             ),
             const SizedBox(height: 24),
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Registered Lodges",
+                "Registered Shops",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

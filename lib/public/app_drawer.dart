@@ -20,8 +20,8 @@ class AppDrawer extends StatefulWidget {
 }
 
 class _AppDrawerState extends State<AppDrawer> {
-  String lodgeName = 'lodge';
-  String? lodgeLogoBase64;
+  String shopName = 'shop';
+  String? shopLogoBase64;
 
   @override
   void initState() {
@@ -31,41 +31,41 @@ class _AppDrawerState extends State<AppDrawer> {
 
   Future<void> _loadHallInfo() async {
     final prefs = await SharedPreferences.getInstance();
-    String? name = prefs.getString('lodgeName');
-    String? logo = prefs.getString('lodgeLogo');
-    int? lodgeId = prefs.getInt('lodgeId');
+    String? name = prefs.getString('shopName');
+    String? logo = prefs.getString('shopLogo');
+    int? shopId = prefs.getInt('shopId');
 
     // Show cached data if available
     if (name != null) {
       if (!mounted) return;
       setState(() {
-        lodgeName = name;
-        lodgeLogoBase64 = logo;
+        shopName = name;
+        shopLogoBase64 = logo;
       });
     }
 
     // Always refresh from API if hallId exists
-    if (lodgeId != null) {
-      await _fetchHallInfo(lodgeId);
+    if (shopId != null) {
+      await _fetchHallInfo(shopId);
     }
   }
 
 
-  Future<void> _fetchHallInfo(int lodgeId) async {
+  Future<void> _fetchHallInfo(int shopId) async {
     try {
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('lodgeName', data['name']);
-        if (data['logo'] != null) await prefs.setString('lodgeLogo', data['logo']);
+        await prefs.setString('shopName', data['name']);
+        if (data['logo'] != null) await prefs.setString('shopLogo', data['logo']);
 
         if (!mounted) return;
         setState(() {
-          lodgeName = data['name'];
-          lodgeLogoBase64 = data['logo'];
+          shopName = data['name'];
+          shopLogoBase64 = data['logo'];
         });
       }
     } catch (e) {
@@ -105,10 +105,10 @@ class _AppDrawerState extends State<AppDrawer> {
                         CircleAvatar(
                           radius: 35,
                           backgroundColor: royalLight, // muted tan
-                          backgroundImage: lodgeLogoBase64 != null
-                              ? MemoryImage(base64Decode(lodgeLogoBase64!))
+                          backgroundImage: shopLogoBase64 != null
+                              ? MemoryImage(base64Decode(shopLogoBase64!))
                               : null,
-                          child: lodgeLogoBase64 == null
+                          child: shopLogoBase64 == null
                               ? const Icon(Icons.home_work_rounded,
                               size: 35, color: royal) // olive green
                               : null,
@@ -116,7 +116,7 @@ class _AppDrawerState extends State<AppDrawer> {
                         const SizedBox(height: 10),
                         Flexible(
                           child: Text(
-                            lodgeName,
+                            shopName,
                             style: const TextStyle(
                               color: Colors.white, // dark earthy text
                               fontSize: 18,

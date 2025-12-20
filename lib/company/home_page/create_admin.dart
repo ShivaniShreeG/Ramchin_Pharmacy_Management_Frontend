@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class CreateAdminPage extends StatefulWidget {
   final dynamic hall;
@@ -61,7 +61,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     try {
 
       final response = await http.post(
-        Uri.parse("$baseUrl/users/${widget.hall['lodge_id']}/admin"),
+        Uri.parse("$baseUrl/users/${widget.hall['shop_id']}/admin"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "user_id": _userIdController.text.trim(),
@@ -130,7 +130,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
                 child: Column(
                   children: [
                     Text(
-                      "Lodge ID: ${widget.hall['lodge_id']}",
+                      "Shop ID: ${widget.hall['shop_id']}",
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -139,7 +139,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Lodge Name: ${widget.hall['name'] ?? ''}",
+                      "Shop Name: ${widget.hall['name'] ?? ''}",
                       style: const TextStyle(
                         fontSize: 16,
                         color: royal,

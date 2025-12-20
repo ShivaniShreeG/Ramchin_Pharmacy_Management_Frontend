@@ -4,9 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class AdminMessagesPage extends StatefulWidget {
   const AdminMessagesPage({super.key});
@@ -20,7 +20,7 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
   bool _isLoading = true;
   List<dynamic> _messages = [];
   String? _errorMessage;
-  Map<String, dynamic>? lodgeDetails;
+  Map<String, dynamic>? shopDetails;
   String? _dueMessage; // 🧾 For Payment Reminder
   Color? _dueColor; // 🎨 For dynamic color (orange/red)
 
@@ -61,15 +61,15 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
 
   Future<void> _fetchHallDetails() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt('lodgeId');
-    if (lodgeId == null) return;
+    final shopId = prefs.getInt('shopId');
+    if (shopId == null) return;
 
     try {
-      final res = await http.get(Uri.parse('$baseUrl/lodges/$lodgeId'));
+      final res = await http.get(Uri.parse('$baseUrl/shops/$shopId'));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         setState(() {
-          lodgeDetails = data;
+          shopDetails = data;
         });
 
         // 🕒 Check Due Date and Create Reminder
@@ -106,25 +106,25 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
         }
       }
     } catch (e) {
-      debugPrint("Error fetching lodge details: $e");
+      debugPrint("Error fetching shop details: $e");
     }
   }
 
   Future<void> _fetchMessages() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt('lodgeId');
+      final shopId = prefs.getInt('shopId');
 
-      if (lodgeId == null) {
+      if (shopId == null) {
         setState(() {
-          _errorMessage = "❌ Lodge ID not found in preferences.";
+          _errorMessage = "❌ Shop ID not found in preferences.";
           _isLoading = false;
         });
         return;
       }
 
       final response =
-      await http.get(Uri.parse('$baseUrl/message/lodge/$lodgeId'));
+      await http.get(Uri.parse('$baseUrl/message/shop/$shopId'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -237,7 +237,7 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    "No messages found for this lodge.",
+                    "No messages found for this shop.",
                     style:
                     TextStyle(color: royal, fontSize: 16),
                   ),

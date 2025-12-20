@@ -4,9 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -20,7 +20,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? profileData;
   String? errorMessage;
 
-  int? lodgeId;
+  int? shopId;
   String? userId;
   String? role;
 
@@ -60,12 +60,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _initializeProfile() async {
     final prefs = await SharedPreferences.getInstance();
-    lodgeId = prefs.getInt('lodgeId');
+    shopId = prefs.getInt('shopId');
     userId = prefs.getString('userId');
     role = prefs.getString('role');
 
-    if (lodgeId != null && userId != null && role != null) {
-      await _fetchProfile(lodgeId!, userId!, role!);
+    if (shopId != null && userId != null && role != null) {
+      await _fetchProfile(shopId!, userId!, role!);
     } else {
       setState(() {
         isLoading = false;
@@ -75,9 +75,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _fetchProfile(int lodgeId, String userId, String role) async {
+  Future<void> _fetchProfile(int shopId, String userId, String role) async {
     try {
-      final url = Uri.parse('$baseUrl/profile/$role/$lodgeId/$userId');
+      final url = Uri.parse('$baseUrl/profile/$role/$shopId/$userId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -160,9 +160,9 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    final lodge = profileData!['lodge'] ?? {};
-    final lodgeLogoBase64 = lodge['logo'];
-    final lodgeName = lodge['name'] ?? 'lodge';
+    final shop = profileData!['shop'] ?? {};
+    final shopLogoBase64 = shop['logo'];
+    final shopName = shop['name'] ?? 'shop';
 
     return Scaffold(
       backgroundColor: Colors.white, // Warm Beige 🏡
@@ -202,10 +202,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: royalLight, // Muted Tan 🏺
-                      backgroundImage: lodgeLogoBase64 != null
-                          ? MemoryImage(base64Decode(lodgeLogoBase64))
+                      backgroundImage: shopLogoBase64 != null
+                          ? MemoryImage(base64Decode(shopLogoBase64))
                           : null,
-                      child: lodgeLogoBase64 == null
+                      child: shopLogoBase64 == null
                           ? const Icon(
                         Icons.home,
                         size: 50,
@@ -215,7 +215,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      lodgeName,
+                      shopName,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,

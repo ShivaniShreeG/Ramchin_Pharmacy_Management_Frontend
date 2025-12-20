@@ -7,9 +7,9 @@ import 'config.dart';
 import 'forgot_password.dart';
 import 'register.dart';
 
-const Color royalblue = Color(0xFFB6683C);
+const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
-const Color royalLight = Color(0xFF705340);
+const Color royalLight = Color(0xFF916542);
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,7 +20,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _lodgeIdController = TextEditingController();
+  final TextEditingController _shopIdController = TextEditingController();
   final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _rememberMe = prefs.getBool('rememberMe') ?? false;
       if (_rememberMe) {
-        _lodgeIdController.text = prefs.getInt('lodgeId')?.toString() ?? '';
+        _shopIdController.text = prefs.getInt('shopId')?.toString() ?? '';
         _userIdController.text = prefs.getString('userId') ?? '';
         _passwordController.text = prefs.getString('password') ?? '';
       }
@@ -93,10 +93,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _saveUserData(
-      String role, int lodgeId, String userId, String designation) async {
+      String role, int shopId, String userId, String designation) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('role', role);
-    await prefs.setInt('lodgeId', lodgeId);
+    await prefs.setInt('shopId', shopId);
     await prefs.setString('userId', userId);
     await prefs.setString('designation', designation);
 
@@ -121,8 +121,8 @@ class _LoginPageState extends State<LoginPage> {
         "userId": _userIdController.text.trim(),
         "password": _passwordController.text.trim(),
       };
-      if (_lodgeIdController.text.trim().isNotEmpty) {
-        body["lodgeId"] = int.tryParse(_lodgeIdController.text.trim());
+      if (_shopIdController.text.trim().isNotEmpty) {
+        body["shopId"] = int.tryParse(_shopIdController.text.trim());
       }
 
       final response = await http.post(
@@ -148,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
 
         await _saveUserData(
           user['role']?.toString() ?? '',
-          user['lodgeId'] is int ? user['lodgeId'] : int.tryParse(user['lodgeId']?.toString() ?? '0') ?? 0,
+          user['shopId'] is int ? user['shopId'] : int.tryParse(user['shopId']?.toString() ?? '0') ?? 0,
           user['userId']?.toString() ?? '',
           user['designation']?.toString() ?? '',
         );
@@ -197,7 +197,7 @@ class _LoginPageState extends State<LoginPage> {
                     children: [
                       // TITLE
                       Text(
-                        "LODGE",
+                        "PHARMACY",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: isTablet ? 32 : 26,
@@ -244,17 +244,17 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               const SizedBox(height: 24),
 
-                              // Lodge ID
+                              // shop ID
                               _buildTextField(
-                                controller: _lodgeIdController,
+                                controller: _shopIdController,
                                 icon: Icons.home_work_rounded,
-                                label: "Lodge ID",
+                                label: "Shop ID",
                                 keyboard: TextInputType.number,
                                 validator: (v) {
                                   if (v != null &&
                                       v.isNotEmpty &&
                                       int.tryParse(v) == null) {
-                                    return "Enter a valid Lodge ID";
+                                    return "Enter a valid Shop ID";
                                   }
                                   return null;
                                 },

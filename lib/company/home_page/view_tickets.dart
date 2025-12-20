@@ -4,9 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart'; // for date formatting
 import '../../../public/config.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class ViewTicketsPage extends StatefulWidget {
   final dynamic hall;
@@ -32,7 +32,7 @@ class _ViewTicketsPageState extends State<ViewTicketsPage> {
   Future<void> _fetchMessages() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/submit-ticket/lodge/${widget.hall['lodge_id']}'),
+        Uri.parse('$baseUrl/submit-ticket/shop/${widget.hall['shop_id']}'),
       );
 
       if (response.statusCode == 200) {
@@ -97,7 +97,7 @@ class _ViewTicketsPageState extends State<ViewTicketsPage> {
         backgroundColor: royal,
         foregroundColor: Colors.white,
         title: Text(
-          "Tickets - ${widget.hall['name'] ?? 'Lodge'}",
+          "Tickets - ${widget.hall['name'] ?? 'Shop'}",
           overflow: TextOverflow.ellipsis,
         ),
         actions: [

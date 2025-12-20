@@ -4,16 +4,12 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../public/config.dart';
 import 'app_payment.dart';
-import 'default_value_page.dart';
-import 'add_peak_hour.dart';
-import 'add_instruction_page.dart';
 import 'submit.dart';
-import 'add_facilitator.dart';
-import 'add_room.dart';
+import 'add_medicines.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class OtherManagePage extends StatefulWidget {
   const OtherManagePage({super.key});
@@ -23,9 +19,9 @@ class OtherManagePage extends StatefulWidget {
 }
 
 class _OtherManagePageState extends State<OtherManagePage> {
-  String? lodgeName;
-  String? lodgeAddress;
-  String? lodgeLogo;
+  String? shopName;
+  String? shopAddress;
+  String? shopLogo;
   bool isLoading = true;
 
   @override
@@ -36,24 +32,24 @@ class _OtherManagePageState extends State<OtherManagePage> {
 
   Future<void> _fetchHallData() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
+    final shopId = prefs.getInt("shopId");
 
-    if (lodgeId == null) {
+    if (shopId == null) {
       setState(() => isLoading = false);
       return;
     }
 
     try {
-      final url = Uri.parse("$baseUrl/lodges/$lodgeId");
+      final url = Uri.parse("$baseUrl/shops/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         setState(() {
-          lodgeName = data["name"];
-          lodgeAddress = data["address"];
-          lodgeLogo = data["logo"];
+          shopName = data["name"];
+          shopAddress = data["address"];
+          shopLogo = data["logo"];
           isLoading = false;
         });
       } else {
@@ -80,7 +76,7 @@ class _OtherManagePageState extends State<OtherManagePage> {
         child: Container(padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              if (lodgeName != null) _buildHallCard(),
+              if (shopName != null) _buildHallCard(),
               const SizedBox(height: 20),
               _buildManageCard(screenWidth),
               const SizedBox(height: 20),
@@ -116,10 +112,10 @@ class _OtherManagePageState extends State<OtherManagePage> {
             CircleAvatar(
               radius: 25 * textScale,
               backgroundColor: royalLight,
-              backgroundImage: (lodgeLogo != null && lodgeLogo!.isNotEmpty)
-                  ? MemoryImage(base64Decode(lodgeLogo!))
+              backgroundImage: (shopLogo != null && shopLogo!.isNotEmpty)
+                  ? MemoryImage(base64Decode(shopLogo!))
                   : null,
-              child: (lodgeLogo == null || lodgeLogo!.isEmpty)
+              child: (shopLogo == null || shopLogo!.isEmpty)
                   ? Icon(
                 Icons.home_work_rounded,
                 size: 25 * textScale,
@@ -135,7 +131,7 @@ class _OtherManagePageState extends State<OtherManagePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    lodgeName ?? "Unknown Lodge",
+                    shopName ?? "Unknown Shop",
                     style: TextStyle(
                       fontSize: 18 * textScale,   // ⬅ Responsive Title
                       fontWeight: FontWeight.bold,
@@ -148,7 +144,7 @@ class _OtherManagePageState extends State<OtherManagePage> {
                   SizedBox(height: 4 * textScale),
 
                   Text(
-                    lodgeAddress ?? "No address available",
+                    shopAddress ?? "No address available",
                     style: TextStyle(
                       fontSize: 14 * textScale,   // ⬅ Responsive Address
                       color: royal,
@@ -287,61 +283,16 @@ class _OtherManagePageState extends State<OtherManagePage> {
               runSpacing: 16,
               children: [
                 _buildManageButton(
-                  icon: Icons.room_preferences,
-                  label: "Rooms",
+                  icon: Icons.local_hospital,
+                  label: "Medicines",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const RoomsPage()),
+                      MaterialPageRoute(builder: (context) => const InventoryPage()),
                     );
                   },
                   size: buttonSize,
                 ),
-                _buildManageButton(
-                  icon: Icons.access_time,
-                  label: "Peak Hours",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PeakHoursPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.attach_money,
-                  label: "Charges",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const DefaultValuesPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.rule,
-                  label: "Instruction",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const HallInstructionsPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.domain_add,
-                  label: "Facilitator",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AddFacilitatorPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
               ],
             ),
           ],

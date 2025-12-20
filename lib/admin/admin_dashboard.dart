@@ -5,24 +5,15 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../public/config.dart';
 import 'booking/services/check_in/checkin.dart';
-import 'booking/services/upcoming/upcoming_bookings.dart';
-import 'booking/services/history/booking_history.dart';
-import 'booking/services/charges_for_booking.dart';
-import 'booking/services/date_changing/booking_list.dart';
-import 'booking/services/cancel/cancel.dart';
-import 'booking/services/billing/billing.dart';
-import 'booking/services/availability_calendar.dart';
-import 'booking/services/view_facilitator.dart';
 import 'booking/accounts/add_income_page.dart';
 import 'booking/accounts/add_expense.dart';
 import 'booking/accounts/view_finance.dart';
 import 'booking/accounts/reports.dart';
 import 'booking/accounts/add_drawing.dart';
-import 'booking/services/history/cancel_history.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -67,18 +58,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Future<void> _loadHall() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt('lodgeId');
-    if (lodgeId != null) {
-      await fetchHallDetails(lodgeId);
+    final shopId = prefs.getInt('shopId');
+    if (shopId != null) {
+      await fetchHallDetails(shopId);
     } else {
       setState(() => _isLoading = false);
-      _showMessage("No lodge ID found in saved data", isError: true);
+      _showMessage("No shop ID found in saved data", isError: true);
     }
   }
 
-  Future<void> fetchHallDetails(int lodgeId) async {
+  Future<void> fetchHallDetails(int shopId) async {
     try {
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -88,7 +79,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         });
       } else {
         setState(() => _isLoading = false);
-        _showMessage("Failed to load lodge details (Code: ${response.statusCode})", isError: true);
+        _showMessage("Failed to load shop details (Code: ${response.statusCode})", isError: true);
       }
     } catch (e) {
       setState(() => _isLoading = false);
@@ -296,7 +287,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   size: buttonSize,
                 ),
                 _buildManageButton(
-                  icon: Icons.analytics,
+                  icon: Icons.contact_page,
                   label: "Reports",
                   onTap: () {
                     Navigator.push(
@@ -333,7 +324,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 Text(
-                  "Booking Service",
+                  "Billing Service",
                   style: TextStyle(
                     color: royal,
                     fontSize: 20,
@@ -352,8 +343,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
               runSpacing: 16,
               children: [
                 _buildManageButton(
-                  icon: Icons.event_available,
-                  label: "Room Booking",
+                  icon: Icons.file_copy,
+                  label: "Billing",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -363,10 +354,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                   size: buttonSize,
                 ),
-
                 _buildManageButton(
-                  icon: Icons.check_circle,
-                  label: "Check In",
+                  icon: Icons.history,
+                  label: "Billing History",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -376,119 +366,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                   size: buttonSize,
                 ),
-
                 _buildManageButton(
-                  icon: Icons.change_circle_outlined,
-                  label: "Date Changing",
+                  icon: Icons.medical_information_rounded,
+                  label: "Available Medicines",
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => DateChangingPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.cancel,
-                  label: "Cancel Booking",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => CancelBookedPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.add_box,
-                  label: "Add Charges",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => AddChargesPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.receipt_long,
-                  label: "Check Out",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => BookingsListPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.search,
-                  label: "Date Availability",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => AvailabilityCalendarPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.work_history_outlined,
-                  label: "Upcoming Booking",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => UpcomingBookingsPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.history,
-                  label: "Booking History",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => BookingsHistoryPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.free_cancellation,
-                  label: "Cancellation History",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => CancelHistoryPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-
-                _buildManageButton(
-                  icon: Icons.domain_add,
-                  label: "Facilitators",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => ViewFacilitatorPage()),
+                          builder: (context) => PreBookedListPage()),
                     );
                   },
                   size: buttonSize,

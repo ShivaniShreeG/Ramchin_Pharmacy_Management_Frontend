@@ -7,9 +7,9 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'login_page.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class CreateHallOwnerPage extends StatefulWidget {
   const CreateHallOwnerPage({super.key});
@@ -27,8 +27,8 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _lodgeExists = false;
-  String _lodgeCheckMessage = "";
+  bool _shopExists = false;
+  String _shopCheckMessage = "";
 
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -60,11 +60,11 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
   }
 
   final Map<String, TextEditingController> _controllers = {
-    'lodge_id': TextEditingController(),
-    'lodge_name': TextEditingController(),
-    'lodge_phone': TextEditingController(),
-    'lodge_email': TextEditingController(),
-    'lodge_address': TextEditingController(),
+    'shop_id': TextEditingController(),
+    'shop_name': TextEditingController(),
+    'shop_phone': TextEditingController(),
+    'shop_email': TextEditingController(),
+    'shop_address': TextEditingController(),
     'user_id': TextEditingController(),
     'password': TextEditingController(),
     'confirm_password': TextEditingController(),
@@ -88,22 +88,22 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
     }
   }
 
-  Future<void> _checkHallExists(String lodgeId) async {
+  Future<void> _checkHallExists(String shopId) async {
     try {
-      final res = await http.get(Uri.parse('$baseUrl/register/check-lodge/$lodgeId'));
+      final res = await http.get(Uri.parse('$baseUrl/register/check-shop/$shopId'));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         setState(() {
-          _lodgeExists = data['exists'] ?? false;
-          _lodgeCheckMessage = _lodgeExists
-              ? "⚠️ This Lodge ID already exists"
-              : "✅ Lodge ID is available";
+          _shopExists = data['exists'] ?? false;
+          _shopCheckMessage = _shopExists
+              ? "⚠️ This Shop ID already exists"
+              : "✅ Shop ID is available";
         });
       }
     } catch (e) {
       setState(() {
-        _lodgeExists = false;
-        _lodgeCheckMessage = "❌ Network error while checking Hall ID";
+        _shopExists = false;
+        _shopCheckMessage = "❌ Network error while checking Hall ID";
       });
     }
   }
@@ -278,19 +278,19 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
 
   Future<void> _registerHall() async {
     final body = {
-      'lodge_name': _controllers['lodge_name']!.text.trim(),
-      'lodge_phone': _controllers['lodge_phone']!.text.trim(),
-      'lodge_email': _controllers['lodge_email']!.text.trim(),
-      'lodge_address': _controllers['lodge_address']!.text.trim(),
+      'shop_name': _controllers['shop_name']!.text.trim(),
+      'shop_phone': _controllers['shop_phone']!.text.trim(),
+      'shop_email': _controllers['shop_email']!.text.trim(),
+      'shop_address': _controllers['shop_address']!.text.trim(),
       'password': _controllers['password']!.text.trim(),
       'admin_name': _controllers['admin_name']!.text.trim(),
       'admin_phone': _controllers['admin_phone']!.text.trim(),
       'admin_email': _controllers['admin_email']!.text.trim(),
-      'lodge_id': int.tryParse(_controllers['lodge_id']!.text.trim()) ?? 0,
+      'shop_id': int.tryParse(_controllers['shop_id']!.text.trim()) ?? 0,
       'user_id': _controllers['user_id']!.text.trim(),
     };
 
-    if (_pickedImageBase64 != null) body['lodge_logo'] = _pickedImageBase64!;
+    if (_pickedImageBase64 != null) body['shop_logo'] = _pickedImageBase64!;
 
     try {
       final res = await http.post(
@@ -301,7 +301,7 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 201 || res.statusCode == 200) {
-        _showMessage("✅ Lodge & Owner Registered Successfully!");
+        _showMessage("✅ Shop & Owner Registered Successfully!");
         await Future.delayed(const Duration(seconds: 3));
 
         if (!mounted) return; // ✅ only this one check is needed
@@ -345,7 +345,7 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: royal,
-        title: const Text("Register Lodge", style: TextStyle(color: Colors.white)),
+        title: const Text("Register Shop", style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -355,10 +355,10 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionTitle("Lodge Details"),
+              _buildSectionTitle("Shop Details"),
               _buildTextField(
-                'lodge_id',
-                'Lodge Id',
+                'shop_id',
+                'Shop Id',
                 type: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
@@ -369,36 +369,36 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
                     _checkHallExists(val);
                   } else {
                     setState(() {
-                      _lodgeExists = false;
-                      _lodgeCheckMessage = "";
+                      _shopExists = false;
+                      _shopCheckMessage = "";
                     });
                   }
                 },
               ),
-              if (_lodgeCheckMessage.isNotEmpty)
+              if (_shopCheckMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
-                    _lodgeCheckMessage,
+                    _shopCheckMessage,
                     style: TextStyle(
-                      color: _lodgeExists ? Colors.red : Colors.green,
+                      color: _shopExists ? Colors.red : Colors.green,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              _buildTextField('lodge_name', 'Lodge Name'),
-              _buildTextField('lodge_phone', 'Lodge Phone',
+              _buildTextField('shop_name', 'Shop Name'),
+              _buildTextField('shop_phone', 'Shop Phone',
                   type: TextInputType.phone,
                   validator: _validateNumeric10,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(10)
                   ]),
-              _buildTextField('lodge_email', 'Lodge Email',
+              _buildTextField('shop_email', 'Shop Email',
                   type: TextInputType.emailAddress, validator: _validateEmail),
-              _buildTextField('lodge_address', 'Lodge Address'),
+              _buildTextField('shop_address', 'Shop Address'),
               const SizedBox(height: 20),
-              _buildSectionTitle("Lodge Logo"),
+              _buildSectionTitle("Shop Logo"),
               Center(
                 child: Column(
                   children: [
@@ -416,7 +416,7 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Tap to upload lodge logo",
+                      "Tap to upload shop logo",
                       style:
                       TextStyle(color: royal.withValues(alpha: 0.7), fontSize: 14),
                     ),

@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 import 'config.dart';
 import 'package:flutter/services.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -24,7 +24,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Map<String, dynamic>? profileData;
   String? errorMessage;
 
-  int? lodgeId;
+  int? shopId;
   String? userId;
   String? role;
 
@@ -69,11 +69,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _initializeProfile() async {
     final prefs = await SharedPreferences.getInstance();
-    lodgeId = prefs.getInt('lodgeId');
+    shopId = prefs.getInt('shopId');
     userId = prefs.getString('userId');
     role = prefs.getString('role');
 
-    if (lodgeId != null && userId != null && role != null) {
+    if (shopId != null && userId != null && role != null) {
       await _fetchProfile();
     } else {
       setState(() => isLoading = false);
@@ -83,7 +83,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _fetchProfile() async {
     try {
-      final url = Uri.parse('$baseUrl/profile/$role/$lodgeId/$userId');
+      final url = Uri.parse('$baseUrl/profile/$role/$shopId/$userId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -111,7 +111,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     setState(() => submitting = true);
 
     try {
-      final url = Uri.parse('$baseUrl/profile/$role/$lodgeId/$userId');
+      final url = Uri.parse('$baseUrl/profile/$role/$shopId/$userId');
       final body = {
         "name": _nameController.text.trim(),
         "phone": _phoneController.text.trim(),
