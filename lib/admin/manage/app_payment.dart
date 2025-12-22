@@ -294,6 +294,7 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
               children:
               paymentHistory.map((p) => _buildHistoryTile(p)).toList(),
             ),
+            const SizedBox(height: 70),
           ],
         ),
       ),
@@ -302,7 +303,7 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
 
   Widget _buildCurrentPaymentCard() {
     final p = currentPayment!;
-    final base = p['BaseAmount'] ?? 0;
+    final base = p['baseAmount'] ?? 0;
     final gst = p['gstAmount'] ?? 0;
     final total = p['totalAmount'] ?? p['amount'] ?? 0;
     final duedate = p['duedate'] ?? p['periodStart'];
@@ -433,7 +434,7 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
         return _statusCard(
           title: "Trial Period",
           rows: [
-            _infoRow("Hall Created", created),
+            _infoRow("Shop Created", created),
             _infoRow("Trial Ends", formatDate(hallDueStr)),
           ],
           statusText: "TRIAL ACTIVE",

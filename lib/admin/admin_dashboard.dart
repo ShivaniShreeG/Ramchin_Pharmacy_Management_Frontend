@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:frontend/admin/booking/services/calender_book.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../public/config.dart';
-import 'booking/services/check_in/checkin.dart';
-import 'booking/accounts/add_income_page.dart';
-import 'booking/accounts/add_expense.dart';
-import 'booking/accounts/view_finance.dart';
-import 'booking/accounts/reports.dart';
-import 'booking/accounts/add_drawing.dart';
+import 'services/accounts/add_income_page.dart';
+import 'services/accounts/add_expense.dart';
+import 'services/accounts/view_finance.dart';
+import 'services/accounts/reports.dart';
+import 'services/accounts/add_drawing.dart';
+import 'services/service/billing.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -274,7 +273,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                   size: buttonSize,
                 ),
-
                 _buildManageButton(
                   icon: Icons.analytics,
                   label: "View Finance",
@@ -324,7 +322,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 Text(
-                  "Billing Service",
+                  "Services",
                   style: TextStyle(
                     color: royal,
                     fontSize: 20,
@@ -349,7 +347,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => SelectRoomByCalendarPage()),
+                          builder: (context) => BillingPage()),
                     );
                   },
                   size: buttonSize,
@@ -358,11 +356,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   icon: Icons.history,
                   label: "Billing History",
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PreBookedListPage()),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => PreBookedListPage()),
+                    // );
                   },
                   size: buttonSize,
                 ),
@@ -370,11 +368,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   icon: Icons.medical_information_rounded,
                   label: "Available Medicines",
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => PreBookedListPage()),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => PreBookedListPage()),
+                    // );
                   },
                   size: buttonSize,
                 ),
@@ -401,22 +399,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: royalLight.withValues(alpha: 0.9),
+              color: royalLight.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: royal,
                 width: 1.5 ,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: royal.withValues(alpha:0.3),
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ],
             ),
             child: Center(
-              child: Icon(icon, size: 32, color:Colors.white),
+              child: Icon(icon, size: 32, color:royal),
             ),
           ),
         ),
@@ -428,7 +419,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style:  TextStyle(
                 color: royal,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,

@@ -3,34 +3,33 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../public/config.dart';
+import '../../../../public/main_navigation.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
 
-class InventoryPage extends StatefulWidget {
-  const InventoryPage({super.key});
+class StockPage extends StatefulWidget {
+  const StockPage({super.key});
 
   @override
-  State<InventoryPage> createState() => _InventoryPageState();
+  State<StockPage> createState() => _StockPageState();
 }
 
-class _InventoryPageState extends State<InventoryPage> {
+class _StockPageState extends State<StockPage> {
   int? shopId;
   List<Map<String, dynamic>> medicines = [];
+  bool isLoading = true;
+  Map<String, dynamic>? shopDetails;
+  int? selectedMedicineId;
+  Map<String, dynamic>? selectedMedicine;
+  String selectedType = 'expired'; // expired | deactivated
 
   bool showAddMedicine = false;
   bool showAddBatch = false;
+  final TextEditingController searchCtrl = TextEditingController();
 
-  Map<String, dynamic>? selectedMedicine;
-  final medicineCtrl = TextEditingController();
-  final qtyCtrl = TextEditingController();
-  final unitCtrl = TextEditingController();
-  final priceCtrl = TextEditingController();
-  final profitCtrl = TextEditingController();
-  final expiryCtrl = TextEditingController();
-  final mfgCtrl = TextEditingController();
+  List<Map<String, dynamic>> filteredMedicines = [];
 
-  double stock = 0, purchase = 0, sell = 0;
   @override
   void initState() {
     super.initState();
@@ -40,379 +39,511 @@ class _InventoryPageState extends State<InventoryPage> {
   Future loadShopId() async {
     final prefs = await SharedPreferences.getInstance();
     shopId = prefs.getInt('shopId');
+    _fetchHallDetails();
     if (shopId != null) fetchMedicines();
     setState(() {});
   }
 
-  Future fetchMedicines() async {
-    final res = await http.get(
-      Uri.parse("$baseUrl/inventory/medicine/shop/$shopId"),
-    );
+  Future<void> updateInventoryStatus({
+    required int medicineId,
+    int? batchId,
+    required bool isActive,
+  }) async {
+    try {
+      await http.patch(
+        Uri.parse("$baseUrl/inventory/status"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "shop_id": shopId,
+          "medicine_id": medicineId,
+          if (batchId != null) "batch_id": batchId,
+          "is_active": isActive,
+        }),
+      );
 
-    final List data = jsonDecode(res.body);
+      fetchMedicines();
+      _showMessage(isActive ? "Activated successfully" : "Deactivated successfully");
 
-    medicines = data.map<Map<String, dynamic>>(
-          (e) => Map<String, dynamic>.from(e),
-    ).toList();
-
-    setState(() {});
+    } catch (e) {
+      _showMessage("Status update failed");
+    }
   }
 
-  Widget actionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              setState(() {
-                showAddMedicine = !showAddMedicine;
-                showAddBatch = false;
-              });
-            },
-            child: Text(showAddMedicine ? "Close Medicine Form" : "Add Medicine"),
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        backgroundColor: royal,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> fetchMedicines() async {
+    if (shopId == null) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      final endpoint = selectedType == 'expired'
+          ? "expired"
+          : "deactivated";
+
+      final url = Uri.parse(
+        "$baseUrl/medicine-batch/$endpoint/$shopId",
+      );
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+
+        setState(() {
+          medicines = data
+              .map<Map<String, dynamic>>(
+                (e) => Map<String, dynamic>.from(e),
+          )
+              .toList();
+
+          filteredMedicines = medicines;
+        });
+      } else {
+        _showMessage("❌ Failed to load $endpoint medicines");
+      }
+    } catch (e) {
+      _showMessage("❌ Error fetching medicines: $e");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  void searchMedicines(String query) {
+    query = query.toLowerCase();
+
+    setState(() {
+      filteredMedicines = medicines.where((medicine) {
+        final nameMatch =
+            medicine['name']?.toLowerCase().contains(query) ?? false;
+
+        final batchMatch = (medicine['batches'] as List).any((batch) {
+          final expiry = batch['expiry_date'];
+          if (expiry == null) return false;
+
+          final formatted = formatDate(expiry).toLowerCase();
+          return expiry.toLowerCase().contains(query) ||
+              formatted.contains(query);
+        });
+
+        return nameMatch || batchMatch;
+      }).toList();
+    });
+  }
+
+  Widget searchBar() {
+    return TextField(
+      controller: searchCtrl,
+      onChanged: searchMedicines,
+      cursorColor: royal,
+      style: TextStyle(color: royal),
+      decoration: InputDecoration(
+        hintText: "Search by medicine name or expiry date",
+        hintStyle: TextStyle(color: royal),
+        prefixIcon: const Icon(Icons.search),
+        prefixIconColor: royal,
+        suffixIcon: searchCtrl.text.isNotEmpty
+            ? IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            searchCtrl.clear();
+            setState(() => filteredMedicines = medicines);
+          },
+        )
+            : null,
+        suffixIconColor: royal,
+        filled: true,
+        fillColor: royal.withValues(alpha: 0.1),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: royal, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: royal, width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _fetchHallDetails() async {
+    try {
+      final url = Uri.parse('$baseUrl/shops/$shopId');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        shopDetails = jsonDecode(response.body);
+      }
+    } catch (e) {
+      _showMessage("Error fetching hall details: $e");
+    } finally {
+      setState(() {});
+    }
+  }
+
+  Widget _buildHallCard(Map<String, dynamic> hall) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      height: 95,
+      decoration: BoxDecoration(
+        color: royal,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: royal, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: royal.withValues(alpha:0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-              setState(() {
-                showAddBatch = !showAddBatch;
-                showAddMedicine = false;
-              });
-            },
-            child: Text(showAddBatch ? "Close Batch Form" : "Add Batch"),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ClipOval(
+            child: hall['logo'] != null
+                ? Image.memory(
+              base64Decode(hall['logo']),
+              width: 70,
+              height: 70,
+              fit: BoxFit.cover,
+            )
+                : Container(
+              width: 70,
+              height: 70,
+              color: Colors.white, // 👈 soft teal background
+              child: const Icon(
+                Icons.home_work_rounded,
+                color: royal,
+                size: 35,
+              ),
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget medicineCard(Map<String, dynamic> m)
-  {
-    return Card(
-      margin: const EdgeInsets.all(8),
-      child: ListTile(
-        title: Text(m['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text("Stock: ${m['stock']}"),
+          Expanded(
+            child: Center(
+              child: Text(
+                hall['name']?.toString().toUpperCase() ?? "HALL NAME",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget addMedicineForm() {
-    final nameCtrl = TextEditingController();
-    final genericCtrl = TextEditingController();
-    final categoryCtrl = TextEditingController();
-    final companyCtrl = TextEditingController();
-    final strengthCtrl = TextEditingController();
-    final dosageCtrl = TextEditingController();
-    final hsnCtrl = TextEditingController();
-    final gstCtrl = TextEditingController();
-    final rackCtrl = TextEditingController();
-    final minStockCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-
-    bool isActive = true;
-
-    return Card(
-      margin: const EdgeInsets.all(10),
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Add Medicine",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Divider(),
-
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: "Medicine Name *",
-              ),
-            ),
-
-            TextField(
-              controller: genericCtrl,
-              decoration: const InputDecoration(
-                labelText: "Generic Name",
-              ),
-            ),
-
-            TextField(
-              controller: categoryCtrl,
-              decoration: const InputDecoration(
-                labelText: "Category *",
-              ),
-            ),
-
-            TextField(
-              controller: companyCtrl,
-              decoration: const InputDecoration(
-                labelText: "Company / Manufacturer",
-              ),
-            ),
-
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: strengthCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "Strength (e.g. 500mg)",
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: dosageCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "Dosage Form",
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: hsnCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "HSN Code",
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: gstCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "GST %",
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: rackCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "Rack No",
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: minStockCtrl,
-                    decoration: const InputDecoration(
-                      labelText: "Min Stock Alert",
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-
-            TextField(
-              controller: noteCtrl,
-              decoration: const InputDecoration(
-                labelText: "Notes",
-              ),
-              maxLines: 2,
-            ),
-
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text("Active"),
-              value: isActive,
-              onChanged: (v) {
-                setState(() => isActive = v);
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameCtrl.text.isEmpty || categoryCtrl.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Name & Category required")),
-                    );
-                    return;
-                  }
-
-                  await http.post(
-                    Uri.parse("$baseUrl/inventory/medicine"),
-                    headers: {"Content-Type": "application/json"},
-                    body: jsonEncode({
-                      "shop_id": shopId,
-                      "name": nameCtrl.text,
-                      "generic_name": genericCtrl.text,
-                      "category": categoryCtrl.text,
-                      "company": companyCtrl.text,
-                      "strength": strengthCtrl.text,
-                      "dosage_form": dosageCtrl.text,
-                      "hsn_code": hsnCtrl.text,
-                      "gst": gstCtrl.text,
-                      "rack_no": rackCtrl.text,
-                      "min_stock": minStockCtrl.text,
-                      "note": noteCtrl.text,
-                      "is_active": isActive,
-                    }),
-                  );
-
-                  fetchMedicines();
-
-                  setState(() {
-                    showAddMedicine = false;
-                  });
-                },
-                child: const Text("Save Medicine"),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void calculate() {
-    final q = double.tryParse(qtyCtrl.text) ?? 0;
-    final u = double.tryParse(unitCtrl.text) ?? 0;
-    final p = double.tryParse(priceCtrl.text) ?? 0;
-    final pr = double.tryParse(profitCtrl.text) ?? 0;
-
-    stock = q * u;
-    purchase = stock * p;
-    sell = p + (p * pr / 100);
-    setState(() {});
-  }
-
-  Widget addBatchForm() {
-    final suggestions = medicines.where((m) =>
-        m['name'].toLowerCase().contains(medicineCtrl.text.toLowerCase())).toList();
-
-    return Card(
-      margin: const EdgeInsets.all(10),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Add Batch", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-
-            TextField(
-              controller: medicineCtrl,
-              decoration: InputDecoration(
-                labelText: "Medicine Name",
-                errorText: selectedMedicine == null && medicineCtrl.text.isNotEmpty
-                    ? "Medicine not found"
-                    : null,
-              ),
-              onChanged: (v) {
-                try {
-                  selectedMedicine = medicines.firstWhere(
-                        (m) => m['name'].toLowerCase() == v.toLowerCase(),
-                  );
-                } catch (e) {
-                  selectedMedicine = null;
-                }
-                setState(() {});
-              },
-            ),
-
-            if (selectedMedicine != null)
-              Card(
-                color: Colors.grey.shade100,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    "Category: ${selectedMedicine!['category']}\n"
-                        "Current Stock: ${selectedMedicine!['stock']}",
-                  ),
-                ),
-              ),
-
-            TextField(controller: qtyCtrl, decoration: const InputDecoration(labelText: "Quantity"), onChanged: (_) => calculate()),
-            TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: "Unit"), onChanged: (_) => calculate()),
-            TextField(controller: priceCtrl, decoration: const InputDecoration(labelText: "Unit Price"), onChanged: (_) => calculate()),
-            TextField(controller: profitCtrl, decoration: const InputDecoration(labelText: "Profit %"), onChanged: (_) => calculate()),
-
-            const SizedBox(height: 8),
-            Text("Stock: $stock"),
-            Text("Purchase: ₹$purchase"),
-            Text("Selling: ₹$sell"),
-
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: selectedMedicine == null ? null : confirmBatch,
-              child: const Text("Review & Confirm"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> confirmBatch() async {
+  void confirmRemove(Map<String, dynamic> batch) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Confirm Batch"),
+      builder: (ctx) => AlertDialog(
+        title: const Text("Remove Batch", style: TextStyle(color: royal)),
         content: Text(
-          "Medicine: ${selectedMedicine!['name']}\n"
-              "Stock: $stock\n"
-              "Purchase: ₹$purchase\n"
-              "Selling: ₹$sell",
+          "Remove batch ${batch['batch_no']} of ${batch['medicine']['name']}?",
+          style: const TextStyle(color: royal),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Confirm")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel", style: TextStyle(color: royal)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Remove", style: TextStyle(color: royal)),
+          ),
         ],
       ),
     );
 
-    if (ok == true) submitBatch();
+    if (ok == true) {
+      removeBatch(batch);
+    }
   }
 
-  Future submitBatch() async {
-    await http.post(
-      Uri.parse("$baseUrl/inventory/medicine/${selectedMedicine!['id']}/batch"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "shop_id": shopId,
-        "batch_no": "AUTO",
-        "quantity": qtyCtrl.text,
-        "unit": unitCtrl.text,
-        "unit_price": priceCtrl.text,
-        "purchase_price": purchase,
-        "selling_price": sell,
-        "stock_quantity": stock.toInt(),
-        "seller_name": "Supplier",
-        "seller_phone": "9999999999",
-        "reason": "Add Batch"
-      }),
-    );
+  Future<void> removeBatch(Map<String, dynamic> batch) async {
+    try {
+      await http.patch(
+        Uri.parse("$baseUrl/medicine-batch/remove/$shopId"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "medicine_id": batch['medicine_id'],
+          "batch_id": batch['id'],
+        }),
+      );
 
-    fetchMedicines();
-    setState(() {
-      showAddBatch = false;
-      selectedMedicine = null;
-    });
+      _showMessage("Batch removed successfully");
+      fetchMedicines();
+    } catch (e) {
+      _showMessage("Failed to remove batch");
+    }
+  }
+
+  Widget batchCardFullUI(Map<String, dynamic> batch) {
+    final medicine = batch['medicine'];
+
+    return Card(
+      elevation: 4,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: royal),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            /// 🔹 Header: Medicine name + REMOVE
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    medicine['name'],
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: royalblue,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => confirmRemove(batch),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+
+            /// 🔹 Chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                badge(Icons.category, "Category", medicine['category'], Colors.orange),
+                badge(Icons.inventory_2, "Stock", batch['total_stock'].toString(), Colors.green),
+                badge(Icons.batch_prediction_outlined, "Batch", batch['batch_no'], Colors.blue),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+            Divider(color: royal.withValues(alpha: 0.4)),
+
+            /// 🔹 Expandable batch details
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: royal.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: royal.withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  dividerColor: Colors.transparent, // ❌ removes default ExpansionTile line
+                ),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  iconColor: royalblue,
+                  collapsedIconColor: royal,
+                  title: const Text(
+                    "Batch Details",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: royal,
+                    ),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        children: [
+                          infoRow("Rack No", batch['rack_no']),
+                          infoRow("Total Stock", batch['total_stock']),
+                          infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
+                          infoRow("Expiry Date", formatDate(batch['expiry_date'])),
+                          infoRow("Quantity", batch['quantity']),
+                          infoRow("Unit", batch['unit']),
+                          infoRow("Unit Price", "₹${batch['unit_price']}"),
+                          infoRow("Selling Price", "₹${batch['selling_price']}"),
+                          infoRow("Profit", batch['profit']),
+                          infoRow("GST", batch['gst']),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+
+            /// 🔹 Purchase details
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: royal.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: royal.withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  dividerColor: Colors.transparent, // 🚫 remove default divider
+                ),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  iconColor: royalblue,
+                  collapsedIconColor: royal,
+                  title: const Text(
+                    "Purchase Details",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: royal,
+                    ),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        children: [
+                          infoRow("Supplier", batch['name']),
+                          infoRow("Phone", batch['phone']),
+                          infoRow("Purchase Price", "₹${batch['purchase_price']}"),
+                          infoRow("Purchase Stock", batch['purchase_stock']),
+                          infoRow(
+                            "Purchased Date",
+                            formatDate(batch['purchased_date']),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget badge(IconData icon, String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            "$label: $value",
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget infoRow(String label, dynamic value) {
+    if (value == null) return const SizedBox.shrink();
+    if (value is String && value.trim().isEmpty) return const SizedBox.shrink();
+    if (value is num && value == 0) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: royalblue,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              ": $value",
+              style: const TextStyle(color: royal),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String safeValue(dynamic value) {
+    if (value == null) return "-";
+    if (value is String && value.trim().isEmpty) return "-";
+    return value.toString();
+  }
+
+  bool shouldShow(dynamic value) {
+    if (value == null) return false;
+    if (value is String && value.trim().isEmpty) return false;
+    if (value is num && value == 0) return false;
+    return true;
+  }
+
+  String formatDate(String? date) {
+    if (date == null || date.isEmpty) return "-";
+    try {
+      final d = DateTime.parse(date);
+      return "${d.day}-${d.month}-${d.year}";
+    } catch (_) {
+      return "-";
+    }
   }
 
   @override
@@ -422,25 +553,79 @@ class _InventoryPageState extends State<InventoryPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Inventory"), backgroundColor: royal),
-      body: SingleChildScrollView(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: royal,
+        title: const Text(
+          "Stock",
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.home, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MainNavigation(initialIndex: 2)),
+              );
+            },
+          ),
+        ],
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator(color: royal))
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child:
         Column(
           children: [
-            Padding(padding: const EdgeInsets.all(8), child: actionButtons()),
-
-            if (showAddMedicine) addMedicineForm(),
-            if (showAddBatch) addBatchForm(),
-
-            const Divider(),
-
+            const SizedBox(height: 10),
+            if (shopDetails != null) _buildHallCard(shopDetails!),
+            const SizedBox(height: 16),
             if (medicines.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(20),
-                child: Text("No medicines found"),
+                child: Text("No medicines found",style: TextStyle(color: royal),),
               ),
-
-            ...medicines.map(medicineCard).toList(),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text("Expired"),
+                    selected: selectedType == 'expired',
+                    selectedColor: Colors.red.withValues(alpha: 0.2),
+                    onSelected: (_) {
+                      setState(() => selectedType = 'expired');
+                      fetchMedicines();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text("Deactivated"),
+                    selected: selectedType == 'deactivated',
+                    selectedColor: Colors.orange.withValues(alpha: 0.2),
+                    onSelected: (_) {
+                      setState(() => selectedType = 'deactivated');
+                      fetchMedicines();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (medicines.isNotEmpty)
+              searchBar(),
+            const SizedBox(height: 18),
+            ...filteredMedicines.map(
+                  (batch) => Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: batchCardFullUI(batch),
+              ),
+            ),
+            const SizedBox(height: 70),
           ],
         ),
 

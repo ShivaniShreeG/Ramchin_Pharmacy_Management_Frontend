@@ -6,6 +6,7 @@ import '../../public/config.dart';
 import 'create_admin.dart';
 import 'app_payment.dart';
 import 'submit.dart';
+import 'stock_management.dart';
 import 'add_medicines.dart';
 
 const Color royalblue = Color(0xFF854929);
@@ -306,12 +307,12 @@ class _OwnerPageState extends State<OwnerPage> {
                   size: buttonSize,
                 ),
                 _buildManageButton(
-                  icon: Icons.stacked_bar_chart_outlined,
-                  label: "Stock Management",
+                  icon: Icons.inventory_2_outlined,
+                  label: "Stock",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const InventoryPage()),
+                      MaterialPageRoute(builder: (context) => const StockPage()),
                     );
                   },
                   size: buttonSize,
@@ -322,7 +323,7 @@ class _OwnerPageState extends State<OwnerPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const InventoryPage()),
+                      MaterialPageRoute(builder: (context) => const StockPage()),
                     );
                   },
                   size: buttonSize,
@@ -350,23 +351,15 @@ class _OwnerPageState extends State<OwnerPage> {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: royalLight.withValues(alpha: 0.9),
+              color: royalLight.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: royal,
                 width: 1.5 ,
               ),
-
-              boxShadow: [
-                BoxShadow(
-                  color: royal.withValues(alpha:0.3),
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
-                ),
-              ],
             ),
             child: Center(
-              child: Icon(icon, size: 32, color:Colors.white),
+              child: Icon(icon, size: 32, color:royal),
             ),
           ),
         ),
@@ -378,7 +371,7 @@ class _OwnerPageState extends State<OwnerPage> {
             child: Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style:  TextStyle(
                 color: royal,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
