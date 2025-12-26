@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../public/config.dart';
 import '../../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class AddDrawingPage extends StatefulWidget {
   const AddDrawingPage({super.key});
@@ -29,7 +29,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
   double currentBalance = 0.0;
 
   List<Map<String, dynamic>> _drawings = [];
-  Map<String, dynamic>? hallDetails;
+  Map<String, dynamic>? shopDetails;
   
   @override
   void initState() {
@@ -39,17 +39,17 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId != null) {
-      await _fetchHallDetails();
+    final shopId = prefs.getInt("shopId");
+    if (shopId != null) {
+      await _fetchShopDetails();
       await _fetchDrawings();
-      await fetchCurrentBalance(lodgeId);
+      await fetchCurrentBalance(shopId);
     }
   }
 
-  Future<void> fetchCurrentBalance(int lodgeId) async {
+  Future<void> fetchCurrentBalance(int shopId) async {
     try {
-      final url = Uri.parse('$baseUrl/home/current-balance/$lodgeId');
+      final url = Uri.parse('$baseUrl/home/current-balance/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -68,11 +68,11 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
 
   Future<void> _fetchDrawings() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId == null) return;
+    final shopId = prefs.getInt("shopId");
+    if (shopId == null) return;
 
     try {
-      final url = Uri.parse("$baseUrl/drawings/lodge/$lodgeId");
+      final url = Uri.parse("$baseUrl/finance/drawing/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -94,10 +94,10 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
     setState(() => _isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
+    final shopId = prefs.getInt("shopId");
     final userId = prefs.getString("userId");
-    if (lodgeId == null || userId == null) {
-      _showMessage("❌ Hall ID or User ID not found");
+    if (shopId == null || userId == null) {
+      _showMessage("❌ Shop ID or User ID not found");
       setState(() => _isLoading = false);
       return;
     }
@@ -110,28 +110,35 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
       return;
     }
 
-    final body = {
-      "lodge_id": lodgeId,
-      "user_id": userId,
-      "reason": _reasonController.text.trim(),
-      "amount": amount,
-      "type": _selectedType,
-    };
-
-
     try {
       http.Response response;
+
       if (_editingDrawingId == null) {
+        // ✅ CREATE (send type)
+        final createBody = {
+          "shop_id": shopId,
+          "user_id": userId,
+          "reason": _reasonController.text.trim(),
+          "amount": amount,
+          "type": _selectedType, // IN / OUT
+        };
+
         response = await http.post(
-          Uri.parse("$baseUrl/drawings"),
+          Uri.parse("$baseUrl/finance/drawing"),
           headers: {"Content-Type": "application/json"},
-          body: jsonEncode(body),
+          body: jsonEncode(createBody),
         );
       } else {
+        // ✅ UPDATE (DO NOT send type/state)
+        final updateBody = {
+          "reason": _reasonController.text.trim(),
+          "amount": amount,
+        };
+
         response = await http.patch(
-          Uri.parse("$baseUrl/drawings/$_editingDrawingId"),
+          Uri.parse("$baseUrl/finance/$_editingDrawingId"),
           headers: {"Content-Type": "application/json"},
-          body: jsonEncode(body),
+          body: jsonEncode(updateBody),
         );
       }
 
@@ -175,7 +182,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
 
   Future<void> _deleteDrawing(int drawingId) async {
     try {
-      final url = Uri.parse("$baseUrl/drawings/$drawingId");
+      final url = Uri.parse("$baseUrl/finance/$drawingId");
       final response = await http.delete(url);
 
       if (response.statusCode == 200) {
@@ -244,7 +251,6 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
               labeledTanRow(
                 label: "Type",
                 child: DropdownButtonFormField<String>(
-
                   initialValue: _selectedType,
                   dropdownColor: Colors.white,
                   decoration: InputDecoration(
@@ -257,18 +263,10 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
                       borderSide: BorderSide(color: royal, width: 2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide:
-                      const BorderSide(color: Colors.redAccent, width: 1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderSide:
-                      const BorderSide(color: Colors.redAccent, width: 2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                     filled: true,
-                    fillColor: royalLight.withValues(alpha: 0.05),
+                    fillColor: _editingDrawingId != null
+                        ? Colors.grey.withValues(alpha: 0.15) // disabled look
+                        : royalLight.withValues(alpha: 0.05),
                   ),
                   style: TextStyle(
                     color: royal,
@@ -277,21 +275,20 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
                   ),
                   iconEnabledColor: royal,
                   items: const [
-                    DropdownMenuItem(
-                      value: "IN",
-                      child: Text("IN"),
-                    ),
-                    DropdownMenuItem(
-                      value: "OUT",
-                      child: Text("OUT"),
-                    ),
+                    DropdownMenuItem(value: "IN", child: Text("IN")),
+                    DropdownMenuItem(value: "OUT", child: Text("OUT")),
                   ],
-                  onChanged: (value) {
+
+                  // ✅ Disable when editing
+                  onChanged: _editingDrawingId != null
+                      ? null
+                      : (value) {
                     setState(() {
                       _selectedType = value!;
                     });
                   },
                 ),
+
               ),
               const SizedBox(height: 16),
               labeledTanRow(
@@ -449,12 +446,12 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: drawing["type"] == "IN"
+                      color: drawing["type"] == "DRAWIN"
                           ? Colors.green.withValues(alpha:0.15)
                           : Colors.red.withValues(alpha:0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: drawing["type"] == "IN"
+                        color: drawing["type"] == "DRAWIN"
                             ? Colors.green
                             : Colors.red,
                         width: 0.6,
@@ -463,7 +460,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
                     child: Text(
                       drawing["type"] ?? "-",
                       style: TextStyle(
-                        color: drawing["type"] == "IN"
+                        color: drawing["type"] == "DRAWIN"
                             ? Colors.green.shade700
                             : Colors.red.shade700,
                         fontWeight: FontWeight.w600,
@@ -542,7 +539,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
     );
   }
 
-  Widget _buildHallCard(Map<String, dynamic> hall) {
+  Widget _buildShopCard(Map<String, dynamic> shop) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       padding: const EdgeInsets.all(16),
@@ -563,9 +560,9 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ClipOval(
-            child: hall['logo'] != null
+            child: shop['logo'] != null
                 ? Image.memory(
-              base64Decode(hall['logo']),
+              base64Decode(shop['logo']),
               width: 70,
               height: 70,
               fit: BoxFit.cover,
@@ -584,7 +581,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
           Expanded(
             child: Center(
               child: Text(
-                hall['name']?.toString().toUpperCase() ?? "LODGE NAME",
+                shop['name']?.toString().toUpperCase() ?? "SHOP NAME",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -601,19 +598,19 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
     );
   }
 
-  Future<void> _fetchHallDetails() async {
+  Future<void> _fetchShopDetails() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt("lodgeId");
+      final shopId = prefs.getInt("shopId");
 
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        hallDetails = jsonDecode(response.body);
+        shopDetails = jsonDecode(response.body);
       }
     } catch (e) {
-      _showMessage("Error fetching lodge details: $e");
+      _showMessage("Error fetching shop details: $e");
     } finally {
       setState(() {});
     }
@@ -649,7 +646,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (hallDetails != null) _buildHallCard(hallDetails!),
+            if (shopDetails != null) _buildShopCard(shopDetails!),
             const SizedBox(height: 16),
             if (!_showForm)
               ElevatedButton(

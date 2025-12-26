@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../public/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'package:flutter/services.dart';
+import 'bill_pdf_page.dart';
+import 'package:intl/intl.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -22,6 +24,10 @@ class _BillingPageState extends State<BillingPage> {
   Map<String, dynamic>? shopDetails;
   final _formKey = GlobalKey<FormState>();
   List<Map<String, dynamic>> billItems = [];
+  List<Map<String, dynamic>> customerSuggestions = [];
+  List<Map<String, dynamic>> customerBills = [];
+  bool showCustomerDropdown = false;
+  bool isFetchingCustomers = false;
 
   final TextEditingController customerCtrl = TextEditingController();
   final TextEditingController phoneCtrl = TextEditingController();
@@ -35,7 +41,8 @@ class _BillingPageState extends State<BillingPage> {
   Map<String, dynamic>? selectedMedicine;
   List<Map<String, dynamic>> selectedBatches = [];
 
-  double billTotal = 0;
+  double previewItemTotal = 0; // qty × price (live preview)
+  double billTotal = 0;        // sum of added items ONLY
 
   String? userId;
 
@@ -43,6 +50,27 @@ class _BillingPageState extends State<BillingPage> {
   void initState() {
     super.initState();
     loadShopId();
+  }
+
+  void clearBillingForm() {
+    _formKey.currentState?.reset();
+
+    customerCtrl.clear();
+    phoneCtrl.clear();
+    doctorCtrl.clear();
+    medicineCtrl.clear();
+    qtyCtrl.clear();
+
+    billItems.clear();
+    medicineSuggestions.clear();
+    selectedBatches.clear();
+
+    selectedMedicine = null;
+    previewItemTotal = 0;
+    billTotal = 0;
+    paymentMode = "CASH";
+
+    setState(() {});
   }
 
   Future loadShopId() async {
@@ -61,12 +89,13 @@ class _BillingPageState extends State<BillingPage> {
     if (query.isEmpty) return;
 
     final res = await http.get(
-      Uri.parse("$baseUrl/medicines/search?shop_id=$shopId&query=$query"),
+      Uri.parse("$baseUrl/medicine/search?shop_id=$shopId&query=$query"),
     );
 
     if (res.statusCode == 200) {
       setState(() {
-        medicineSuggestions = List<Map<String, dynamic>>.from(jsonDecode(res.body));
+        medicineSuggestions =
+        List<Map<String, dynamic>>.from(jsonDecode(res.body));
       });
     }
   }
@@ -107,6 +136,11 @@ class _BillingPageState extends State<BillingPage> {
     );
   }
 
+  static const TextStyle _headerStyle = TextStyle(
+    color: royal,
+    fontWeight: FontWeight.bold,
+  );
+
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -122,6 +156,185 @@ class _BillingPageState extends State<BillingPage> {
         borderSide: const BorderSide(color: royal, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+    );
+  }
+
+  Future<void> fetchCustomersByPhone(String phone) async {
+    if (phone.length != 10) return;
+
+    setState(() {
+      isFetchingCustomers = true;
+    });
+
+    final res = await http.get(
+      Uri.parse(
+        "$baseUrl/billing/customers/by-phone/$shopId?phone=$phone",
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      customerSuggestions =
+      List<Map<String, dynamic>>.from(jsonDecode(res.body));
+
+      showCustomerDropdown = customerSuggestions.isNotEmpty;
+    }
+
+    setState(() {
+      isFetchingCustomers = false;
+    });
+  }
+
+  Future<void> fetchBillsByCustomer(String customerName) async {
+    final res = await http.get(
+      Uri.parse(
+        "$baseUrl/billing/bills/by-customer/$shopId"
+            "?phone=${phoneCtrl.text}&customerName=$customerName",
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      customerBills = List<Map<String, dynamic>>.from(data['bills']);
+    }
+  }
+
+  void _showBillsBottomSheet()
+  {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  /// 🔹 APP BAR
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: royal,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Previous Bills - ${customerCtrl.text}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  /// 🔹 BILL LIST
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: customerBills.length,
+                      itemBuilder: (_, i) {
+                        final bill = customerBills[i];
+                        final DateTime billDate = DateTime.parse(bill['bill_date']);
+                        final String formattedDate = DateFormat('dd MMM yyyy').format(billDate);
+
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: royal, width: 1), // ✅ ROYAL BORDER
+                          ),
+                          color: Colors.white, // ✅ WHITE BACKGROUND
+                          child: ExpansionTile(
+                            collapsedIconColor: royal,
+                            iconColor: royal,
+                            textColor: royal,
+                            collapsedTextColor: royal,
+                            tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            title: Text(
+                              "Bill #${bill['bill_id']}   ₹${bill['total']}",
+                              style: const TextStyle(
+                                color: royal,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  bill['doctor_name'] == null || bill['doctor_name'].toString().trim().isEmpty
+                                      ? "Self"
+                                      : "Doctor: ${bill['doctor_name']}",
+                                  style: const TextStyle(color: Colors.black87),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Date: $formattedDate",
+                                  style:  TextStyle(
+                                    color: royal.withValues(alpha: 0.9),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            children: bill['items'].map<Widget>((item)
+                            {
+                              final int qty = item['quantity'];
+                              final double price = (item['unit_price'] as num).toDouble();
+                              final double total = qty * price;
+                              return ListTile(
+                                dense: true,
+                                title: Text(item['medicine_name']),
+                                trailing: Text(
+                                  "${item['quantity']} × ₹${item['unit_price']}=  ₹$total",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -143,54 +356,23 @@ class _BillingPageState extends State<BillingPage> {
     );
   }
 
-  void calculateFromQuantity(int requestedQty) {
-    int remainingQty = requestedQty;
-    billTotal = 0;
-
-    for (final batch in selectedBatches) {
-      if (remainingQty <= 0) break;
-
-      int batchAvailableQty =
-      (batch['total_stock'] / batch['unit']).floor();
-
-      int usedQty = remainingQty > batchAvailableQty
-          ? batchAvailableQty
-          : remainingQty;
-
-      billTotal += usedQty * batch['selling_price'];
-
-      remainingQty -= usedQty;
+  void calculateFromQuantity(int qty) {
+    if (selectedBatches.isEmpty || qty <= 0) {
+      previewItemTotal = 0;
+      setState(() {});
+      return;
     }
 
-    if (remainingQty > 0) {
-      _showMessage("Insufficient stock across batches");
-    }
+    final double sellingPrice =
+    (selectedBatches.first['selling_price'] as num).toDouble();
+
+    previewItemTotal = qty * sellingPrice;
 
     setState(() {});
   }
 
   Future<void> submitBill() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final items = <Map<String, dynamic>>[];
-    int remainingQty = int.parse(qtyCtrl.text);
-
-    for (final batch in selectedBatches) {
-      if (remainingQty <= 0) break;
-
-      int availableQty = (batch['total_stock'] / batch['unit']).floor();
-      int usedQty = remainingQty > availableQty ? availableQty : remainingQty;
-
-      items.add({
-        "medicine_id": selectedMedicine!['id'],
-        "batch_id": batch['id'],
-        "quantity": usedQty,
-        "unit_price": batch['selling_price'],
-        "total_price": usedQty * batch['selling_price'],
-      });
-
-      remainingQty -= usedQty;
-    }
 
     final body = {
       "shop_id": shopId,
@@ -202,6 +384,7 @@ class _BillingPageState extends State<BillingPage> {
       "payment_mode": paymentMode,
       "items": billItems.map((e) => {
         "medicine_id": e['medicine_id'],
+        "medicine_name":e['medicine_name'],
         "batch_id": e['batch_id'],
         "quantity": e['quantity'],
         "unit_price": e['unit_price'],
@@ -209,13 +392,37 @@ class _BillingPageState extends State<BillingPage> {
       }).toList(),
     };
 
-    await http.post(
-      Uri.parse("$baseUrl/billing"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(body),
-    );
+    try {
+      final res = await http.post(
+        Uri.parse("$baseUrl/billing"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
 
-    _showMessage("Bill created successfully");
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final response = jsonDecode(res.body);
+
+        _showMessage("Bill created successfully");
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BillDetailsPage(
+              item: body, // ✅ contains medicine_name
+              billData: response,
+              shopDetails: shopDetails,
+              userId: userId,
+            ),
+          ),
+        );
+        clearBillingForm();
+
+      } else {
+        _showMessage("Failed to create bill: ${res.statusCode}");
+      }
+    } catch (e) {
+      _showMessage("Error: $e");
+    }
   }
 
   Future<void> _fetchHallDetails() async {
@@ -296,49 +503,88 @@ class _BillingPageState extends State<BillingPage> {
       return;
     }
 
-    int remainingQty = int.parse(qtyCtrl.text);
+    final qty = int.parse(qtyCtrl.text);
+    final batch = selectedBatches.first;
+    final int availableQty = batch['available_qty'];
 
-    for (final batch in selectedBatches) {
-      if (remainingQty <= 0) break;
-
-      int availableQty = (batch['total_stock'] / batch['unit']).floor();
-      int usedQty = remainingQty > availableQty ? availableQty : remainingQty;
-
-      final itemTotal = usedQty * batch['selling_price'];
-
-      billItems.add({
-        "medicine_id": selectedMedicine!['id'],
-        "medicine_name": selectedMedicine!['name'],
-        "batch_id": batch['id'],
-        "quantity": usedQty,
-        "unit_price": batch['selling_price'],
-        "total_price": itemTotal,
-      });
-
-      remainingQty -= usedQty;
-    }
-
-    if (remainingQty > 0) {
-      _showMessage("Insufficient stock");
+    if (qty > availableQty) {
+      _showMessage("Quantity exceeds available stock");
       return;
     }
 
-    /// reset inputs
+    final double unitPrice =
+    (batch['selling_price'] as num).toDouble();
+
+    final double total = qty * unitPrice;
+
+
+    billItems.add({
+      "medicine_id": selectedMedicine!['id'],
+      "medicine_name": selectedMedicine!['name'],
+      "batch_id": batch['id'],
+      "quantity": qty,
+      "unit_price": unitPrice,
+      "total_price": total,
+    });
+
     medicineCtrl.clear();
     qtyCtrl.clear();
     selectedMedicine = null;
     selectedBatches.clear();
+    previewItemTotal = 0;
 
     calculateBillTotal();
-
     setState(() {});
   }
 
   void calculateBillTotal() {
     billTotal = 0;
     for (final item in billItems) {
-      billTotal += item['total_price'];
+      billTotal += (item['total_price'] as num).toDouble();
     }
+  }
+
+  void editBillItem(int index) {
+    final TextEditingController editQtyCtrl =
+    TextEditingController(text: billItems[index]['quantity'].toString());
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Edit Quantity",style: TextStyle(color: royal),),
+        content: TextField(
+          controller: editQtyCtrl,
+          cursorColor: royal,
+          style: TextStyle(color: royal),
+          keyboardType: TextInputType.number,
+          decoration: _inputDecoration("Quantity"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel",style: TextStyle(color: royal),),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: royal,foregroundColor: Colors.white),
+            onPressed: () {
+              final newQty = int.tryParse(editQtyCtrl.text) ?? 0;
+              if (newQty <= 0) return;
+
+              final double unitPrice =
+              (billItems[index]['unit_price'] as num).toDouble();
+
+              billItems[index]['quantity'] = newQty;
+              billItems[index]['total_price'] = newQty * unitPrice;
+
+              calculateBillTotal();
+              setState(() {});
+              Navigator.pop(context);
+            },
+            child: const Text("Update"),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _sectionCard({
@@ -376,6 +622,7 @@ class _BillingPageState extends State<BillingPage> {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -423,7 +670,56 @@ class _BillingPageState extends State<BillingPage> {
                 child: Column(
                   children: [
                     labeledField(
-                      label: "Customer",
+                      label: "Phone",
+                      field: TextFormField(
+                        controller: phoneCtrl,
+                        cursorColor: royal,
+                        style: TextStyle(color: royal),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        decoration: _inputDecoration("Phone number"),
+                        onChanged: (val) {
+                          fetchCustomersByPhone(val);
+                        },
+                      ),
+                    ),
+                    if (showCustomerDropdown)
+                      Container(
+                        margin: const EdgeInsets.only(top: 6),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: royal.withValues(alpha: 0.4)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: customerSuggestions.length,
+                          itemBuilder: (_, i) {
+                            final c = customerSuggestions[i];
+                            return ListTile(
+                              title: Text(
+                                c['customer_name'],
+                                style: const TextStyle(color: royal),
+                              ),
+                              subtitle: Text(
+                                "Last visit: ${c['last_bill_date'].toString().substring(0, 10)}",
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              onTap: () {
+                                customerCtrl.text = c['customer_name'];
+                                showCustomerDropdown = false;
+
+                                setState(() {});
+                              },
+                            );
+                          },
+                        ),
+                      ),
+
+                    labeledField(
+                      label: "Customer Name",
                       field: TextFormField(
                         controller: customerCtrl,
                         style: TextStyle(color: royal),
@@ -433,20 +729,36 @@ class _BillingPageState extends State<BillingPage> {
                         v == null || v.isEmpty ? "Required" : null,
                       ),
                     ),
-                    labeledField(
-                      label: "Phone",
-                      field: TextFormField(
-                        controller: phoneCtrl,
-                        cursorColor: royal,
-                        style: TextStyle(color: royal),
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly, // Only digits allowed
-                          LengthLimitingTextInputFormatter(10),   // Max 10 digits
-                        ],
-                        decoration: _inputDecoration("Phone number"),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        icon: const Icon(Icons.history, color: royal),
+                        label: const Text(
+                          "View Previous Bills",
+                          style: TextStyle(
+                            color: royal,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onPressed: () async {
+                          if (phoneCtrl.text.length != 10 || customerCtrl.text.isEmpty) {
+                            _showMessage("Enter phone number and customer name");
+                            return;
+                          }
+
+                          await fetchBillsByCustomer(customerCtrl.text);
+
+                          if (customerBills.isEmpty) {
+                            _showMessage("No previous bills found");
+                            return;
+                          }
+
+                          _showBillsBottomSheet();
+                        },
                       ),
                     ),
+
+
                     labeledField(
                       label: "Doctor",
                       field: TextFormField(
@@ -462,7 +774,6 @@ class _BillingPageState extends State<BillingPage> {
 
               const SizedBox(height: 16),
 
-              /// 💊 BILL ITEMS STACK
               _sectionCard(
                 title: "Bill Items",
                 child: Column(
@@ -471,6 +782,8 @@ class _BillingPageState extends State<BillingPage> {
                       label: "Medicine",
                       field: TextFormField(
                         controller: medicineCtrl,
+                        cursorColor: royal,
+                        style: TextStyle(color: royal),
                         decoration: _inputDecoration("Search medicine"),
                         onChanged: fetchMedicines,
                       ),
@@ -483,16 +796,90 @@ class _BillingPageState extends State<BillingPage> {
                       itemCount: medicineSuggestions.length,
                       itemBuilder: (_, i) {
                         final med = medicineSuggestions[i];
-                        return ListTile(
-                          dense: true,
-                          title: Text(med['name']),
+                        final batches = med['batches'] as List<dynamic>;
+
+                        return InkWell(
                           onTap: () async {
                             selectedMedicine = med;
                             medicineCtrl.text = med['name'];
                             medicineSuggestions.clear();
-                            await fetchBatches(med['id']);
+
+                            /// batches already available — no need refetch
+                            selectedBatches = List<Map<String, dynamic>>.from(batches);
+
+
                             setState(() {});
                           },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: royal.withValues(alpha: 0.4)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: royal.withValues(alpha: 0.12),
+                                  blurRadius: 4,
+                                )
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                /// Medicine Name
+                                Text(
+                                  med['name'],
+                                  style: const TextStyle(
+                                    color: royal,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 6),
+
+                                /// Batch Info
+                                Column(
+                                  children: batches.map((b) {
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 2),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "Batch: ${b['batch_no']}",
+                                            style: const TextStyle(fontSize: 13),
+                                          ),
+                                          Text(
+                                            "Stock: ${b['available_qty']}",
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: b['available_qty'] > 0
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                const Text(
+                                  "FIFO applied automatically",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -501,41 +888,133 @@ class _BillingPageState extends State<BillingPage> {
                       label: "Quantity",
                       field: TextFormField(
                         controller: qtyCtrl,
+                        cursorColor: royal,
+                        style: TextStyle(color: royal),
                         keyboardType: TextInputType.number,
                         decoration: _inputDecoration("Qty"),
                         onChanged: (val) {
-                          final q = int.tryParse(val) ?? 0;
-                          calculateFromQuantity(q);
+                          final enteredQty = int.tryParse(val) ?? 0;
+
+                          if (selectedBatches.isEmpty) return;
+
+                          final int availableQty = selectedBatches.first['available_qty'];
+
+                          if (enteredQty > availableQty) {
+                            qtyCtrl.text = availableQty.toString();
+                            qtyCtrl.selection = TextSelection.fromPosition(
+                              TextPosition(offset: qtyCtrl.text.length),
+                            );
+
+                            _showMessage("Only $availableQty units available in this batch");
+                            calculateFromQuantity(availableQty);
+                            return;
+                          }
+
+                          calculateFromQuantity(enteredQty);
                         },
                       ),
                     ),
-                    if (billItems.isNotEmpty)
-                      Column(
-                        children: billItems.map((item) {
-                          return Card(
-                            elevation: 2,
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            child: ListTile(
-                              title: Text(
-                                item['medicine_name'],
-                                style: const TextStyle(
-                                  color: royal,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: Text(
-                                "Qty: ${item['quantity']}  ×  ₹${item['unit_price']}",
-                              ),
-                              trailing: Text(
-                                "₹ ${item['total_price']}",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                    if (previewItemTotal > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            "Item Total: ₹ ${previewItemTotal.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              color: royal,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    if (billItems.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+
+                      /// 🔹 TABLE HEADER
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: royal.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Expanded(flex: 3, child: Text("Medicine", style: _headerStyle)),
+                            Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.center, style: _headerStyle)),
+                            Expanded(flex: 2, child: Text("Price", textAlign: TextAlign.right, style: _headerStyle)),
+                            Expanded(flex: 2, child: Text("Total", textAlign: TextAlign.right, style: _headerStyle)),
+                            Expanded(flex: 1, child: Text("")),
+                          ],
+                        ),
+                      ),
+
+                      /// 🔹 TABLE ROWS (FIXED)
+                      ...billItems.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+
+                        return InkWell(
+                          onTap: () => editBillItem(index),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.black12),
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: Text(
+                                    item['medicine_name'],
+                                    style: const TextStyle(color: royal),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 1,
+                                  child: Text(
+                                    item['quantity'].toString(),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    "₹${item['unit_price']}",
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    "₹${item['total_price']}",
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 1,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red,),
+                                    onPressed: () {
+                                      billItems.removeAt(index);
+                                      calculateBillTotal();
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -557,25 +1036,34 @@ class _BillingPageState extends State<BillingPage> {
                     const SizedBox(height: 10),
 
                     /// TOTAL
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Total",
-                          style: TextStyle(
-                            color: royal,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: royal.withValues(alpha: 0.4), width: 1.2),
                         ),
-                        Text(
-                          "₹ ${billTotal.toStringAsFixed(2)}",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Grand Total",
+                            style: TextStyle(
+                              color: royal,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                          Text(
+                            "₹ ${billTotal.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: royal,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 10),
@@ -617,7 +1105,6 @@ class _BillingPageState extends State<BillingPage> {
 
               const SizedBox(height: 30),
 
-              /// ✅ SUBMIT BUTTON
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -630,7 +1117,7 @@ class _BillingPageState extends State<BillingPage> {
                   ),
                   onPressed: submitBill,
                   child: const Text(
-                    "Create Bill",
+                    "Submit",
                     style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),

@@ -6,9 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../public/config.dart';
 import '../../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class ViewFinancePage extends StatefulWidget {
   const ViewFinancePage({super.key});
@@ -23,7 +23,7 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
   List<Map<String, dynamic>> _expenses = [];
   List<Map<String, dynamic>> billings = [];
   List<Map<String, dynamic>> _filteredData = [];
-  Map<String, dynamic>? hallDetails;
+  Map<String, dynamic>? shopDetails;
   List<Map<String, dynamic>> bookings = [];
   List<Map<String, dynamic>> _incomes = [];
   List<Map<String, dynamic>> _drawing = [];
@@ -72,20 +72,20 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId != null) {
-      await _fetchHallDetails();
+    final shopId = prefs.getInt("shopId");
+    if (shopId != null) {
+      await _fetchShopDetails();
       await Future.wait([
-        _fetchExpenses(lodgeId),
-        _fetchIncomes(lodgeId),
-        _fetchDrawing(lodgeId)
+        _fetchExpenses(shopId),
+        _fetchIncomes(shopId),
+        _fetchDrawing(shopId)
       ]);
       _filterCombinedData();
     }
   }
-  Future<void> _fetchDrawing(int lodgeId) async {
+  Future<void> _fetchDrawing(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/drawings/lodge/$lodgeId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/drawing/$shopId"));
       if (response.statusCode == 200) {
         _drawing = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
@@ -94,9 +94,9 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
     }
   }
 
-  Future<void> _fetchIncomes(int lodgeId) async {
+  Future<void> _fetchIncomes(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/income/all/$lodgeId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/income/$shopId"));
       if (response.statusCode == 200) {
         _incomes = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
@@ -105,9 +105,9 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
     }
   }
 
-  Future<void> _fetchExpenses(int lodgeId) async {
+  Future<void> _fetchExpenses(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/expenses/all/$lodgeId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/expense/$shopId"));
       if (response.statusCode == 200) {
         _expenses = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
@@ -179,7 +179,7 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
         return date != null &&
             date.month == _selectedMonth.month &&
             date.year == _selectedMonth.year &&
-            (d["type"].toString().toLowerCase() == "in");
+            (d["type"].toString().toLowerCase() == "drawin");
       }).map((d) => {
         "type": "Drawing In",
         "title": d["reason"] ?? "Drawing In",
@@ -194,7 +194,7 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
         return date != null &&
             date.month == _selectedMonth.month &&
             date.year == _selectedMonth.year &&
-            (d["type"].toString().toLowerCase() == "out");
+            (d["type"].toString().toLowerCase() == "drawout");
       }).map((d) => {
         "type": "Drawing Out",
         "title": d["reason"] ?? "Drawing Out",
@@ -508,7 +508,7 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
     );
   }
   
-  Widget _buildHallCard(Map<String, dynamic> hall) {
+  Widget _buildShopCard(Map<String, dynamic> shop) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       padding: const EdgeInsets.all(16),
@@ -529,9 +529,9 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ClipOval(
-            child: hall['logo'] != null
+            child: shop['logo'] != null
                 ? Image.memory(
-              base64Decode(hall['logo']),
+              base64Decode(shop['logo']),
               width: 70,
               height: 70,
               fit: BoxFit.cover,
@@ -550,7 +550,7 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
           Expanded(
             child: Center(
               child: Text(
-                hall['name']?.toString().toUpperCase() ?? "LODGE NAME",
+                shop['name']?.toString().toUpperCase() ?? "SHOP NAME",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -567,19 +567,19 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
     );
   }
 
-  Future<void> _fetchHallDetails() async {
+  Future<void> _fetchShopDetails() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt("lodgeId");
+      final shopId = prefs.getInt("shopId");
 
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        hallDetails = jsonDecode(response.body);
+        shopDetails = jsonDecode(response.body);
       }
     } catch (e) {
-      _showMessage("Error fetching lodge details: $e");
+      _showMessage("Error fetching shop details: $e");
     } finally {
       setState(() {});
     }
@@ -653,7 +653,7 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (hallDetails != null) _buildHallCard(hallDetails!),
+            if (shopDetails != null) _buildShopCard(shopDetails!),
             const SizedBox(height: 16),
             _buildMonthPickerButton(),
             const SizedBox(height: 10),

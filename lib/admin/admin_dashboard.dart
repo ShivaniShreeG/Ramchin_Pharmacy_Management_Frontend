@@ -9,6 +9,11 @@ import 'services/accounts/view_finance.dart';
 import 'services/accounts/reports.dart';
 import 'services/accounts/add_drawing.dart';
 import 'services/service/billing.dart';
+import 'services/service/billing_history.dart';
+import 'services/service/medicine_history.dart';
+import 'services/service/sales_summary.dart';
+import 'services/service/medicine_values.dart';
+import 'services/service/available_medicine.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -23,7 +28,10 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   Map<String, dynamic>? selectedHall;
-  bool _isLoading = true;
+  String? shopName;
+  String? shopAddress;
+  String? shopLogo;
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -59,30 +67,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final prefs = await SharedPreferences.getInstance();
     final shopId = prefs.getInt('shopId');
     if (shopId != null) {
-      await fetchHallDetails(shopId);
+      await _fetchHallData();
     } else {
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
       _showMessage("No shop ID found in saved data", isError: true);
     }
   }
 
-  Future<void> fetchHallDetails(int shopId) async {
+  Future<void> _fetchHallData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final shopId = prefs.getInt("shopId");
+
+    if (shopId == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
     try {
-      final url = Uri.parse('$baseUrl/shops/$shopId');
+      final url = Uri.parse("$baseUrl/shops/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
         setState(() {
-          selectedHall = jsonDecode(response.body);
-          _isLoading = false;
+          shopName = data["name"];
+          shopAddress = data["address"];
+          shopLogo = data["logo"];
+          isLoading = false;
         });
       } else {
-        setState(() => _isLoading = false);
-        _showMessage("Failed to load shop details (Code: ${response.statusCode})", isError: true);
+        setState(() => isLoading = false);
       }
     } catch (e) {
-      setState(() => _isLoading = false);
-      _showMessage("Error connecting to server: $e", isError: true);
+      setState(() => isLoading = false);
     }
   }
 
@@ -91,12 +109,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final size = MediaQuery.of(context).size;
     final double screenWidth = size.width;
     final double screenHeight = size.height;
-    double textScale = (screenWidth / 390).clamp(0.8, 1.4);
+    // double textScale = (screenWidth / 390).clamp(0.8, 1.4);
     double boxScale  = (screenHeight / 840).clamp(0.8, 1.4);
 
     return Scaffold(
       backgroundColor: royalLight.withValues(alpha: 0.2),
-      body: _isLoading
+      body: isLoading
           ? const Center(
         child: CircularProgressIndicator(color: royal),
       )
@@ -104,11 +122,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         child: Container(padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            if (selectedHall != null)
-              Align(
-                alignment: Alignment.center,
-                child: _buildHallCard(selectedHall!, textScale, boxScale,screenWidth),
-              ),
+            _buildHallCard(),
             SizedBox(height: 20 * boxScale),
             Align(
               alignment: Alignment.center,
@@ -129,16 +143,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildHallCard(
-      Map<String, dynamic> hall,
-      double textScale,
-      double boxScale,
-      double screenWidth,
-      ) {
+  Widget _buildHallCard() {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive scale: phones → small, tablets/desktops → bigger
+    double textScale = (screenWidth / 390).clamp(0.8, 1.4);
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20 * boxScale),
+        borderRadius: BorderRadius.circular(20),
         side: const BorderSide(
           color: royal,
           width: 1.5,
@@ -146,42 +160,48 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       color: Colors.white,
       child: Padding(
-        padding: EdgeInsets.all(16 * boxScale),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: (screenWidth > 900 ? 40 : 40) * boxScale,
+              radius: 25 * textScale,
               backgroundColor: royalLight,
-              backgroundImage: hall['logo'] != null
-                  ? MemoryImage(base64Decode(hall['logo']))
+              backgroundImage: (shopLogo != null && shopLogo!.isNotEmpty)
+                  ? MemoryImage(base64Decode(shopLogo!))
                   : null,
-              child: hall['logo'] == null
-                  ? Icon(Icons.home_work_rounded,
-                  size: (screenWidth > 900 ? 40 : 40) * boxScale,
-                  color: royal)
+              child: (shopLogo == null || shopLogo!.isEmpty)
+                  ? Icon(
+                Icons.home_work_rounded,
+                size: 25 * textScale,
+                color: royal,
+              )
                   : null,
             ),
-            SizedBox(width: 16 * boxScale),
+
+            SizedBox(width: 16 * textScale),
+
             Flexible(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    hall['name'] ?? 'No Name',
+                    shopName ?? "Unknown Shop",
                     style: TextStyle(
-                      fontSize: 18 * textScale,
+                      fontSize: 18 * textScale,   // ⬅ Responsive Title
                       fontWeight: FontWeight.bold,
                       color: royal,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4 * boxScale),
+
+                  SizedBox(height: 4 * textScale),
+
                   Text(
-                    hall['address'] ?? 'No Address',
+                    shopAddress ?? "No address available",
                     style: TextStyle(
-                      fontSize: 14 * textScale,
+                      fontSize: 14 * textScale,   // ⬅ Responsive Address
                       color: royal,
                     ),
                     maxLines: 3,
@@ -356,23 +376,61 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   icon: Icons.history,
                   label: "Billing History",
                   onTap: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //       builder: (context) => PreBookedListPage()),
-                    // );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => BillingHistoryPage()),
+                    );
                   },
                   size: buttonSize,
                 ),
                 _buildManageButton(
                   icon: Icons.medical_information_rounded,
+                  label: "Medicines History",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MedicineHistoryPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.bar_chart,
+                  label: "Sales Report",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SalesReportPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.medical_services, // ✅ medicine-related icon
+                  label: "Medicine Value",      // Button label
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MedicineValuePage(), // your medicine value page
+                      ),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+
+                _buildManageButton(
+                  icon: Icons.add_box,
                   label: "Available Medicines",
                   onTap: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //       builder: (context) => PreBookedListPage()),
-                    // );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => AvailableMedicinePage()),
+                    );
                   },
                   size: buttonSize,
                 ),

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../public/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -28,16 +29,19 @@ class _InventoryPageState extends State<InventoryPage> {
   bool showAddBatch = false;
   final medicineCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
+  final reorderCtrl = TextEditingController(text: '10');
   final unitCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
   final profitCtrl = TextEditingController();
   final expiryCtrl = TextEditingController();
   final mfgCtrl = TextEditingController();
   final TextEditingController searchCtrl = TextEditingController();
+  final batchCtrl = TextEditingController();
 
   List<Map<String, dynamic>> filteredMedicines = [];
-
+  double totalPurchasePrice = 0;
   double stock = 0, purchase = 0, sell = 0;
+
   final List<String> medicineCategories = [
     "Tablets",
     "Syrups",
@@ -47,6 +51,10 @@ class _InventoryPageState extends State<InventoryPage> {
     "Soap",
     "Other",
   ];
+  bool isEditingProfit = false;
+  bool isEditingSelling = false;
+  Timer? debounce;
+  bool isBatchTaken = false;
 
   @override
   void initState() {
@@ -60,6 +68,78 @@ class _InventoryPageState extends State<InventoryPage> {
     _fetchHallDetails();
     if (shopId != null) fetchMedicines();
     setState(() {});
+  }
+
+  Future<void> _fetchHallDetails() async {
+    try {
+      final url = Uri.parse('$baseUrl/shops/$shopId');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        shopDetails = jsonDecode(response.body);
+      }
+    } catch (e) {
+      _showMessage("Error fetching hall details: $e");
+    } finally {
+      setState(() {});
+    }
+  }
+
+  Widget _buildHallCard(Map<String, dynamic> hall) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      height: 95,
+      decoration: BoxDecoration(
+        color: royal,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: royal, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: royal.withValues(alpha:0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ClipOval(
+            child: hall['logo'] != null
+                ? Image.memory(
+              base64Decode(hall['logo']),
+              width: 70,
+              height: 70,
+              fit: BoxFit.cover,
+            )
+                : Container(
+              width: 70,
+              height: 70,
+              color: Colors.white, // 👈 soft teal background
+              child: const Icon(
+                Icons.home_work_rounded,
+                color: royal,
+                size: 35,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                hall['name']?.toString().toUpperCase() ?? "HALL NAME",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> updateInventoryStatus({
@@ -158,225 +238,6 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
-  Widget searchBar() {
-    return TextField(
-      controller: searchCtrl,
-      onChanged: searchMedicines,
-      cursorColor: royal,
-      style: TextStyle(color: royal),
-      decoration: InputDecoration(
-        hintText: "Search by medicine name or expiry date",
-        hintStyle: TextStyle(color: royal),
-        prefixIcon: const Icon(Icons.search),
-        prefixIconColor: royal,
-        suffixIcon: searchCtrl.text.isNotEmpty
-            ? IconButton(
-          icon: const Icon(Icons.clear),
-          onPressed: () {
-            searchCtrl.clear();
-            setState(() => filteredMedicines = medicines);
-          },
-        )
-            : null,
-        suffixIconColor: royal,
-        filled: true,
-        fillColor: royal.withValues(alpha: 0.1),
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: royal, width: 1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: royal, width: 2),
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
-  Widget medicineAutocomplete(void Function(VoidCallback fn) setLocalState) {
-    return RawAutocomplete<Map<String, dynamic>>(
-      textEditingController: medicineCtrl,
-      focusNode: FocusNode(),
-      optionsBuilder: (TextEditingValue value) {
-        if (value.text.isEmpty) return [];
-        return medicines.where(
-              (m) => m['name']
-              .toLowerCase()
-              .contains(value.text.toLowerCase()),
-        );
-      },
-      displayStringForOption: (m) => m['name'],
-      onSelected: (m) {
-        setLocalState(() {
-          selectedMedicine = m;
-          selectedMedicineId = m['id'];
-        });
-      },
-      fieldViewBuilder: (context, controller, focusNode, _) {
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          cursorColor: royal,
-          style: const TextStyle(color: royal),
-          decoration: _inputDecoration("Medicine Name"),
-        );
-      },
-      optionsViewBuilder: (context, onSelected, options) {
-        return Material(
-          elevation: 4,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: options.length,
-            itemBuilder: (context, i) {
-              final m = options.elementAt(i);
-              return ListTile(
-                title: Text(m['name']),
-                subtitle: Text("Stock: ${m['stock']}"),
-                onTap: () => onSelected(m),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _fetchHallDetails() async {
-    try {
-      final url = Uri.parse('$baseUrl/shops/$shopId');
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        shopDetails = jsonDecode(response.body);
-      }
-    } catch (e) {
-      _showMessage("Error fetching hall details: $e");
-    } finally {
-      setState(() {});
-    }
-  }
-
-  Widget _buildHallCard(Map<String, dynamic> hall) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      height: 95,
-      decoration: BoxDecoration(
-        color: royal,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: royal, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: royal.withValues(alpha:0.15),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ClipOval(
-            child: hall['logo'] != null
-                ? Image.memory(
-              base64Decode(hall['logo']),
-              width: 70,
-              height: 70,
-              fit: BoxFit.cover,
-            )
-                : Container(
-              width: 70,
-              height: 70,
-              color: Colors.white, // 👈 soft teal background
-              child: const Icon(
-                Icons.home_work_rounded,
-                color: royal,
-                size: 35,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                hall['name']?.toString().toUpperCase() ?? "HALL NAME",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  final ButtonStyle outlinedRoyalButton = ElevatedButton.styleFrom(
-    backgroundColor: Colors.white, // white background
-    foregroundColor: royal,        // text & icon color
-    elevation: 0,
-    side: const BorderSide(color: royal, width: 1.5),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10),
-    ),
-    padding: const EdgeInsets.symmetric(vertical: 14),
-  );
-
-  Widget actionButtons() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                style: outlinedRoyalButton,
-                onPressed: () {
-                  setState(() {
-                    showAddMedicine = !showAddMedicine;
-                    showAddBatch = false;
-                  });
-                },
-                child: Text(
-                  showAddMedicine ? "Close Medicine Form" : "Add Medicine",
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton(
-                style: outlinedRoyalButton,
-                onPressed: () {
-                  setState(() {
-                    showAddBatch = !showAddBatch;
-                    showAddMedicine = false;
-                  });
-                },
-                child: Text(
-                  showAddBatch ? "Close Batch Form" : "Add Batch",
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 12),
-
-        // 🔹 Bulk Upload Button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: outlinedRoyalButton,
-            icon: const Icon(Icons.upload_file),
-            label: const Text("Bulk Upload (Excel)"),
-            onPressed: (){},
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget medicineCard(Map<String, dynamic> medicine) {
     final batches = medicine['batches'] as List<dynamic>;
 
@@ -384,7 +245,7 @@ class _InventoryPageState extends State<InventoryPage> {
       elevation: 4,
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16),
-      side: BorderSide(color:royal )),
+          side: BorderSide(color:royal )),
       shadowColor: royal.withValues(alpha: 0.2),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -489,6 +350,8 @@ class _InventoryPageState extends State<InventoryPage> {
                   badge(Icons.inventory_2, "Stock", medicine['stock'].toString(), Colors.green),
                 if (shouldShow(medicine['ndc_code']))
                   badge(Icons.qr_code, "NDC", medicine['ndc_code'], Colors.blue),
+                if (shouldShow(medicine['reorder']))
+                  badge(Icons.restart_alt, "Re-Order", medicine['reorder'].toString(), Colors.red),
               ],
             ),
             const SizedBox(height: 12),
@@ -596,8 +459,8 @@ class _InventoryPageState extends State<InventoryPage> {
                               style: const TextStyle(fontWeight: FontWeight.bold,color: royal),
                             ),
                             TextSpan(
-                              text:
-                              "\n\nDo you want to ${val ? "activate" : "deactivate"} this batch?",
+                                text:
+                                "\n\nDo you want to ${val ? "activate" : "deactivate"} this batch?",
                                 style: TextStyle(color: royal)
                             ),
                           ],
@@ -665,6 +528,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                         infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
                                       if (shouldShow(batch['expiry_date']))
                                         infoRow("Expiry Date", formatDate(batch['expiry_date'])),
+                                      if (shouldShow(batch['HSN']))
+                                        infoRow("HSN Code", batch['HSN'] ?? "-"),
                                       if (shouldShow(batch['quantity']))
                                         infoRow("Quantity", batch['quantity'].toString()),
                                       if (shouldShow(batch['unit']))
@@ -766,6 +631,166 @@ class _InventoryPageState extends State<InventoryPage> {
     }
   }
 
+  Widget searchBar() {
+    return TextField(
+      controller: searchCtrl,
+      onChanged: searchMedicines,
+      cursorColor: royal,
+      style: TextStyle(color: royal),
+      decoration: InputDecoration(
+        hintText: "Search by medicine name or expiry date",
+        hintStyle: TextStyle(color: royal),
+        prefixIcon: const Icon(Icons.search),
+        prefixIconColor: royal,
+        suffixIcon: searchCtrl.text.isNotEmpty
+            ? IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            searchCtrl.clear();
+            setState(() => filteredMedicines = medicines);
+          },
+        )
+            : null,
+        suffixIconColor: royal,
+        filled: true,
+        fillColor: royal.withValues(alpha: 0.1),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: royal, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: royal, width: 2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Widget medicineAutocomplete(void Function(VoidCallback fn) setLocalState) {
+    return RawAutocomplete<Map<String, dynamic>>(
+      textEditingController: medicineCtrl,
+      focusNode: FocusNode(),
+      optionsBuilder: (TextEditingValue value) {
+        if (value.text.isEmpty) return [];
+        return medicines.where(
+              (m) => m['name']
+              .toLowerCase()
+              .contains(value.text.toLowerCase()),
+        );
+      },
+      displayStringForOption: (m) => m['name'],
+
+      // ✅ THIS is the ONLY place selection logic should be
+      onSelected: (m) {
+        setLocalState(() {
+          selectedMedicine = m;
+          selectedMedicineId = m['id'];
+
+          // 🔥 RESET batch-related state
+          batchCtrl.clear();
+          isBatchTaken = false;
+          debounce?.cancel();
+
+          // OPTIONAL – reset calculations
+          stock = 0;
+          totalPurchasePrice = 0;
+        });
+      },
+
+      fieldViewBuilder: (context, controller, focusNode, _) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          cursorColor: royal,
+          style: const TextStyle(color: royal),
+          decoration: _inputDecoration("Medicine Name"),
+        );
+      },
+
+      optionsViewBuilder: (context, onSelected, options) {
+        return Material(
+          elevation: 4,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: options.length,
+            itemBuilder: (context, i) {
+              final m = options.elementAt(i);
+              return ListTile(
+                title: Text(m['name']),
+                subtitle: Text("Stock: ${m['stock']}"),
+
+                // ✅ JUST call onSelected
+                onTap: () => onSelected(m),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  final ButtonStyle outlinedRoyalButton = ElevatedButton.styleFrom(
+    backgroundColor: Colors.white, // white background
+    foregroundColor: royal,        // text & icon color
+    elevation: 0,
+    side: const BorderSide(color: royal, width: 1.5),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    ),
+    padding: const EdgeInsets.symmetric(vertical: 14),
+  );
+
+  Widget actionButtons() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                style: outlinedRoyalButton,
+                onPressed: () {
+                  setState(() {
+                    // Toggle medicine form
+                    showAddMedicine = !showAddMedicine;
+
+                    // Close batch form
+                    showAddBatch = false;
+
+                    // Clear forms when opening/closing
+                  });
+                },
+                child: Text(
+                  showAddMedicine ? "Close Medicine Form" : "Add Medicine",
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton(
+                style: outlinedRoyalButton,
+                onPressed: () {
+                  setState(() {
+                    // Toggle batch form
+                    showAddBatch = !showAddBatch;
+
+                    // Close medicine form
+                    showAddMedicine = false;
+                    medicineCtrl.clear();
+                    selectedMedicineId=null;
+                    selectedMedicine=null;
+                  });
+                },
+                child: Text(
+                  showAddBatch ? "Close Batch Form" : "Add Batch",
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget labeledField({
     required String label,
     required Widget field,
@@ -812,6 +837,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
   Widget addMedicineForm() {
     final nameCtrl = TextEditingController();
+    bool isNameTaken = false; // to track if name exists
     final ndcCtrl = TextEditingController();
     final batchCtrl = TextEditingController(text: "01");
     final rackCtrl = TextEditingController();
@@ -822,6 +848,7 @@ class _InventoryPageState extends State<InventoryPage> {
     final profitCtrl = TextEditingController();
     final sellerCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final hsnCtrl = TextEditingController();
 
     String selectedCategory = medicineCategories.first;
     DateTime? mfgDate;
@@ -897,6 +924,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
     bool isFormValid() {
       return nameCtrl.text.trim().isNotEmpty &&
+          !isNameTaken && // ✅ disable if name exists
           selectedCategory.isNotEmpty &&
           (!isOtherCategory || otherCategoryCtrl.text.trim().isNotEmpty) &&
           batchCtrl.text.trim().isNotEmpty &&
@@ -907,8 +935,8 @@ class _InventoryPageState extends State<InventoryPage> {
           sellingPriceCtrl.text.trim().isNotEmpty &&
           sellerCtrl.text.trim().isNotEmpty &&
           phoneCtrl.text.trim().isNotEmpty &&
-          mfgDate != null && // ✅ MFG Date mandatory
-          expDate != null;   // ✅ EXP Date mandatory
+          mfgDate != null &&
+          expDate != null;
     }
 
     return StatefulBuilder(
@@ -972,22 +1000,61 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                labeledField(label: "Name",
-                  field: TextFormField(
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    controller: nameCtrl,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    textCapitalization: TextCapitalization.words, // 👈 First letter caps
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Medicine name is required";
-                      }
-                      return null;
+                labeledField(
+                  label: "Name",
+                  field: StatefulBuilder(
+                    builder: (context, setLocalState) {
+                      Timer? debounce;
+                      return TextFormField(
+                        controller: nameCtrl,
+                        style: TextStyle(color: royal),
+                        cursorColor: royal,
+                        decoration: InputDecoration(
+                          hintText: "Enter Medicine name",
+                          hintStyle: TextStyle(color: royal),
+                          filled: true,
+                          fillColor: royal.withValues(alpha: 0.1),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: royal, width: 0.5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: royal, width: 1.5),
+                          ),
+                          suffixIcon: isNameTaken
+                              ? const Icon(Icons.error, color: Colors.red)
+                              : const Icon(Icons.check, color: Colors.green),
+                        ),
+                        onChanged: (value) {
+                          if (debounce?.isActive ?? false) debounce!.cancel();
+                          debounce = Timer(const Duration(milliseconds: 500), () async {
+                            if (value.trim().isEmpty) {
+                              setLocalState(() => isNameTaken = false);
+                              return;
+                            }
+
+                            try {
+                              final url = Uri.parse("$baseUrl/inventory/medicine/check-name/$shopId?name=$value");
+                              final response = await http.get(url);
+
+                              if (response.statusCode == 200) {
+                                final data = jsonDecode(response.body);
+                                setLocalState(() => isNameTaken = data['exists'] ?? false);
+                              } else {
+                                setLocalState(() => isNameTaken = false);
+                              }
+                            } catch (_) {
+                              setLocalState(() => isNameTaken = false);
+                            }
+                          });
+                          setLocalState(() {}); // update UI for button
+                        },
+                      );
                     },
-                    decoration: _inputDecoration("Enter Medicine name"),
                   ),
                 ),
+
                 labeledField(
                   label: "Category",
                   field: Column(
@@ -1137,14 +1204,36 @@ class _InventoryPageState extends State<InventoryPage> {
                     ),
                   ),
                 ),
-
+                labeledField(
+                  label: "Reorder-Level",
+                  field: TextFormField(
+                    cursorColor: royal,
+                    style: TextStyle(color: royal),
+                    keyboardType: TextInputType.number,
+                    controller: reorderCtrl,
+                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
+                    decoration: _inputDecoration("Re-order value"),
+                  ),
+                ),
                 labeledField(
                   label: "Rack No",
                   field: TextFormField(
                     controller: rackCtrl,
                     cursorColor: royal,
+                    keyboardType: TextInputType.visiblePassword,
                     style: const TextStyle(color: royal),
                     decoration: _inputDecoration("Optional"),
+                  ),
+                ),
+                labeledField(
+                  label: "HSN Code",
+                  field: TextFormField(
+                    cursorColor: royal,
+                    style: TextStyle(color: royal),
+                    controller: hsnCtrl,
+                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
+                    textCapitalization: TextCapitalization.words,
+                    decoration: _inputDecoration("Enter HSN Code"),
                   ),
                 ),
                 labeledField(
@@ -1223,29 +1312,63 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
                 ),
                 labeledField(
-                  label: "Seller",
+                  label: "Supplier Phone",
+                  field: StatefulBuilder(
+                    builder: (context, setLocalState) {
+                      Timer? debounce;
+                      return TextFormField(
+                        controller: phoneCtrl,
+                        cursorColor: royal,
+                        style: TextStyle(color: royal),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        decoration: _inputDecoration("Enter Supplier Phone number"),
+                        onChanged: (value) {
+                          // Reset name if phone changes
+                          setLocalState(() {
+                            sellerCtrl.text = '';
+                          });
+
+                          if (debounce?.isActive ?? false) debounce!.cancel();
+                          debounce = Timer(const Duration(milliseconds: 500), () async {
+                            // ✅ Only call API when 10 digits entered
+                            if (value.length != 10) return;
+
+                            try {
+                              final url = Uri.parse("$baseUrl/suppliers/search/by-phone/$shopId?phone=$value");
+                              final response = await http.get(url);
+
+                              if (response.statusCode == 200) {
+                                final data = jsonDecode(response.body) as List;
+                                if (data.isNotEmpty) {
+                                  // Auto-fill the first supplier's name
+                                  setLocalState(() {
+                                    sellerCtrl.text = data[0]['name'] ?? '';
+                                  });
+                                }
+                              }
+                            } catch (e) {
+                              // Ignore errors silently
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+
+                labeledField(
+                  label: "Supplier Name",
                   field: TextFormField(
                     cursorColor: royal,
                     style: TextStyle(color: royal),
                     controller: sellerCtrl,
                     onChanged: (_) => setLocalState(() {}), // ✅ update button state
                     textCapitalization: TextCapitalization.words,
-                    decoration: _inputDecoration("Seller name"),
-                  ),
-                ),
-                labeledField(
-                  label: "Phone",
-                  field: TextFormField(
-                    controller: phoneCtrl,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.phone,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly, // Only digits allowed
-                      LengthLimitingTextInputFormatter(10),   // Max 10 digits
-                    ],
-                    decoration: _inputDecoration("Phone number"),
+                    decoration: _inputDecoration("Enter Supplier name"),
                   ),
                 ),
                 const SizedBox(height: 10,),
@@ -1313,6 +1436,8 @@ class _InventoryPageState extends State<InventoryPage> {
                             "rack_no": rackCtrl.text,
                             "quantity": quantityCtrl.text,
                             "unit": unitCtrl.text,
+                            "reorder": int.tryParse(reorderCtrl.text),
+                            "hsncode":hsnCtrl.text,
                             "stock": stock,
                             "total_cost":totalPurchasePrice.toStringAsFixed(2),
                             "profit": double.tryParse(profitCtrl.text) ?? 0,
@@ -1324,6 +1449,26 @@ class _InventoryPageState extends State<InventoryPage> {
                         );
 
                         fetchMedicines();
+                        // ✅ Clear the form
+                        nameCtrl.clear();
+                        ndcCtrl.clear();
+                        batchCtrl.text = "01";
+                        rackCtrl.clear();
+                        quantityCtrl.clear();
+                        unitCtrl.clear();
+                        purchasePriceCtrl.clear();
+                        sellingPriceCtrl.clear();
+                        profitCtrl.clear();
+                        sellerCtrl.clear();
+                        phoneCtrl.clear();
+                        otherCategoryCtrl.clear();
+                        selectedCategory = medicineCategories.first;
+                        isOtherCategory = false;
+                        mfgDate = null;
+                        expDate = null;
+                        stock = 0;
+                        totalPurchasePrice = 0;
+                        isNameTaken = false;
                         setState(() => showAddMedicine = false);
                       }
                           : null,
@@ -1384,7 +1529,6 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Widget addBatchForm() {
-    final batchCtrl = TextEditingController();
     final rackCtrl = TextEditingController();
     final quantityCtrl = TextEditingController();
     final unitCtrl = TextEditingController();
@@ -1393,12 +1537,12 @@ class _InventoryPageState extends State<InventoryPage> {
     final profitCtrl = TextEditingController();
     final sellerCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final hsnCtrl = TextEditingController();
 
     DateTime? mfgDate;
     DateTime? expDate;
 
     double stock = 0;
-    double totalPurchasePrice = 0;
 
     return StatefulBuilder(
       builder: (context, setLocalState) {
@@ -1413,8 +1557,27 @@ class _InventoryPageState extends State<InventoryPage> {
 
           setLocalState(() {});
         }
-        bool isEditingProfit = false;
-        bool isEditingSelling = false;
+
+        Future<bool> validateBatchBackend(String batchNo) async {
+          if (selectedMedicineId == null || batchNo.isEmpty) {
+            return true; // allow typing
+          }
+
+          try {
+            final url = Uri.parse(
+              "$baseUrl/inventory/medicine/$shopId/$selectedMedicineId/validate-batch?batch_no=$batchNo",
+            );
+
+            final response = await http.get(url);
+
+            if (response.statusCode == 200) {
+              final data = jsonDecode(response.body);
+              return data['is_valid'] == true;
+            }
+          } catch (_) {}
+
+          return true; // fallback allow
+        }
 
         void calculateSellingFromProfit() {
           if (isEditingSelling) return; // Prevent loop
@@ -1437,6 +1600,7 @@ class _InventoryPageState extends State<InventoryPage> {
         bool isFormValid() {
           return selectedMedicineId != null &&
               batchCtrl.text.isNotEmpty &&
+              !isBatchTaken &&   // ✅ disable if batch exists
               quantityCtrl.text.isNotEmpty &&
               unitCtrl.text.isNotEmpty &&
               purchasePriceCtrl.text.isNotEmpty &&
@@ -1446,6 +1610,7 @@ class _InventoryPageState extends State<InventoryPage> {
               mfgDate != null &&
               expDate != null;
         }
+
         Widget confirmBatchDialog() {
 
           return AlertDialog(
@@ -1511,6 +1676,7 @@ class _InventoryPageState extends State<InventoryPage> {
             borderRadius: BorderRadius.circular(12),
             side: const BorderSide(color: royal),
           ),
+          color: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -1538,19 +1704,52 @@ class _InventoryPageState extends State<InventoryPage> {
                       style: const TextStyle(color: royal),
                     ),
                   ),
-
                 labeledField(
                   label: "Batch No",
                   field: TextFormField(
                     controller: batchCtrl,
                     cursorColor: royal,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
                     keyboardType: TextInputType.visiblePassword,
                     style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Enter Batch no"),
+                    decoration: InputDecoration(
+                      hintText: "Enter Batch no",
+                      filled: true,
+                      hintStyle: TextStyle(color: royal),
+                      fillColor: royal.withAlpha(25),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: royal, width: 0.5),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: royal, width: 1.5),
+                      ),
+                      suffixIcon: batchCtrl.text.isEmpty
+                          ? null
+                          : isBatchTaken
+                          ? const Icon(Icons.error, color: Colors.red)
+                          : const Icon(Icons.check_circle, color: Colors.green),
+                    ),
+                    onChanged: (value) {
+                      debounce?.cancel();
+
+                      debounce = Timer(const Duration(milliseconds: 500), () async {
+                        final batch = value.trim();
+
+                        if (batch.isEmpty) {
+                          setLocalState(() => isBatchTaken = false);
+                          return;
+                        }
+
+                        final isValid = await validateBatchBackend(batch);
+
+                        setLocalState(() {
+                          isBatchTaken = !isValid; // ❌ taken when backend returns false
+                        });
+                      });
+                    },
                   ),
                 ),
-
                 labeledField(
                   label: "MFG Date",
                   field: TextButton(
@@ -1645,6 +1844,17 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
                 ),
                 labeledField(
+                  label: "HSN Code",
+                  field: TextFormField(
+                    cursorColor: royal,
+                    style: TextStyle(color: royal),
+                    controller: hsnCtrl,
+                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
+                    textCapitalization: TextCapitalization.words,
+                    decoration: _inputDecoration("Enter HSN Code"),
+                  ),
+                ),
+                labeledField(
                   label: "Quantity",
                   field: TextFormField(
                     controller: quantityCtrl,
@@ -1720,29 +1930,63 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
                 ),
                 labeledField(
-                  label: "Seller",
+                  label: "Supplier Phone",
+                  field: StatefulBuilder(
+                    builder: (context, setLocalState) {
+                      Timer? debounce;
+                      return TextFormField(
+                        controller: phoneCtrl,
+                        cursorColor: royal,
+                        style: TextStyle(color: royal),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        decoration: _inputDecoration("Enter Supplier Phone number"),
+                        onChanged: (value) {
+                          // Reset name if phone changes
+                          setLocalState(() {
+                            sellerCtrl.text = '';
+                          });
+
+                          if (debounce?.isActive ?? false) debounce!.cancel();
+                          debounce = Timer(const Duration(milliseconds: 500), () async {
+                            // ✅ Only call API when 10 digits entered
+                            if (value.length != 10) return;
+
+                            try {
+                              final url = Uri.parse("$baseUrl/suppliers/search/by-phone/$shopId?phone=$value");
+                              final response = await http.get(url);
+
+                              if (response.statusCode == 200) {
+                                final data = jsonDecode(response.body) as List;
+                                if (data.isNotEmpty) {
+                                  // Auto-fill the first supplier's name
+                                  setLocalState(() {
+                                    sellerCtrl.text = data[0]['name'] ?? '';
+                                  });
+                                }
+                              }
+                            } catch (e) {
+                              // Ignore errors silently
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+
+                labeledField(
+                  label: "Supplier Name",
                   field: TextFormField(
                     cursorColor: royal,
                     style: TextStyle(color: royal),
                     controller: sellerCtrl,
                     onChanged: (_) => setLocalState(() {}), // ✅ update button state
                     textCapitalization: TextCapitalization.words,
-                    decoration: _inputDecoration("Seller name"),
-                  ),
-                ),
-                labeledField(
-                  label: "Phone",
-                  field: TextFormField(
-                    controller: phoneCtrl,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.phone,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly, // Only digits allowed
-                      LengthLimitingTextInputFormatter(10),   // Max 10 digits
-                    ],
-                    decoration: _inputDecoration("Phone number"),
+                    decoration: _inputDecoration("Enter Supplier name"),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1761,61 +2005,78 @@ class _InventoryPageState extends State<InventoryPage> {
                 ),
 
                 const SizedBox(height: 14),
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    child:  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isFormValid() ? royal : Colors.grey, // enabled/disabled color
+                        foregroundColor: isFormValid() ? Colors.white : royal, // text color
+                        elevation: 0,
+                        side: BorderSide(
+                          color: isFormValid() ? royal : Colors.grey.shade700,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: isFormValid()
+                          ? () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => confirmBatchDialog(),
+                        );
+                        if (ok != true) return;
+                        await http.post(
+                          Uri.parse("$baseUrl/inventory/medicine/$selectedMedicineId/batch"),
+                          headers: {"Content-Type": "application/json"},
+                          body: jsonEncode({
+                            "shop_id": shopId,
+                            "batch_no": batchCtrl.text,
+                            "mfg_date": mfgDate!.toIso8601String(),
+                            "exp_date": expDate!.toIso8601String(),
+                            "quantity": quantityCtrl.text,
+                            "unit": unitCtrl.text,
+                            "rack_no": rackCtrl.text,
+                            "profit": profitCtrl.text,
+                            "purchase_price": purchasePriceCtrl.text,
+                            "selling_price": sellingPriceCtrl.text,
+                            "stock_quantity": stock.toInt(),
+                            "total_cost":totalPurchasePrice,
+                            "hsncode":hsnCtrl.text,
+                            "seller_name": sellerCtrl.text,
+                            "seller_phone": phoneCtrl.text,
+                            "reason": "New Batch",
+                          }),
+                        );
 
-        Center(
-        child: SizedBox(
-        width: 150,
-        child:  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isFormValid() ? royal : Colors.grey, // enabled/disabled color
-                      foregroundColor: isFormValid() ? Colors.white : royal, // text color
-                      elevation: 0,
-                      side: BorderSide(
-                        color: isFormValid() ? royal : Colors.grey.shade700,
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                        fetchMedicines();
+                        medicineCtrl.clear();   // ✅ Clears autocomplete text
+                        selectedMedicine = null;
+                        selectedMedicineId = null;
+                        batchCtrl.clear();
+                        rackCtrl.clear();
+                        quantityCtrl.clear();
+                        unitCtrl.clear();
+                        purchasePriceCtrl.clear();
+                        sellingPriceCtrl.clear();
+                        profitCtrl.clear();
+                        sellerCtrl.clear();
+                        phoneCtrl.clear();
+                        mfgDate = null;
+                        expDate = null;
+                        stock = 0;
+                        totalPurchasePrice = 0;
+
+                        setState(() => showAddBatch = false);
+                      }
+                          : null,
+                      child: const Text("Submit Batch"),
                     ),
-                    onPressed: isFormValid()
-                        ? () async {
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (_) => confirmBatchDialog(),
-                      );
-                      if (ok != true) return;
-                      await http.post(
-                        Uri.parse("$baseUrl/inventory/medicine/$selectedMedicineId/batch"),
-                        headers: {"Content-Type": "application/json"},
-                        body: jsonEncode({
-                          "shop_id": shopId,
-                          "batch_no": batchCtrl.text,
-                          "mfg_date": mfgDate!.toIso8601String(),
-                          "exp_date": expDate!.toIso8601String(),
-                          "quantity": quantityCtrl.text,
-                          "unit": unitCtrl.text,
-                          "rack_no": rackCtrl.text,
-                          "profit": profitCtrl.text,
-                          "purchase_price": purchasePriceCtrl.text,
-                          "selling_price": sellingPriceCtrl.text,
-                          "stock_quantity": stock.toInt(),
-                          "total_cost":totalPurchasePrice,
-                          "seller_name": sellerCtrl.text,
-                          "seller_phone": phoneCtrl.text,
-                          "reason": "New Batch",
-                        }),
-                      );
-
-                      fetchMedicines();
-                      setState(() => showAddBatch = false);
-                    }
-                        : null,
-                    child: const Text("Submit Batch"),
                   ),
                 ),
-        ),
               ],
             ),
           ),
@@ -1865,7 +2126,7 @@ class _InventoryPageState extends State<InventoryPage> {
             const SizedBox(height: 16),
             if (showAddMedicine) addMedicineForm(),
             if (showAddBatch) addBatchForm(),
-            const Divider(),
+            const Divider(color: royal,),
             if (medicines.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(20),

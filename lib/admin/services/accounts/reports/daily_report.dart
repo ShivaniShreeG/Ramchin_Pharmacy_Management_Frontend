@@ -7,61 +7,32 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../public/config.dart'; // baseUrl must be defined here
+import '../../../../public/config.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import '../../../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
-const Color royalLight = Color(0xFF916542);
 
-class YearlyReportPage extends StatefulWidget {
-  final int year;
+class DailyReportPage extends StatefulWidget {
+  final DateTime date;
   final Map<String, dynamic> shopDetails;
 
-  const YearlyReportPage({
+  const DailyReportPage({
     super.key,
-    required this.year,
+    required this.date,
     required this.shopDetails,
   });
 
   @override
-  State<YearlyReportPage> createState() => _YearlyReportPageState();
+  State<DailyReportPage> createState() => _DailyReportPageState();
 }
 
-class _YearlyReportPageState extends State<YearlyReportPage> {
+class _DailyReportPageState extends State<DailyReportPage> {
   bool isLoading = true;
   List<Map<String, dynamic>> _expenses = [];
-  List<Map<String, dynamic>> _incomes = [];
   List<Map<String, dynamic>> _filteredData = [];
+  List<Map<String, dynamic>> _incomes = [];
   List<Map<String, dynamic>> _drawing = [];
-
-  Map<String, Map<String, double>> _calculateMonthlyTotals() {
-    // Initialize month map
-    final months = List.generate(12, (i) => DateFormat('MMMM').format(DateTime(0, i + 1)));
-    Map<String, Map<String, double>> monthlyData = {
-      for (var month in months) month: {"income": 0, "expense": 0, "profit": 0}
-    };
-
-    for (var item in _filteredData) {
-      final date = DateTime.tryParse(item["date"] ?? "");
-      if (date != null) {
-        final monthName = DateFormat('MMMM').format(date);
-        final amount = double.tryParse(item["amount"].toString()) ?? 0;
-
-        if (item["type"] == "Income") {
-          monthlyData[monthName]!["income"] = monthlyData[monthName]!["income"]! + amount;
-        } else {
-          monthlyData[monthName]!["expense"] = monthlyData[monthName]!["expense"]! + amount;
-        }
-
-        monthlyData[monthName]!["profit"] =
-            monthlyData[monthName]!["income"]! - monthlyData[monthName]!["expense"]!;
-      }
-    }
-
-    return monthlyData;
-  }
 
 
   @override
@@ -78,22 +49,21 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
       await Future.wait([
         _fetchExpenses(shopId),
         _fetchIncomes(shopId),
-        _fetchDrawing(shopId)
+        _fetchDrawing(shopId),
       ]);
       _combineData();
     }
-
     setState(() => isLoading = false);
   }
 
-  Future<void> _fetchExpenses(int shopId) async {
+  Future<void> _fetchIncomes(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/finance/expense/$shopId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/income/$shopId"));
       if (response.statusCode == 200) {
-        _expenses = List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        _incomes = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
     } catch (e) {
-      debugPrint("Error fetching expenses: $e");
+      debugPrint("❌ Error fetching incomes: $e");
     }
   }
 
@@ -108,24 +78,33 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
     }
   }
 
-  Future<void> _fetchIncomes(int shopId) async {
+  Future<void> _fetchExpenses(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/finance/income/$shopId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/expenses/$shopId"));
       if (response.statusCode == 200) {
-        _incomes = List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        _expenses = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
     } catch (e) {
-      debugPrint("❌ Error fetching incomes: $e");
+      debugPrint("Error fetching expenses: $e");
     }
   }
 
   void _combineData() {
     List<Map<String, dynamic>> combined = [];
-    final year = widget.year;
-    combined.addAll(_incomes.where((inc) {
-      final date = DateTime.tryParse(inc["created_at"] ?? "");
-      return date != null && date.year == year;
 
+    final selectedDate = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+    );
+
+    bool isSameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+
+    // INCOME
+    combined.addAll(_incomes.where((inc) {
+      final d = DateTime.tryParse(inc["created_at"] ?? "");
+      return d != null && isSameDay(d, selectedDate);
     }).map((inc) => {
       "type": "Income",
       "title": inc["reason"] ?? "Income",
@@ -133,10 +112,10 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
       "date": inc["created_at"],
     }));
 
-    // Expenses
+    // EXPENSE
     combined.addAll(_expenses.where((e) {
-      final date = DateTime.tryParse(e["created_at"] ?? "");
-      return date != null && date.year == year;
+      final d = DateTime.tryParse(e["created_at"] ?? "");
+      return d != null && isSameDay(d, selectedDate);
     }).map((e) => {
       "type": "Expense",
       "title": e["reason"] ?? "-",
@@ -144,25 +123,39 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
       "date": e["created_at"],
     }));
 
-    // Sort descending by date
     combined.sort((a, b) {
-      DateTime da = DateTime.tryParse(a["date"] ?? "") ?? DateTime.now();
-      DateTime db = DateTime.tryParse(b["date"] ?? "") ?? DateTime.now();
-      return db.compareTo(da);
+      final da = DateTime.tryParse(a["date"] ?? "") ?? DateTime.now();
+      final db = DateTime.tryParse(b["date"] ?? "") ?? DateTime.now();
+      return da.compareTo(db);
     });
 
     _filteredData = combined;
   }
 
+  Map<String, double> _calculateTotals() {
+    double totalIncome = 0;
+    double totalExpense = 0;
+
+    for (var item in _filteredData) {
+      final amount = double.tryParse(item["amount"].toString()) ?? 0;
+      if (item["type"] == "Income") {
+        totalIncome += amount;
+      } else if (item["type"] == "Expense") {
+        totalExpense += amount;
+      }
+    }
+
+    return {"income": totalIncome, "expense": totalExpense};
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pdfFuture = _buildYearlyPdf();
+    final pdfFuture = _buildDailyPdf();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Yearly Report",
+          "Daily Report",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: royal,
@@ -200,7 +193,8 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
           }
         },
       ),
-      bottomNavigationBar: SafeArea(
+
+    bottomNavigationBar: SafeArea(
         child: Container(
           color: royal,
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -233,7 +227,7 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
                 label: const Text("Share"),
                 onPressed: () {
                   pdfFuture.then((pdfData) {
-                    Printing.sharePdf(bytes: pdfData, filename: "yearly_report.pdf");
+                    Printing.sharePdf(bytes: pdfData, filename: "dailyreport.pdf");
                   });
                 },
               ),
@@ -244,33 +238,45 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
     );
   }
 
-  Future<Uint8List> _buildYearlyPdf() async {
+  Future<Uint8List> _buildDailyPdf() async {
     final pdf = pw.Document();
     final tamilFont = pw.Font.ttf(await rootBundle.load("assets/fonts/NotoSansTamil-Regular.ttf"));
     final tamilFontBold = pw.Font.ttf(await rootBundle.load("assets/fonts/NotoSansTamil-Bold.ttf"));
 
     final royal = PdfColor.fromInt(0xFF19527A);
-    // final beige = PdfColor.fromInt(0xFFECE5D8);
+    final beige = PdfColor.fromInt(0xFFAAD8EA);
 
-    // final totals = _calculateTotals();
+    final totals = _calculateTotals();
+    final selectedDate = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+    );
+    // ✅ Use the passed-in date for label
+    final dateLabel = DateFormat('dd-MM-yyyy').format(selectedDate);
+
     final shop = widget.shopDetails;
-    // final now = DateTime.now();
-    final monthlyTotals = _calculateMonthlyTotals();
 
-// Calculate grand totals
-    double totalIncome = 0;
-    double totalExpense = 0;
-    double totalProfit = 0;
-    monthlyTotals.forEach((key, value) {
-      totalIncome += value["income"] ?? 0;
-      totalExpense += value["expense"] ?? 0;
-      totalProfit += value["profit"] ?? 0;
-    });
-    // Calculate total Drawing In and Out for selected year
+    Uint8List? shopLogo;
+    if (shop['logo'] != null) {
+      shopLogo = base64Decode(shop['logo']);
+    }
+// --- Summary Section ---
+    final totalIncome = totals["income"] ?? 0;
+    final totalExpense = totals["expense"] ?? 0;
+
+// Calculate total drawing for selected month
+    // Calculate total Drawing In and Out for selected month
+
+
+    bool isSameDay(DateTime a, DateTime b) =>
+        a.year == b.year && a.month == b.month && a.day == b.day;
+
     final drawingFiltered = _drawing.where((d) {
       final date = DateTime.tryParse(d["created_at"] ?? "");
-      return date != null && date.year == widget.year;
+      return date != null && isSameDay(date, selectedDate);
     });
+
 
     final totalDrawingIn = drawingFiltered
         .where((d) => d["type"].toString().toLowerCase() == "drawin")
@@ -281,80 +287,85 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
         .fold<double>(0, (sum, d) => sum + (double.tryParse(d["amount"].toString()) ?? 0));
 
 // ✅ New balance formula
-    final balance = totalIncome + totalDrawingIn - totalExpense- totalDrawingOut;
-// Calculate monthly drawing in/out
-    Map<String, Map<String, double>> monthlyDrawings = {
-      for (var m in List.generate(12, (i) => DateFormat('MMMM').format(DateTime(0, i + 1))))
-        m: {"drawin": 0, "drawout": 0}
-    };
 
-    for (var d in _drawing) {
-      final date = DateTime.tryParse(d["created_at"] ?? "");
-      if (date != null && date.year == widget.year) {
-        final monthName = DateFormat('MMMM').format(date);
-        final amount = double.tryParse(d["amount"].toString()) ?? 0;
-        final type = d["type"].toString().toLowerCase();
+    final combinedData = [
+      ..._filteredData.map((tx) => {
+        "date": tx["date"],
+        "particular": tx["title"],
+        "income": tx["type"] == "Income" ? tx["amount"] : 0.0,
+        "expense": tx["type"] == "Expense" ? tx["amount"] : 0.0,
+        "drawingIn": 0.0,
+        "drawingOut": 0.0,
+      }),
+    ...drawingFiltered.map((d) => {
+        "date": d["created_at"],
+        "particular":
+        "${d["reason"] ?? "-"}",
+        "income": 0.0,
+        "expense": 0.0,
+        "drawingIn": d["type"].toString().toLowerCase() == "drawin" ? d["amount"] : 0.0,
+        "drawingOut": d["type"].toString().toLowerCase() == "drawout" ? d["amount"] : 0.0,
+      }),
+    ];
 
-        if (type == "drawin") {
-          monthlyDrawings[monthName]!["drawin"] =
-              monthlyDrawings[monthName]!["drawin"]! + amount;
-        } else if (type == "drawout") {
-          monthlyDrawings[monthName]!["drawout"] =
-              monthlyDrawings[monthName]!["drawout"]! + amount;
-        }
-      }
-    }
+// Sort all by date ascending
+    combinedData.sort((a, b) {
+      final da = DateTime.tryParse(a["date"] ?? "") ?? DateTime(2000);
+      final db = DateTime.tryParse(b["date"] ?? "") ?? DateTime(2000);
+      return da.compareTo(db);
+    });
 
-// === Calculate Opening Balance until last year ===
+    // === Calculate Opening (Previous) Balance ===
+    final selectedDateStart = DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+    );
+
     double previousIncome = 0;
     double previousExpense = 0;
     double previousDrawingIn = 0;
     double previousDrawingOut = 0;
 
-// --- Incomes ---
+// ---- Incomes ----
     for (var inc in _incomes) {
       final date = DateTime.tryParse(inc["created_at"] ?? "");
-      if (date != null && date.year < widget.year) {
+      if (date != null && date.isBefore(selectedDateStart)) {
         previousIncome += double.tryParse(inc["amount"].toString()) ?? 0;
       }
     }
 
-// --- Expenses ---
+
     for (var e in _expenses) {
       final date = DateTime.tryParse(e["created_at"] ?? "");
-      if (date != null && date.year < widget.year) {
+      if (date != null && date.isBefore(selectedDateStart)) {
         previousExpense += double.tryParse(e["amount"].toString()) ?? 0;
       }
     }
 
-// --- Drawings ---
+// ---- Drawings ----
     for (var d in _drawing) {
       final date = DateTime.tryParse(d["created_at"] ?? "");
-      if (date != null && date.year < widget.year) {
+      if (date != null && date.isBefore(selectedDateStart)) {
         final amount = double.tryParse(d["amount"].toString()) ?? 0;
-        if (d["type"].toString().toLowerCase() == "in") {
+        if (d["type"].toString().toLowerCase() == "drawin") {
           previousDrawingIn += amount;
-        } else if (d["type"].toString().toLowerCase() == "out") {
+        } else if (d["type"].toString().toLowerCase() == "drawout") {
           previousDrawingOut += amount;
         }
       }
     }
 
-// ✅ Opening balance carried forward from previous years
-    final previousBalance = previousIncome + previousDrawingIn - previousExpense - previousDrawingOut;
-    final currentBalance = previousBalance + balance;
-
-    // final formattedNow = DateFormat('yyyyMMddHHmm').format(now);
-    Uint8List? shopLogo;
-    if (shop['logo'] != null) {
-      shopLogo = base64Decode(shop['logo']);
-    }
+// ✅ Opening balance till previous month
+    final openingBalance = previousIncome + previousDrawingIn - previousExpense - previousDrawingOut;
+    final balance = openingBalance + totalIncome + totalDrawingIn - totalExpense - totalDrawingOut;
 
     pdf.addPage(
       pw.MultiPage(
         margin: const pw.EdgeInsets.all(40),
         theme: pw.ThemeData.withFont(base: tamilFont, bold: tamilFontBold),
         build: (context) => [
+
           // Header
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -387,93 +398,186 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
             ],
           ),
           pw.SizedBox(height: 16),
-
-          // Report title
           pw.Center(
-            child: pw.Text("YEARLY REPORT - ${widget.year}",
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: royal)),
+            child: pw.Text(
+              "DAILY REPORT - $dateLabel",
+              style: pw.TextStyle(
+                fontSize: 14,
+                fontWeight: pw.FontWeight.bold,
+                color: royal,
+              ),
+            ),
           ),
+
           pw.SizedBox(height: 20),
 
+
           if (_filteredData.isEmpty)
-            pw.Center(child: pw.Text("No transactions for this year.", style: pw.TextStyle(font: tamilFont,fontSize: 9)))
+            pw.Center(child: pw.Text("No transactions for this day.", style: pw.TextStyle(font: tamilFont,fontSize: 9)))
           else
             pw.TableHelper.fromTextArray(
-              headers: ["Month", "Income", "Expense", "Profit/Loss", "Drawing In", "Drawing Out"],
+              headers: ["S.No", "Particular", "Income", "Expense", "Drawing In", "Drawing Out"],
               headerStyle: pw.TextStyle(
                 font: tamilFontBold,
                 fontSize: 9,
                 color: PdfColors.white,
+                fontWeight: pw.FontWeight.bold,
               ),
               headerDecoration: pw.BoxDecoration(color: royal),
-              cellStyle: pw.TextStyle(font: tamilFont, fontSize: 9),
+              cellStyle: pw.TextStyle(
+                font: tamilFont,
+                fontSize: 9,
+                color: PdfColors.black,
+              ),
               cellAlignment: pw.Alignment.centerLeft,
-              data: [
-                ...monthlyTotals.entries.map((entry) {
-                  final month = entry.key;
-                  final income = entry.value["income"] ?? 0;
-                  final expense = entry.value["expense"] ?? 0;
-                  final profit = entry.value["profit"] ?? 0;
-                  final drawIn = monthlyDrawings[month]?["in"] ?? 0;
-                  final drawOut = monthlyDrawings[month]?["out"] ?? 0;
+              headerAlignment: pw.Alignment.centerLeft,
+              rowDecoration: pw.BoxDecoration(color: PdfColors.white),
+              oddRowDecoration: pw.BoxDecoration(color: beige),
 
-                  return [
-                    month,
-                    pw.Align(
-                      alignment: pw.Alignment.centerRight,
-                      child: pw.Text("₹${income.toStringAsFixed(2)}",style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                    ),
-                    pw.Align(
-                      alignment: pw.Alignment.centerRight,
-                      child: pw.Text("₹${expense.toStringAsFixed(2)}",style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                    ),
-                    pw.Align(
-                      alignment: pw.Alignment.centerRight,
-                      child: pw.Text("₹${profit.toStringAsFixed(2)}",style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                    ),
-                    pw.Align(
-                      alignment: pw.Alignment.centerRight,
-                      child: pw.Text("₹${drawIn.toStringAsFixed(2)}",style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                    ),
-                    pw.Align(
-                      alignment: pw.Alignment.centerRight,
-                      child: pw.Text("₹${drawOut.toStringAsFixed(2)}",style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                    ),
-                  ];
-                }),
-                // Total row
-                [
-                  pw.Text("TOTAL", style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
-                  pw.Align(
-                    alignment: pw.Alignment.centerRight,
-                    child: pw.Text("₹${totalIncome.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
+              data: List.generate(combinedData.length, (index) {
+                final item = combinedData[index];
+                String formatAmount(dynamic v) {
+                  if (v == null) return "-";
+                  final val = double.tryParse(v.toString()) ?? 0.0;
+                  return val != 0.0 ? "₹${val.toStringAsFixed(2)}" : "-";
+                }
+
+                return [
+                  (index + 1).toString(),
+                  // pw.Align(
+                  //   alignment: pw.Alignment.center,
+                  //   child: pw.Text(
+                  //     date != null ? DateFormat('dd-MM-yyyy').format(date) : "-",
+                  //     style: pw.TextStyle(fontSize: 8), // smaller date font
+                  //   ),
+                  // ),
+                  // Particular: normal readable size
+                  pw.Text(
+                    item["particular"] ?? "-",
+                    style: pw.TextStyle(fontSize: 9),
                   ),
                   pw.Align(
                     alignment: pw.Alignment.centerRight,
-                    child: pw.Text("₹${totalExpense.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
+                    child: pw.Text(
+                      formatAmount(item["income"]),
+                      style: pw.TextStyle(fontSize: 8), // smaller amount font
+                    ),
                   ),
                   pw.Align(
                     alignment: pw.Alignment.centerRight,
-                    child: pw.Text("₹${totalProfit.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
+                    child: pw.Text(
+                      formatAmount(item["expense"]),
+                      style: pw.TextStyle(fontSize: 8),
+                    ),
                   ),
                   pw.Align(
                     alignment: pw.Alignment.centerRight,
-                    child: pw.Text("₹${totalDrawingIn.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
+                    child: pw.Text(
+                      formatAmount(item["drawingIn"]),
+                      style: pw.TextStyle(fontSize: 8),
+                    ),
                   ),
                   pw.Align(
                     alignment: pw.Alignment.centerRight,
-                    child: pw.Text("₹${totalDrawingOut.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
+                    child: pw.Text(
+                      formatAmount(item["drawingOut"]),
+                      style: pw.TextStyle(fontSize: 8),
+                    ),
                   ),
-                ]
+                ];
+              }),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1),
+                1: const pw.FlexColumnWidth(4.3), // more space for Particular
+                2: const pw.FlexColumnWidth(1.6),
+                3: const pw.FlexColumnWidth(1.6),
+                4: const pw.FlexColumnWidth(1.6),
+                5: const pw.FlexColumnWidth(1.7),
+              },
+            ),
+          if (_filteredData.isNotEmpty)
+            pw.Container(
+            padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: pw.Row(
+              children: [
+                // TOTAL label
+                pw.Expanded(
+                  flex: 8,
+                  child: pw.Align(
+                    alignment: pw.Alignment.center,
+                    child: pw.Text(
+                      "TOTAL",
+                      style: pw.TextStyle(
+                        font: tamilFontBold,
+                        fontSize: 9,
+                        color: royal,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Income total
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    "₹${totals["income"]?.toStringAsFixed(2) ?? '0.00'}",
+                    style: pw.TextStyle(
+                      font: tamilFontBold,
+                      color: royal,
+                      fontSize: 8,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+
+                // Expense total
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    "₹${totals["expense"]?.toStringAsFixed(2) ?? '0.00'}",
+                    style: pw.TextStyle(
+                      font: tamilFontBold,
+                      color: royal,
+                      fontSize: 8,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+
+                // Drawing In total
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    "₹${totalDrawingIn.toStringAsFixed(2) }",
+                    style: pw.TextStyle(
+                      font: tamilFontBold,
+                      color: royal,
+                      fontSize: 8,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+
+                // Drawing Out total
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    "₹${totalDrawingOut.toStringAsFixed(2) }",
+                    style: pw.TextStyle(
+                      font: tamilFontBold,
+                      color: royal,
+                      fontSize: 8,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
               ],
             ),
+          ),
 
-          pw.SizedBox(height: 20),
+
+
+          pw.SizedBox(height: 10),
           pw.Container(
             padding: const pw.EdgeInsets.all(10),
             decoration: pw.BoxDecoration(
@@ -484,7 +588,7 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
-                  "Yearly Summary",
+                  "Daily Summary",
                   style: pw.TextStyle(
                     font: tamilFontBold,
                     fontSize: 10,
@@ -492,13 +596,13 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
                   ),
                 ),
                 pw.SizedBox(height: 6),
-                // pw.Row(
-                //   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                //   children: [
-                //     pw.Text("Total Income:", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                //     pw.Text("₹${totalIncome.toStringAsFixed(2)}", style: pw.TextStyle(font: tamilFontBold, fontSize: 9)),
-                //   ],
-                // ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text("Previous Balance:", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
+                    pw.Text("₹${openingBalance.toStringAsFixed(2)}", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
+                  ],
+                ),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
@@ -516,17 +620,11 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text("Total Profit:", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                    pw.Text("₹${totalProfit.toStringAsFixed(2)}", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
-                  ],
-                ),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
                     pw.Text("Total Drawing In:", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
                     pw.Text("₹${totalDrawingIn.toStringAsFixed(2)}", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
                   ],
                 ),
+                pw.SizedBox(height: 2),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
@@ -534,32 +632,14 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
                     pw.Text("₹${totalDrawingOut.toStringAsFixed(2)}", style: pw.TextStyle(font: tamilFont, fontSize: 9)),
                   ],
                 ),
+
                 pw.Divider(),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text("Balance:",
+                    pw.Text("Balance :",
                         style: pw.TextStyle(font: tamilFontBold, fontSize: 9, color: royal)),
                     pw.Text("₹${balance.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9, color: royal)),
-                  ],
-                ),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text("Previous Balance:",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9, color: royal)),
-                    pw.Text("₹${previousBalance.toStringAsFixed(2)}",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9, color: royal)),
-                  ],
-                ),
-                pw.Divider(),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text("Current Balance:",
-                        style: pw.TextStyle(font: tamilFontBold, fontSize: 9, color: royal)),
-                    pw.Text("₹${currentBalance.toStringAsFixed(2)}",
                         style: pw.TextStyle(font: tamilFontBold, fontSize: 9, color: royal)),
                   ],
                 ),
@@ -567,9 +647,8 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
             ),
           ),
           pw.SizedBox(height: 35),
-          // Signature
           pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.end,
+            mainAxisAlignment: pw.MainAxisAlignment.end, // align children to the right
             children: [
               pw.Column(
                 children: [
@@ -577,9 +656,9 @@ class _YearlyReportPageState extends State<YearlyReportPage> {
                   pw.Text(
                     'Signature',
                     style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      font: tamilFontBold,
-                      fontSize: 9
+                        fontWeight: pw.FontWeight.bold,
+                        font: tamilFontBold,
+                        fontSize: 9
                     ),
                   ),
                 ],

@@ -7,10 +7,11 @@ import 'package:http/http.dart' as http;
 import '../../../../public/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../public/main_navigation.dart';
+import 'reports/daily_report.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -23,13 +24,14 @@ class _ReportsPageState extends State<ReportsPage> {
 
   DateTime _selectedMonth = DateTime.now();
   int? selectedYear = DateTime.now().year;
-  Map<String, dynamic>? hallDetails;
+  Map<String, dynamic>? shopDetails;
   bool _isFetching = true;
+  DateTime selectedDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _fetchHallDetails();
+    _fetchShopDetails();
   }
 
   Future<void> _pickMonthYear() async {
@@ -324,7 +326,34 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Widget _buildHallCard(Map<String, dynamic> hall) {
+  Future<void> _pickDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: royal,
+              onPrimary: Colors.white,
+              onSurface: royal,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+    }
+  }
+
+  Widget _buildShopCard(Map<String, dynamic> shop) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       padding: const EdgeInsets.all(16),
@@ -345,9 +374,9 @@ class _ReportsPageState extends State<ReportsPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ClipOval(
-            child: hall['logo'] != null
+            child: shop['logo'] != null
                 ? Image.memory(
-              base64Decode(hall['logo']),
+              base64Decode(shop['logo']),
               width: 70,
               height: 70,
               fit: BoxFit.cover,
@@ -366,7 +395,7 @@ class _ReportsPageState extends State<ReportsPage> {
           Expanded(
             child: Center(
               child: Text(
-                hall['name']?.toString().toUpperCase() ?? "LODGE NAME",
+                shop['name']?.toString().toUpperCase() ?? "SHOP NAME",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -383,22 +412,22 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Future<void> _fetchHallDetails() async {
+  Future<void> _fetchShopDetails() async {
     setState(() {
       _isFetching = true;
     });
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt("lodgeId");
+      final shopId = prefs.getInt("shopId");
 
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        hallDetails = jsonDecode(response.body);
+        shopDetails = jsonDecode(response.body);
       }
     } catch (e) {
-      _showMessage("Error fetching lodge details: $e");
+      _showMessage("Error fetching shop details: $e");
     } finally {
       setState(() {
         _isFetching = false;
@@ -484,8 +513,8 @@ class _ReportsPageState extends State<ReportsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (hallDetails != null)
-              _buildHallCard(hallDetails!),
+            if (shopDetails != null)
+              _buildShopCard(shopDetails!),
             const SizedBox(height: 20),
 
             Expanded(
@@ -494,11 +523,78 @@ class _ReportsPageState extends State<ReportsPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _sectionContainer("DAILY REPORT", [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            "Generate Daily Report for your shop.",
+                            style: TextStyle(
+                              color: royal,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
+                        // 📅 Date Picker Button
+                        Center(
+                          child: SizedBox(
+                            width: 180,
+                            child: ElevatedButton(
+                              onPressed: _pickDate,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: royal,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                side: BorderSide(color: royal, width: 1),
+                              ),
+                              child: Text(
+                                DateFormat('dd MMM yyyy').format(selectedDate),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // 📄 Generate Daily Report
+                        Center(
+                          child: SizedBox(
+                            width: 200,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => DailyReportPage(
+                                      date: selectedDate,
+                                      shopDetails: shopDetails!,
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: royal,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: const Text(
+                                "Generate Daily Report",
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 20),
+
                       _sectionContainer("MONTHLY REPORT", [
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            "Generate Monthly Report for your lodge.",
+                            "Generate Monthly Report for your shop.",
                             style: TextStyle(
                               color: royal,
                               fontSize: 14,
@@ -537,7 +633,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                     builder: (_) => MonthlyReportPage(
                                       month: _selectedMonth.month,
                                       year: _selectedMonth.year,
-                                      hallDetails: hallDetails!,
+                                      shopDetails: shopDetails!,
                                     ),
                                   ),
                                 );
@@ -561,7 +657,7 @@ class _ReportsPageState extends State<ReportsPage> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Text(
-                            "Generate Yearly Report for your lodge.",
+                            "Generate Yearly Report for your shop.",
                             style: TextStyle(
                               color: royal,
                               fontSize: 14,
@@ -599,7 +695,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                   MaterialPageRoute(
                                     builder: (_) => YearlyReportPage(
                                       year: selectedYear!,
-                                      hallDetails: hallDetails!,
+                                      shopDetails: shopDetails!,
                                     ),
                                   ),
                                 );

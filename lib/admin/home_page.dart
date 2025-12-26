@@ -17,13 +17,24 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? selectedHall;
-  bool _isLoading = true;
+  String? shopName;
+  String? shopAddress;
+  String? shopLogo;
+  bool isLoading = true;
   double totalIncome = 0.0;
   double totalExpense = 0.0;
   double drawingIn = 0.0;
   double drawingOut = 0.0;
   double currentBalance = 0.0;
-  List<dynamic> roomStats = [];
+
+  double overallValue = 0.0; // total stock value
+  double totalSales = 0.0;
+  double totalProfit = 0.0;
+  int totalUnitsSold = 0;
+  int totalBills = 0;
+  int totalMedicineWithStock = 0;
+  double cashIncome = 0.0;
+  double onlineIncome = 0.0;
 
   @override
   void initState() {
@@ -59,37 +70,73 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     final shopId = prefs.getInt('shopId');
     if (shopId != null) {
-      await fetchHallDetails(shopId);
+      await _fetchHallData();
       await fetchCurrentBalance(shopId);
+      await fetchGoodsAndSales(shopId);
     } else {
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
       _showMessage("No Shop ID found in saved data", isError: true);
     }
   }
 
-  Future<void> fetchHallDetails(int shopId) async {
+  Future<void> _fetchHallData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final shopId = prefs.getInt("shopId");
+
+    if (shopId == null) {
+      setState(() => isLoading = false);
+      return;
+    }
+
     try {
-      final url = Uri.parse('$baseUrl/shops/$shopId');
+      final url = Uri.parse("$baseUrl/shops/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
         setState(() {
-          selectedHall = jsonDecode(response.body);
-          _isLoading = false;
+          shopName = data["name"];
+          shopAddress = data["address"];
+          shopLogo = data["logo"];
+          isLoading = false;
         });
       } else {
-        setState(() => _isLoading = false);
-        _showMessage(
-          "Failed to load shop details (Code: ${response.statusCode})",
-          isError: true,
-        );
+        setState(() => isLoading = false);
       }
     } catch (e) {
-      setState(() => _isLoading = false);
-      _showMessage("Error connecting to server: $e", isError: true);
+      setState(() => isLoading = false);
     }
   }
 
+  Future<void> fetchGoodsAndSales(int shopId) async {
+    try {
+      // Get current date in YYYY-MM-DD format
+      final now = DateTime.now();
+      final currentDate = "${now.year.toString().padLeft(4,'0')}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}";
+
+      // Append date as query parameter
+      final url = Uri.parse('$baseUrl/home/totals/$shopId?date=$currentDate');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          overallValue = (data['overallValue'] ?? 0).toDouble();
+          totalMedicineWithStock = data['totalMedicinesWithStock'] ?? 0;
+          totalSales = (data['totalSales'] ?? 0).toDouble();
+          totalProfit = (data['totalProfit'] ?? 0).toDouble();
+          totalUnitsSold = data['totalUnitsSold'] ?? 0;
+          totalBills = data['totalBills'] ?? 0;
+        });
+      } else {
+        _showMessage("Failed to fetch goods and sales", isError: true);
+      }
+    } catch (e) {
+      _showMessage("Error fetching goods and sales: $e", isError: true);
+    }
+  }
 
   Future<void> fetchCurrentBalance(int shopId) async {
     try {
@@ -105,6 +152,9 @@ class _HomePageState extends State<HomePage> {
           drawingIn = (data['totalDrawingIn'] ?? 0).toDouble();
           drawingOut = (data['totalDrawingOut'] ?? 0).toDouble();
           currentBalance = (data['currentBalance'] ?? 0).toDouble();
+
+          onlineIncome = (data['onlineIncome'] ?? 0).toDouble();
+          cashIncome = (data['cashIncome'] ?? 0).toDouble();
         });
       } else {
         _showMessage("Failed to fetch current balance", isError: true);
@@ -112,6 +162,69 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       _showMessage("Error fetching current balance: $e", isError: true);
     }
+  }
+
+  Widget _buildStatsCards(double textScale, double boxScale) {
+    final stats = [
+      {"title": "Goods Value", "value": overallValue, "color": Colors.orange},
+      {"title": "Total Medicine", "value": totalMedicineWithStock.toDouble(), "color": Colors.cyan},
+      {"title": "Today Sales", "value": totalSales, "color": Colors.green},
+      {"title": "Today Profit", "value": totalProfit, "color": Colors.blue},
+      {"title": "Units Sold", "value": totalUnitsSold.toDouble(), "color": Colors.purple},
+      {"title": "Total Bills", "value": totalBills.toDouble(), "color": Colors.teal},
+      {"title": "Cash Balance", "value": cashIncome, "color": Colors.green.shade700},
+      {"title": "Online Balance", "value": onlineIncome, "color": Colors.blue.shade700},
+    ];
+
+    return Wrap(
+      spacing: 16 * boxScale,
+      runSpacing: 16 * boxScale,
+      alignment: WrapAlignment.center, // center cards if only one in a row
+      children: stats.map((stat) {
+        return SizedBox(
+          width: 140 * boxScale, // fixed card width
+          child: Card(
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12 * boxScale),
+              side: BorderSide(color: royal,width: 1.5),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 16 * boxScale, horizontal: 12 * boxScale),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    stat["title"]?.toString() ?? '',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14 * textScale,
+                      fontWeight: FontWeight.w500,
+                      color: royal,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: stat["value"] as double),
+                    duration: const Duration(seconds: 1),
+                    builder: (context, value, child) => Text(
+                      (stat["title"] == "Units Sold" || stat["title"] == "Total Bills")
+                          ? value.toInt().toString()       // show as integer
+                          : "₹${value.toStringAsFixed(2)}", // show as currency
+                      style: TextStyle(
+                        fontSize: 18 * textScale,
+                        fontWeight: FontWeight.bold,
+                        color: stat["color"] as Color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
   }
 
   @override
@@ -125,28 +238,27 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: royalLight.withValues(alpha: 0.2),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100), // Desktop width
-          child: _isLoading
-              ? const Center(
-            child: CircularProgressIndicator(color: royal),
-          )
-              : SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  if (selectedHall != null)
-                    Align(
-                      alignment: Alignment.center,
-                      child: _buildHallCard(selectedHall!, textScale, boxScale, screenWidth),
-                    ),
-                  Padding(
-                    padding: EdgeInsets.only(top: 20 * textScale),
-                    child: _buildCurrentBalanceBox(currentBalance, textScale, boxScale),
-                  ),
-                ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: isLoading
+                  ? const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: CircularProgressIndicator(color: royal),
+              )
+                  : Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildHallCard(),
+                    const SizedBox(height: 20),
+                    _buildStatsCards(textScale, boxScale),
+                  ],
+                ),
               ),
             ),
           ),
@@ -155,16 +267,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildHallCard(
-      Map<String, dynamic> hall,
-      double textScale,
-      double boxScale,
-      double screenWidth,
-      ) {
+  Widget _buildHallCard() {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive scale: phones → small, tablets/desktops → bigger
+    double textScale = (screenWidth / 390).clamp(0.8, 1.4);
+
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20 * boxScale),
+        borderRadius: BorderRadius.circular(20),
         side: const BorderSide(
           color: royal,
           width: 1.5,
@@ -172,42 +284,48 @@ class _HomePageState extends State<HomePage> {
       ),
       color: Colors.white,
       child: Padding(
-        padding: EdgeInsets.all(16 * boxScale),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: (screenWidth > 900 ? 40 : 40) * boxScale,
+              radius: 25 * textScale,
               backgroundColor: royalLight,
-              backgroundImage: hall['logo'] != null
-                  ? MemoryImage(base64Decode(hall['logo']))
+              backgroundImage: (shopLogo != null && shopLogo!.isNotEmpty)
+                  ? MemoryImage(base64Decode(shopLogo!))
                   : null,
-              child: hall['logo'] == null
-                  ? Icon(Icons.home_work_rounded,
-                  size: (screenWidth > 900 ? 40 : 40) * boxScale,
-                  color: royal)
+              child: (shopLogo == null || shopLogo!.isEmpty)
+                  ? Icon(
+                Icons.home_work_rounded,
+                size: 25 * textScale,
+                color: royal,
+              )
                   : null,
             ),
-            SizedBox(width: 16 * boxScale),
+
+            SizedBox(width: 16 * textScale),
+
             Flexible(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    hall['name'] ?? 'No Name',
+                    shopName ?? "Unknown Shop",
                     style: TextStyle(
-                      fontSize: 18 * textScale,
+                      fontSize: 18 * textScale,   // ⬅ Responsive Title
                       fontWeight: FontWeight.bold,
                       color: royal,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: 4 * boxScale),
+
+                  SizedBox(height: 4 * textScale),
+
                   Text(
-                    hall['address'] ?? 'No Address',
+                    shopAddress ?? "No address available",
                     style: TextStyle(
-                      fontSize: 14 * textScale,
+                      fontSize: 14 * textScale,   // ⬅ Responsive Address
                       color: royal,
                     ),
                     maxLines: 3,
@@ -222,59 +340,73 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCurrentBalanceBox(double currentBalance, double textScale, double boxScale) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20 * boxScale),
-        border: Border.all(
-          color: royal,
-          width: 1.5,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          vertical: 24 * boxScale,
-          horizontal: 32 * boxScale,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 💰 Title
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(width: 8 * boxScale),
-                Text(
-                  "Cash On Hand",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17 * textScale,
-                    fontWeight: FontWeight.bold,
-                    color: royal,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-              ],
-            ),
 
-            SizedBox(height: 12 * boxScale),
-
-            TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0, end: currentBalance),
-              duration: const Duration(seconds: 1),
-              builder: (context, value, child) => Text(
-                "₹${value.toStringAsFixed(2)}",
-                style: TextStyle(
-                  fontSize: 34 * textScale,
-                  fontWeight: FontWeight.w500,
-                  color: royal,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _buildCurrentBalanceBox(double cash, double online, double textScale, double boxScale) {
+  //   return Container(
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(20 * boxScale),
+  //       border: Border.all(color: royal, width: 1.5),
+  //     ),
+  //     child: Padding(
+  //       padding: EdgeInsets.symmetric(vertical: 24 * boxScale, horizontal: 32 * boxScale),
+  //       child: Column(
+  //         mainAxisAlignment: MainAxisAlignment.center,
+  //         children: [
+  //           Text(
+  //             "Cash & Online Balance",
+  //             textAlign: TextAlign.center,
+  //             style: TextStyle(
+  //               fontSize: 17 * textScale,
+  //               fontWeight: FontWeight.bold,
+  //               color: royal,
+  //             ),
+  //           ),
+  //           SizedBox(height: 16 * boxScale),
+  //
+  //           // Cash Income
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text("Cash", style: TextStyle(fontSize: 16 * textScale, color: royal)),
+  //               TweenAnimationBuilder<double>(
+  //                 tween: Tween<double>(begin: 0, end: cash),
+  //                 duration: const Duration(seconds: 1),
+  //                 builder: (context, value, child) => Text(
+  //                   "₹${value.toStringAsFixed(2)}",
+  //                   style: TextStyle(
+  //                     fontSize: 18 * textScale,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: Colors.green,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           SizedBox(height: 8 * boxScale),
+  //
+  //           // Online Income
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               Text("Online", style: TextStyle(fontSize: 16 * textScale, color: royal)),
+  //               TweenAnimationBuilder<double>(
+  //                 tween: Tween<double>(begin: 0, end: online),
+  //                 duration: const Duration(seconds: 1),
+  //                 builder: (context, value, child) => Text(
+  //                   "₹${value.toStringAsFixed(2)}",
+  //                   style: TextStyle(
+  //                     fontSize: 18 * textScale,
+  //                     fontWeight: FontWeight.bold,
+  //                     color: Colors.blue,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }

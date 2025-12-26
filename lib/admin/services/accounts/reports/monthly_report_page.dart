@@ -11,16 +11,16 @@ import '../../../../public/config.dart'; // baseUrl must be defined here
 import 'package:flutter/services.dart' show rootBundle;
 import '../../../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class MonthlyReportPage extends StatefulWidget {
   final int month;
   final int year;
-  final Map<String, dynamic> hallDetails;
+  final Map<String, dynamic> shopDetails;
 
-  const MonthlyReportPage({super.key, required this.month, required this.year,required this.hallDetails,
+  const MonthlyReportPage({super.key, required this.month, required this.year,required this.shopDetails,
   });
 
   @override
@@ -43,13 +43,13 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
+    final shopId = prefs.getInt("shopId");
 
-    if (lodgeId != null) {
+    if (shopId != null) {
       await Future.wait([
-        _fetchExpenses(lodgeId),
-        _fetchIncomes(lodgeId),
-        _fetchDrawing(lodgeId)
+        _fetchExpenses(shopId),
+        _fetchIncomes(shopId),
+        _fetchDrawing(shopId)
       ]);
       _combineData();
     }
@@ -57,9 +57,9 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
     setState(() => isLoading = false);
   }
 
-  Future<void> _fetchIncomes(int lodgeId) async {
+  Future<void> _fetchIncomes(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/income/all/$lodgeId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/income/$shopId"));
       if (response.statusCode == 200) {
         _incomes = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
@@ -68,9 +68,9 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
     }
   }
 
-  Future<void> _fetchDrawing(int lodgeId) async {
+  Future<void> _fetchDrawing(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/drawings/lodge/$lodgeId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/drawing/$shopId"));
       if (response.statusCode == 200) {
         _drawing = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
@@ -79,9 +79,9 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
     }
   }
 
-  Future<void> _fetchExpenses(int lodgeId) async {
+  Future<void> _fetchExpenses(int shopId) async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/expenses/all/$lodgeId"));
+      final response = await http.get(Uri.parse("$baseUrl/finance/expenses/$shopId"));
       if (response.statusCode == 200) {
         _expenses = List<Map<String, dynamic>>.from(jsonDecode(response.body));
       }
@@ -242,11 +242,11 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
     final totals = _calculateTotals();
     final selectedMonth = DateTime(widget.year, widget.month);
     final monthLabel = DateFormat('MMMM yyyy').format(selectedMonth);
-    final hall = widget.hallDetails;
+    final shop = widget.shopDetails;
 
-    Uint8List? hallLogo;
-    if (hall['logo'] != null) {
-      hallLogo = base64Decode(hall['logo']);
+    Uint8List? shopLogo;
+    if (shop['logo'] != null) {
+      shopLogo = base64Decode(shop['logo']);
     }
 // --- Summary Section ---
     final totalIncome = totals["income"] ?? 0;
@@ -262,11 +262,11 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
     });
 
     final totalDrawingIn = drawingFiltered
-        .where((d) => d["type"].toString().toLowerCase() == "in")
+        .where((d) => d["type"].toString().toLowerCase() == "drawin")
         .fold<double>(0, (sum, d) => sum + (double.tryParse(d["amount"].toString()) ?? 0));
 
     final totalDrawingOut = drawingFiltered
-        .where((d) => d["type"].toString().toLowerCase() == "out")
+        .where((d) => d["type"].toString().toLowerCase() == "drawout")
         .fold<double>(0, (sum, d) => sum + (double.tryParse(d["amount"].toString()) ?? 0));
 
 // ✅ New balance formula
@@ -286,8 +286,8 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
         "${d["reason"] ?? "-"}",
         "income": 0.0,
         "expense": 0.0,
-        "drawingIn": d["type"].toString().toLowerCase() == "in" ? d["amount"] : 0.0,
-        "drawingOut": d["type"].toString().toLowerCase() == "out" ? d["amount"] : 0.0,
+        "drawingIn": d["type"].toString().toLowerCase() == "drawin" ? d["amount"] : 0.0,
+        "drawingOut": d["type"].toString().toLowerCase() == "drawout" ? d["amount"] : 0.0,
       }),
     ];
 
@@ -327,9 +327,9 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
       final date = DateTime.tryParse(d["created_at"] ?? "");
       if (date != null && date.isBefore(selectedMonthStart)) {
         final amount = double.tryParse(d["amount"].toString()) ?? 0;
-        if (d["type"].toString().toLowerCase() == "in") {
+        if (d["type"].toString().toLowerCase() == "drawin") {
           previousDrawingIn += amount;
-        } else if (d["type"].toString().toLowerCase() == "out") {
+        } else if (d["type"].toString().toLowerCase() == "drawout") {
           previousDrawingOut += amount;
         }
       }
@@ -350,14 +350,14 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              if (hallLogo != null)
-                pw.Image(pw.MemoryImage(hallLogo), width: 70, height: 70),
+              if (shopLogo != null)
+                pw.Image(pw.MemoryImage(shopLogo), width: 70, height: 70),
               pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
                     pw.Text(
-                      hall['name']?.toString().toUpperCase() ?? 'HALL NAME',
+                      shop['name']?.toString().toUpperCase() ?? 'SHOP NAME',
                       style: pw.TextStyle(
                         fontSize: 20,
                         fontWeight: pw.FontWeight.bold,
@@ -365,12 +365,12 @@ class _MonthlyReportPageState extends State<MonthlyReportPage> {
                         color: royal,
                       ),
                     ),
-                    if ((hall['address'] ?? '').toString().isNotEmpty)
-                      pw.Text(hall['address'], style: pw.TextStyle(font: tamilFont)),
-                    if ((hall['phone'] ?? '').toString().isNotEmpty)
-                      pw.Text('Phone: ${hall['phone']}', style: pw.TextStyle(font: tamilFont)),
-                    if ((hall['email'] ?? '').toString().isNotEmpty)
-                      pw.Text('Email: ${hall['email']}', style: pw.TextStyle(font: tamilFont)),
+                    if ((shop['address'] ?? '').toString().isNotEmpty)
+                      pw.Text(shop['address'], style: pw.TextStyle(font: tamilFont)),
+                    if ((shop['phone'] ?? '').toString().isNotEmpty)
+                      pw.Text('Phone: ${shop['phone']}', style: pw.TextStyle(font: tamilFont)),
+                    if ((shop['email'] ?? '').toString().isNotEmpty)
+                      pw.Text('Email: ${shop['email']}', style: pw.TextStyle(font: tamilFont)),
                   ],
                 ),
               ),

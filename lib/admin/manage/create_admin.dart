@@ -22,7 +22,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
 
   final _userIdController = TextEditingController();
   final _passwordController = TextEditingController();
-  String _designation = "Manager";
+  String _designation = "Staff";
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -137,7 +137,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
         _phoneController.clear();
         _emailController.clear();
         setState(() {
-          _designation = "Manager";
+          _designation = "Staff";
           _showForm = false;
         });
         await _fetchAdmins();
@@ -257,11 +257,11 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
               labeledTanRow(
                 label: "DESIGNATION",
                 dropdownItems: const [
-                  DropdownMenuItem(value: "Manager", child: Text("Staff")),
+                  DropdownMenuItem(value: "Staff", child: Text("Staff")),
                   DropdownMenuItem(value: "Owner", child: Text("Owner")),
                 ],
                 dropdownValue: _designation,
-                onDropdownChanged: (val) => setState(() => _designation = val ?? "Manager"),
+                onDropdownChanged: (val) => setState(() => _designation = val ?? "Staff"),
               ),
 
               labeledTanRow(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'supplier.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../public/config.dart';
@@ -8,6 +9,7 @@ import 'app_payment.dart';
 import 'submit.dart';
 import 'stock_management.dart';
 import 'add_medicines.dart';
+import 'reorder/reorder_list.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -230,6 +232,7 @@ class _OwnerPageState extends State<OwnerPage> {
                   },
                   size: buttonSize,
                 ),
+
               ],
             ),
           ],
@@ -307,6 +310,17 @@ class _OwnerPageState extends State<OwnerPage> {
                   size: buttonSize,
                 ),
                 _buildManageButton(
+                  icon:Icons.upload_file,
+                  label: "Bulk Upload Medicine",
+                  onTap: () {
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(builder: (context) => const SupplierPage()),
+                    // );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
                   icon: Icons.inventory_2_outlined,
                   label: "Stock",
                   onTap: () {
@@ -323,11 +337,23 @@ class _OwnerPageState extends State<OwnerPage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const StockPage()),
+                      MaterialPageRoute(builder: (context) => const ReorderPage()),
                     );
                   },
                   size: buttonSize,
                 ),
+                _buildManageButton(
+                  icon: Icons.people_alt_rounded,
+                  label: "Supplier",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SupplierPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+
               ],
             ),
           ],

@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../public/config.dart';
 import '../../../public/main_navigation.dart';
 
-const Color royalblue = Color(0xFF376EA1);
-const Color royal = Color(0xFF19527A);
-const Color royalLight = Color(0xFF629AC1);
+const Color royalblue = Color(0xFF854929);
+const Color royal = Color(0xFF875C3F);
+const Color royalLight = Color(0xFF916542);
 
 class AddIncomePage extends StatefulWidget {
   const AddIncomePage({super.key});
@@ -27,7 +27,7 @@ class _AddIncomePageState extends State<AddIncomePage> {
   int? _editingIncomeId;
 
   List<Map<String, dynamic>> _incomes = [];
-  Map<String, dynamic>? hallDetails;
+  Map<String, dynamic>? shopDetails;
   
   @override
   void initState() {
@@ -37,9 +37,9 @@ class _AddIncomePageState extends State<AddIncomePage> {
 
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId != null) {
-      await _fetchHallDetails();
+    final shopId = prefs.getInt("shopId");
+    if (shopId != null) {
+      await _fetchShopDetails();
       await _fetchIncomes();
     }
   }
@@ -60,11 +60,11 @@ class _AddIncomePageState extends State<AddIncomePage> {
 
   Future<void> _fetchIncomes() async {
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
-    if (lodgeId == null) return;
+    final shopId = prefs.getInt("shopId");
+    if (shopId == null) return;
 
     try {
-      final url = Uri.parse("$baseUrl/income/lodge/$lodgeId");
+      final url = Uri.parse("$baseUrl/finance/income/other/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -86,16 +86,16 @@ class _AddIncomePageState extends State<AddIncomePage> {
     setState(() => _isLoading = true);
 
     final prefs = await SharedPreferences.getInstance();
-    final lodgeId = prefs.getInt("lodgeId");
+    final shopId = prefs.getInt("shopId");
     final userId = prefs.getString("userId");
-    if (lodgeId == null || userId == null) {
-      _showMessage("❌ Hall ID or User ID not found");
+    if (shopId == null || userId == null) {
+      _showMessage("❌ Shop ID or User ID not found");
       setState(() => _isLoading = false);
       return;
     }
 
     final body = {
-      "lodge_id": lodgeId,
+      "shop_id": shopId,
       "user_id": userId,
       "reason": _reasonController.text.trim(),
       "amount": double.parse(_amountController.text.trim()),
@@ -105,13 +105,13 @@ class _AddIncomePageState extends State<AddIncomePage> {
       http.Response response;
       if (_editingIncomeId == null) {
         response = await http.post(
-          Uri.parse("$baseUrl/income"),
+          Uri.parse("$baseUrl/finance/income"),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(body),
         );
       } else {
         response = await http.patch(
-          Uri.parse("$baseUrl/income/$_editingIncomeId"),
+          Uri.parse("$baseUrl/finance/$_editingIncomeId"),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode(body),
         );
@@ -143,7 +143,7 @@ class _AddIncomePageState extends State<AddIncomePage> {
 
   Future<void> _deleteIncome(int incomeId) async {
     try {
-      final url = Uri.parse("$baseUrl/income/$incomeId");
+      final url = Uri.parse("$baseUrl/finance/$incomeId");
       final response = await http.delete(url);
 
       if (response.statusCode == 200) {
@@ -450,7 +450,7 @@ class _AddIncomePageState extends State<AddIncomePage> {
     );
   }
 
-  Widget _buildHallCard(Map<String, dynamic> hall) {
+  Widget _buildShopCard(Map<String, dynamic> shop) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       padding: const EdgeInsets.all(16),
@@ -471,9 +471,9 @@ class _AddIncomePageState extends State<AddIncomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           ClipOval(
-            child: hall['logo'] != null
+            child: shop['logo'] != null
                 ? Image.memory(
-              base64Decode(hall['logo']),
+              base64Decode(shop['logo']),
               width: 70,
               height: 70,
               fit: BoxFit.cover,
@@ -492,7 +492,7 @@ class _AddIncomePageState extends State<AddIncomePage> {
           Expanded(
             child: Center(
               child: Text(
-                hall['name']?.toString().toUpperCase() ?? "LODGE NAME",
+                shop['name']?.toString().toUpperCase() ?? "SHOP NAME",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -509,19 +509,19 @@ class _AddIncomePageState extends State<AddIncomePage> {
     );
   }
 
-  Future<void> _fetchHallDetails() async {
+  Future<void> _fetchShopDetails() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lodgeId = prefs.getInt("lodgeId");
+      final shopId = prefs.getInt("shopId");
 
-      final url = Uri.parse('$baseUrl/lodges/$lodgeId');
+      final url = Uri.parse('$baseUrl/shops/$shopId');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        hallDetails = jsonDecode(response.body);
+        shopDetails = jsonDecode(response.body);
       }
     } catch (e) {
-      _showMessage("Error fetching lodge details: $e");
+      _showMessage("Error fetching shop details: $e");
     } finally {
       setState(() {});
     }
@@ -553,7 +553,7 @@ class _AddIncomePageState extends State<AddIncomePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (hallDetails != null) _buildHallCard(hallDetails!),
+            if (shopDetails != null) _buildShopCard(shopDetails!),
             const SizedBox(height: 16),
             if (!_showForm)
               ElevatedButton(
