@@ -235,11 +235,20 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: royal))
           : RefreshIndicator(
-        color: royal,
-        backgroundColor: Colors.white,
-        onRefresh: _fetchPaymentData,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+          color: royal,
+          backgroundColor: Colors.white,
+          onRefresh: _fetchPaymentData,
+          child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 600, // 👈 works perfectly on all devices
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if(shopData!=null)
               _buildStatusCard(),
@@ -297,6 +306,10 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
             const SizedBox(height: 70),
           ],
         ),
+      ),
+                ),
+              ),
+          ),
       ),
     );
   }

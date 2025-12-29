@@ -453,6 +453,29 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     );
   }
 
+  Widget _buildAdminsResponsive(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // breakpoint
+    final isWide = screenWidth >= 700;
+
+    // card width
+    final cardWidth = isWide
+        ? (screenWidth - 16 * 2 - 12) / 2 // 2 per row
+        : screenWidth; // 1 per row
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: _admins.map((admin) {
+        return SizedBox(
+          width: isWide ? cardWidth : double.infinity,
+          child: _buildAdminCard(admin),
+        );
+      }).toList(),
+    );
+  }
+
   Future<void> _fetchHallDetails(int shopId) async {
     try {
       final url = Uri.parse('$baseUrl/shops/$shopId');
@@ -483,22 +506,23 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     int? maxLength,
     List<TextInputFormatter>? inputFormatters,
   }) {
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: screenWidth * labelWidthFactor,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              style: TextStyle(color: royal, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 10),
+      ConstrainedBox(
+      constraints: const BoxConstraints(
+      minWidth: 100,
+        maxWidth: 140, // 👈 fixed upper limit
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: royal, fontWeight: FontWeight.bold),
+      ),
+    ),
+          const SizedBox(width: 8),
           Expanded(
             child: dropdownItems != null
                 ? DropdownButtonFormField<String>(
@@ -575,7 +599,6 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -647,9 +670,18 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
                 },
                 child: const Text("Create Admin"),
               ),
-            if (_showForm) _buildAdminForm(),
+            if (_showForm)
+              Center(
+                child: Container(
+                  constraints: const BoxConstraints(
+                    maxWidth: 500, // 👈 always max 600, mobile will shrink
+                  ),
+                  width: double.infinity,
+                  child: _buildAdminForm(),
+                ),
+              ),
             const SizedBox(height: 16),
-            ..._admins.map(_buildAdminCard),
+            _buildAdminsResponsive(context),
           ],
         ),
       ),

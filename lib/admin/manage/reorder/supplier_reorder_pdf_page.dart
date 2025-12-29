@@ -132,6 +132,14 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
                     "Phone: ${widget.supplier['phone']}",
                     style: const pw.TextStyle(fontSize: 12),
                   ),
+                  pw.Text(
+                    "Mail: ${widget.supplier['email']}",
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                  pw.Text(
+                    "Address: ${widget.supplier['address']}",
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
                 ],
               ),
             ),

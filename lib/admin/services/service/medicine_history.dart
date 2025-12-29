@@ -381,7 +381,13 @@ class _MedicineHistoryPageState extends State<MedicineHistoryPage> {
               _buildHallCard(shopDetails!),
               const SizedBox(height: 16),
             ],
-
+    Center(
+    child: ConstrainedBox(
+    constraints: const BoxConstraints(
+      maxWidth: 600, // 👈 only form is constrained
+    ),
+    child: Column(
+    children: [
             /// 🔍 Search Bar
             _buildSearchBar(),
             const SizedBox(height: 16),
@@ -417,6 +423,10 @@ class _MedicineHistoryPageState extends State<MedicineHistoryPage> {
 
             /// Bottom spacing (for FAB / navbar safety)
             const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    ),
           ],
         ),
       ),

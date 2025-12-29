@@ -2122,6 +2122,17 @@ class _InventoryPageState extends State<InventoryPage> {
             const SizedBox(height: 16),
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
+            Center(
+            child: ConstrainedBox(
+            constraints: const BoxConstraints(
+            maxWidth: 600, // constrain width
+            ),
+            child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+
             Padding(padding: const EdgeInsets.all(8), child: actionButtons()),
             const SizedBox(height: 16),
             if (showAddMedicine) addMedicineForm(),
@@ -2146,6 +2157,6 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
 
       ),
-    );
+    ),),],),),);
   }
 }

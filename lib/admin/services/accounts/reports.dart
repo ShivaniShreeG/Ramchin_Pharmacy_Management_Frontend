@@ -520,200 +520,196 @@ class _ReportsPageState extends State<ReportsPage> {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _sectionContainer("DAILY REPORT", [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            "Generate Daily Report for your shop.",
-                            style: TextStyle(
-                              color: royal,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-
-                        // 📅 Date Picker Button
-                        Center(
-                          child: SizedBox(
-                            width: 180,
-                            child: ElevatedButton(
-                              onPressed: _pickDate,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: royal,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: BorderSide(color: royal, width: 1),
-                              ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 600, // 👈 fixed max width
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _sectionContainer("DAILY REPORT", [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
                               child: Text(
-                                DateFormat('dd MMM yyyy').format(selectedDate),
+                                "Generate Daily Report for your shop.",
+                                style: TextStyle(
+                                  color: royal,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // 📄 Generate Daily Report
-                        Center(
-                          child: SizedBox(
-                            width: 200,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => DailyReportPage(
-                                      date: selectedDate,
-                                      shopDetails: shopDetails!,
-                                    ),
+                            Center(
+                              child: SizedBox(
+                                width: 180,
+                                child: ElevatedButton(
+                                  onPressed: _pickDate,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: royal,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    side: BorderSide(color: royal, width: 1),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: royal,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              child: const Text(
-                                "Generate Daily Report",
-                                textAlign: TextAlign.center,
+                                  child: Text(
+                                    DateFormat('dd MMM yyyy').format(selectedDate),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ]),
-                      const SizedBox(height: 20),
+                            const SizedBox(height: 12),
+                            Center(
+                              child: SizedBox(
+                                width: 200,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DailyReportPage(
+                                          date: selectedDate,
+                                          shopDetails: shopDetails!,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: royal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  child: const Text("Generate Daily Report"),
+                                ),
+                              ),
+                            ),
+                          ]),
 
-                      _sectionContainer("MONTHLY REPORT", [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            "Generate Monthly Report for your shop.",
-                            style: TextStyle(
-                              color: royal,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Center(
-                          child: SizedBox(
-                            width: 180,
-                            child: ElevatedButton(
-                              onPressed: _pickMonthYear,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: royal,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: BorderSide(color: royal,width: 1)
-                              ),
+                          const SizedBox(height: 20),
+
+                          _sectionContainer("MONTHLY REPORT", [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
                               child: Text(
-                                DateFormat('MMMM yyyy').format(_selectedMonth),
+                                "Generate Monthly Report for your shop.",
+                                style: TextStyle(
+                                  color: royal,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: SizedBox(
-                            width: 200,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => MonthlyReportPage(
-                                      month: _selectedMonth.month,
-                                      year: _selectedMonth.year,
-                                      shopDetails: shopDetails!,
-                                    ),
+                            Center(
+                              child: SizedBox(
+                                width: 180,
+                                child: ElevatedButton(
+                                  onPressed: _pickMonthYear,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: royal,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    side: BorderSide(color: royal, width: 1),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: royal,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              child: const Text(
-                                "Generate Monthly Report",
-                                textAlign: TextAlign.center,
+                                  child: Text(
+                                    DateFormat('MMMM yyyy').format(_selectedMonth),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ]),
+                            const SizedBox(height: 12),
+                            Center(
+                              child: SizedBox(
+                                width: 200,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => MonthlyReportPage(
+                                          month: _selectedMonth.month,
+                                          year: _selectedMonth.year,
+                                          shopDetails: shopDetails!,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: royal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  child: const Text("Generate Monthly Report"),
+                                ),
+                              ),
+                            ),
+                          ]),
 
-                      const SizedBox(height: 20),
-                      _sectionContainer("YEARLY REPORT", [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            "Generate Yearly Report for your shop.",
-                            style: TextStyle(
-                              color: royal,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Center(
-                          child: SizedBox(
-                            width: 150,
-                            child: ElevatedButton(
-                              onPressed: _pickYear,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: royal,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                  side: BorderSide(color: royal,width: 1)
-                              ),
+                          const SizedBox(height: 20),
+
+                          _sectionContainer("YEARLY REPORT", [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
                               child: Text(
-                                selectedYear.toString(),
+                                "Generate Yearly Report for your shop.",
+                                style: TextStyle(
+                                  color: royal,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: SizedBox(
-                            width: 200,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => YearlyReportPage(
-                                      year: selectedYear!,
-                                      shopDetails: shopDetails!,
-                                    ),
+                            Center(
+                              child: SizedBox(
+                                width: 150,
+                                child: ElevatedButton(
+                                  onPressed: _pickYear,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: royal,
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    side: BorderSide(color: royal, width: 1),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: royal,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                              ),
-                              child: const Text(
-                                "Generate Yearly Report",
-                                textAlign: TextAlign.center,
+                                  child: Text(
+                                    selectedYear.toString(),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ]),
-                    ],
+                            const SizedBox(height: 12),
+                            Center(
+                              child: SizedBox(
+                                width: 200,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => YearlyReportPage(
+                                          year: selectedYear!,
+                                          shopDetails: shopDetails!,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: royal,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  child: const Text("Generate Yearly Report"),
+                                ),
+                              ),
+                            ),
+                          ]),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),

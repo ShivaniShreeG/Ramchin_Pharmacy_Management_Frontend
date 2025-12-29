@@ -112,8 +112,14 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
         ],
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        body: SingleChildScrollView(
+            child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 600, // 👈 ideal for all screen sizes
+                    ),
         child: Form(
           key: _formKey,
           child: Column(
@@ -208,6 +214,9 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
           ),
         ),
       ),
+                ),
+            ),
+        ),
     );
   }
 }

@@ -54,23 +54,61 @@ class _BillingPageState extends State<BillingPage> {
 
   void clearBillingForm() {
     _formKey.currentState?.reset();
-
     customerCtrl.clear();
     phoneCtrl.clear();
     doctorCtrl.clear();
     medicineCtrl.clear();
     qtyCtrl.clear();
-
     billItems.clear();
-    medicineSuggestions.clear();
-    selectedBatches.clear();
-
-    selectedMedicine = null;
+    medicineSuggestions.clear();  // Add this
+    selectedBatches.clear();      // Add this
+    selectedMedicine = null;      // Add this
     previewItemTotal = 0;
     billTotal = 0;
-    paymentMode = "CASH";
-
+    paymentMode = 'CASH';
+    showCustomerDropdown = false; // Add customer details reset
+    customerSuggestions.clear();  // Add this
+    customerBills.clear();        // Add this
     setState(() {});
+  }
+
+  Future<void> fetchCustomersByPhone(String phone) async {
+    if (phone.length != 10) return;
+
+    setState(() {
+      isFetchingCustomers = true;
+    });
+
+    final res = await http.get(
+      Uri.parse(
+        "$baseUrl/billing/customers/by-phone/$shopId?phone=$phone",
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      customerSuggestions =
+      List<Map<String, dynamic>>.from(jsonDecode(res.body));
+
+      showCustomerDropdown = customerSuggestions.isNotEmpty;
+    }
+
+    setState(() {
+      isFetchingCustomers = false;
+    });
+  }
+
+  Future<void> fetchBillsByCustomer(String customerName) async {
+    final res = await http.get(
+      Uri.parse(
+        "$baseUrl/billing/bills/by-customer/$shopId"
+            "?phone=${phoneCtrl.text}&customerName=$customerName",
+      ),
+    );
+
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      customerBills = List<Map<String, dynamic>>.from(data['bills']);
+    }
   }
 
   Future loadShopId() async {
@@ -108,6 +146,24 @@ class _BillingPageState extends State<BillingPage> {
     if (res.statusCode == 200) {
       selectedBatches = List<Map<String, dynamic>>.from(jsonDecode(res.body));
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        backgroundColor: royal,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   Widget labeledField({
@@ -157,45 +213,6 @@ class _BillingPageState extends State<BillingPage> {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
     );
-  }
-
-  Future<void> fetchCustomersByPhone(String phone) async {
-    if (phone.length != 10) return;
-
-    setState(() {
-      isFetchingCustomers = true;
-    });
-
-    final res = await http.get(
-      Uri.parse(
-        "$baseUrl/billing/customers/by-phone/$shopId?phone=$phone",
-      ),
-    );
-
-    if (res.statusCode == 200) {
-      customerSuggestions =
-      List<Map<String, dynamic>>.from(jsonDecode(res.body));
-
-      showCustomerDropdown = customerSuggestions.isNotEmpty;
-    }
-
-    setState(() {
-      isFetchingCustomers = false;
-    });
-  }
-
-  Future<void> fetchBillsByCustomer(String customerName) async {
-    final res = await http.get(
-      Uri.parse(
-        "$baseUrl/billing/bills/by-customer/$shopId"
-            "?phone=${phoneCtrl.text}&customerName=$customerName",
-      ),
-    );
-
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body);
-      customerBills = List<Map<String, dynamic>>.from(data['bills']);
-    }
   }
 
   void _showBillsBottomSheet()
@@ -335,24 +352,6 @@ class _BillingPageState extends State<BillingPage> {
           },
         );
       },
-    );
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-        ),
-        backgroundColor: royal,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        duration: const Duration(seconds: 3),
-      ),
     );
   }
 
@@ -664,7 +663,13 @@ class _BillingPageState extends State<BillingPage> {
               if (shopDetails != null) _buildHallCard(shopDetails!),
 
               const SizedBox(height: 16),
-
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 600, // 👈 only form is constrained
+            ),
+            child: Column(
+              children: [
               _sectionCard(
                 title: "Billing Details",
                 child: Column(
@@ -1128,6 +1133,10 @@ class _BillingPageState extends State<BillingPage> {
           ),
         ),
 
+      ),
+      ],
+          ),
+        ),
       ),
     );
   }

@@ -210,6 +210,13 @@ class _ReorderPageState extends State<ReorderPage> {
           children: [
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 30),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 600, // 👈 only form is constrained
+                ),
+                child: Column(
+                  children: [
             ElevatedButton.icon(
               icon: const Icon(Icons.picture_as_pdf),
               label: const Text(
@@ -344,6 +351,6 @@ class _ReorderPageState extends State<ReorderPage> {
           ],
         ),
       ),
-    );
+    ),],),),);
   }
 }

@@ -179,13 +179,24 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
         ),
       )
           : RefreshIndicator(
-        onRefresh: () async {
-          await _fetchMessages();
-          await _fetchHallDetails();
-        },
-        color: royal,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+          color: royal,
+          backgroundColor: Colors.white,
+          onRefresh: () async {
+            await _fetchMessages();
+            await _fetchHallDetails();
+          },
+          child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 600, // 👈 works perfectly on all devices
+                      ),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+
           children: [
             // 💳 Payment Due Card (only if due or overdue)
             if (_dueMessage != null)
@@ -264,6 +275,10 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
               )),
           ],
         ),
+      ),
+                  ),
+              ),
+          ),
       ),
     );
   }

@@ -133,6 +133,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_oldPasswordController.text == _newPasswordController.text) {
+      _showMessage("⚠️ Old password and new password cannot be the same");
+      return;
+    }
+
     if (_newPasswordController.text != _confirmPasswordController.text) {
       _showMessage("⚠️ New password and confirm password do not match");
       return;

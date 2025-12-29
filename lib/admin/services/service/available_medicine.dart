@@ -517,6 +517,13 @@ class _AvailableMedicinePageState extends State<AvailableMedicinePage> {
             const SizedBox(height: 16),
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 600, // 👈 only form is constrained
+                ),
+                child: Column(
+                  children: [
             if (medicines.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(20),
@@ -536,6 +543,6 @@ class _AvailableMedicinePageState extends State<AvailableMedicinePage> {
         ),
 
       ),
-    );
+    ),],),),);
   }
 }

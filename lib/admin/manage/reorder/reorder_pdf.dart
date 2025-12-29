@@ -233,58 +233,76 @@ class _ReorderPdfPageState extends State<ReorderPdfPage> {
           );
         },
       )
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: widget.medicines.length,
-        itemBuilder: (context, index) {
-          final m = widget.medicines[index];
-          return Card(
-            color: Colors.white,
-            margin: const EdgeInsets.only(bottom: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: royal),
+          : Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: 600, // constrain width
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ListView.builder(
+                  shrinkWrap: true, // important to let column expand
+                  physics: const NeverScrollableScrollPhysics(), // single scroll
+                  itemCount: widget.medicines.length,
+                  itemBuilder: (context, index) {
+                    final m = widget.medicines[index];
+                    return Card(
+                      color: Colors.white,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(color: royal),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              m['medicine_name'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: royal,
+                              ),
+                            ),
+                            Text("Current Stock: ${m['current_stock']}"),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: qtyControllers[m['medicine_id']],
+                              cursorColor: royal,
+                              style: TextStyle(color: royal),
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: "Required Quantity",
+                                labelStyle: TextStyle(color: royal),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: royal, width: 1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(color: royal, width: 2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: royal.withOpacity(0.05),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    m['medicine_name'],
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, color: royal),
-                  ),
-                  Text("Current Stock: ${m['current_stock']}"),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: qtyControllers[m['medicine_id']],
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: "Required Quantity",
-                      labelStyle: TextStyle(color: royal),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: royal, width: 1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: royal, width: 2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: royal.withValues(alpha:0.05),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+          ),
+        ),
       ),
 
       bottomNavigationBar: SafeArea(

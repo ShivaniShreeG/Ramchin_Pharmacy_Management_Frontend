@@ -368,6 +368,7 @@ class _SupplierPageState extends State<SupplierPage> {
   Widget _supplierCard(Map<String, dynamic> s) {
     return Card(
       elevation: 4,
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -649,6 +650,7 @@ class _SupplierPageState extends State<SupplierPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Suppliers "),
         backgroundColor: royal,
@@ -679,6 +681,13 @@ class _SupplierPageState extends State<SupplierPage> {
           children: [
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16,),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 600, // 👈 only form is constrained
+            ),
+            child: Column(
+              children: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: royal),
               onPressed: () =>
@@ -694,6 +703,6 @@ class _SupplierPageState extends State<SupplierPage> {
           ],
         ),
       ),
-    );
+        ),],),),);
   }
 }

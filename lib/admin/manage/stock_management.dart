@@ -583,49 +583,69 @@ class _StockPageState extends State<StockPage> {
             const SizedBox(height: 10),
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
-            if (medicines.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text("No medicines found",style: TextStyle(color: royal),),
-              ),
-            Row(
-              children: [
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Text("Expired"),
-                    selected: selectedType == 'expired',
-                    selectedColor: Colors.red.withValues(alpha: 0.2),
-                    onSelected: (_) {
-                      setState(() => selectedType = 'expired');
-                      fetchMedicines();
-                    },
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 600, // constrain width
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text("Expired"),
+                              selected: selectedType == 'expired',
+                              selectedColor: Colors.red.withValues(alpha: 0.2),
+                              onSelected: (_) {
+                                setState(() => selectedType = 'expired');
+                                fetchMedicines();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Text("Deactivated"),
+                              selected: selectedType == 'deactivated',
+                              selectedColor: Colors.orange.withValues(alpha: 0.2),
+                              onSelected: (_) {
+                                setState(() => selectedType = 'deactivated');
+                                fetchMedicines();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      if (medicines.isEmpty)
+                        Center(
+                          child:
+                        const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text("No medicines found",style: TextStyle(color: royal),),
+                        ),
+                        ),
+                      if (medicines.isNotEmpty) searchBar(),
+                      const SizedBox(height: 18),
+                      ...filteredMedicines.map(
+                            (batch) => Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: batchCardFullUI(batch),
+                        ),
+                      ),
+                      const SizedBox(height: 70),
+
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ChoiceChip(
-                    label: const Text("Deactivated"),
-                    selected: selectedType == 'deactivated',
-                    selectedColor: Colors.orange.withValues(alpha: 0.2),
-                    onSelected: (_) {
-                      setState(() => selectedType = 'deactivated');
-                      fetchMedicines();
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (medicines.isNotEmpty)
-              searchBar(),
-            const SizedBox(height: 18),
-            ...filteredMedicines.map(
-                  (batch) => Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: batchCardFullUI(batch),
               ),
-            ),
-            const SizedBox(height: 70),
+            )
+
           ],
         ),
 

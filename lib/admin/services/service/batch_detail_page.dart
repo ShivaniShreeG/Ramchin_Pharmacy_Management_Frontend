@@ -337,6 +337,13 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
         children: [
           if(shopDetails!=null)_buildHallCard(shopDetails!),
           const SizedBox(height: 16),
+          Center(
+          child: ConstrainedBox(
+          constraints: const BoxConstraints(
+          maxWidth: 600, // 👈 only form is constrained
+          ),
+          child: Column(
+          children: [
           _infoCard(),
           const SizedBox(height: 16),
           Center(
@@ -354,6 +361,6 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
           const SizedBox(height: 70),
         ],
       ),
-    );
+    ),),],),);
   }
 }

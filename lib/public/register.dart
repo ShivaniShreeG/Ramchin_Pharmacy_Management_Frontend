@@ -348,8 +348,14 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
         title: const Text("Register Shop", style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+        body: SingleChildScrollView(
+            child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 600, // 👈 ideal for all screen sizes
+                    ),
         child: Form(
           key: _formKey,
           child: Column(
@@ -484,6 +490,9 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
           ),
         ),
       ),
+                ),
+            ),
+        ),
     );
   }
 

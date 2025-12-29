@@ -164,7 +164,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _buildStatsCards(double textScale, double boxScale) {
+  Widget _buildStatsCards(double textScale) {
     final stats = [
       {"title": "Goods Value", "value": overallValue, "color": Colors.orange},
       {"title": "Total Medicine", "value": totalMedicineWithStock.toDouble(), "color": Colors.cyan},
@@ -172,58 +172,72 @@ class _HomePageState extends State<HomePage> {
       {"title": "Today Profit", "value": totalProfit, "color": Colors.blue},
       {"title": "Units Sold", "value": totalUnitsSold.toDouble(), "color": Colors.purple},
       {"title": "Total Bills", "value": totalBills.toDouble(), "color": Colors.teal},
-      {"title": "Cash Balance", "value": cashIncome, "color": Colors.green.shade700},
-      {"title": "Online Balance", "value": onlineIncome, "color": Colors.blue.shade700},
     ];
 
-    return Wrap(
-      spacing: 16 * boxScale,
-      runSpacing: 16 * boxScale,
-      alignment: WrapAlignment.center, // center cards if only one in a row
-      children: stats.map((stat) {
-        return SizedBox(
-          width: 140 * boxScale, // fixed card width
-          child: Card(
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12 * boxScale),
-              side: BorderSide(color: royal,width: 1.5),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 16 * boxScale, horizontal: 12 * boxScale),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    stat["title"]?.toString() ?? '',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14 * textScale,
-                      fontWeight: FontWeight.w500,
-                      color: royal,
+    return Center(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          double maxWidth = constraints.maxWidth > 600 ? 600 : constraints.maxWidth;
+          int cardsPerRow = 2; // Always 2 cards per row even on phones
+          double spacing = 16;
+          double cardWidth = (maxWidth - (spacing * (cardsPerRow - 1))) / cardsPerRow;
+
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              alignment: WrapAlignment.center,
+              children: stats.map((stat) {
+                return SizedBox(
+                  width: cardWidth,
+                  child: Card(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: royal, width: 1.5),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0, end: stat["value"] as double),
-                    duration: const Duration(seconds: 1),
-                    builder: (context, value, child) => Text(
-                      (stat["title"] == "Units Sold" || stat["title"] == "Total Bills")
-                          ? value.toInt().toString()       // show as integer
-                          : "₹${value.toStringAsFixed(2)}", // show as currency
-                      style: TextStyle(
-                        fontSize: 18 * textScale,
-                        fontWeight: FontWeight.bold,
-                        color: stat["color"] as Color,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            stat["title"]?.toString() ?? '',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14 * textScale,
+                              fontWeight: FontWeight.w500,
+                              color: royal,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween<double>(begin: 0, end: stat["value"] as double),
+                            duration: const Duration(seconds: 1),
+                            builder: (context, value, child) => Text(
+                              (stat["title"] == "Units Sold" ||
+                                  stat["title"] == "Total Bills" ||
+                                  stat["title"] == "Total Medicine")
+                                  ? value.toInt().toString()
+                                  : "₹${value.toStringAsFixed(2)}",
+                              style: TextStyle(
+                                fontSize: 18 * textScale,
+                                fontWeight: FontWeight.bold,
+                                color: stat["color"] as Color,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                );
+              }).toList(),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        },
+      ),
     );
   }
 
@@ -256,7 +270,18 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     _buildHallCard(),
                     const SizedBox(height: 20),
-                    _buildStatsCards(textScale, boxScale),
+                    _buildStatsCards(textScale, ),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: EdgeInsets.only(top: 20 * textScale),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 600), // max width constraint
+                          child: _buildCurrentBalanceBox(cashIncome, textScale, boxScale),
+                        ),
+                      ),
+                    ),
+
                   ],
                 ),
               ),
@@ -341,72 +366,59 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  // Widget _buildCurrentBalanceBox(double cash, double online, double textScale, double boxScale) {
-  //   return Container(
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(20 * boxScale),
-  //       border: Border.all(color: royal, width: 1.5),
-  //     ),
-  //     child: Padding(
-  //       padding: EdgeInsets.symmetric(vertical: 24 * boxScale, horizontal: 32 * boxScale),
-  //       child: Column(
-  //         mainAxisAlignment: MainAxisAlignment.center,
-  //         children: [
-  //           Text(
-  //             "Cash & Online Balance",
-  //             textAlign: TextAlign.center,
-  //             style: TextStyle(
-  //               fontSize: 17 * textScale,
-  //               fontWeight: FontWeight.bold,
-  //               color: royal,
-  //             ),
-  //           ),
-  //           SizedBox(height: 16 * boxScale),
-  //
-  //           // Cash Income
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text("Cash", style: TextStyle(fontSize: 16 * textScale, color: royal)),
-  //               TweenAnimationBuilder<double>(
-  //                 tween: Tween<double>(begin: 0, end: cash),
-  //                 duration: const Duration(seconds: 1),
-  //                 builder: (context, value, child) => Text(
-  //                   "₹${value.toStringAsFixed(2)}",
-  //                   style: TextStyle(
-  //                     fontSize: 18 * textScale,
-  //                     fontWeight: FontWeight.bold,
-  //                     color: Colors.green,
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           SizedBox(height: 8 * boxScale),
-  //
-  //           // Online Income
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               Text("Online", style: TextStyle(fontSize: 16 * textScale, color: royal)),
-  //               TweenAnimationBuilder<double>(
-  //                 tween: Tween<double>(begin: 0, end: online),
-  //                 duration: const Duration(seconds: 1),
-  //                 builder: (context, value, child) => Text(
-  //                   "₹${value.toStringAsFixed(2)}",
-  //                   style: TextStyle(
-  //                     fontSize: 18 * textScale,
-  //                     fontWeight: FontWeight.bold,
-  //                     color: Colors.blue,
-  //                   ),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
+  Widget _buildCurrentBalanceBox(double cash, double textScale, double boxScale) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20 * boxScale),
+        border: Border.all(
+          color: royal,
+          width: 1.5,
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          vertical: 24 * boxScale,
+          horizontal: 32 * boxScale,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 💰 Title
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(width: 1 * boxScale),
+                Text(
+                  "Cash On Hand",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 17 * textScale,
+                    fontWeight: FontWeight.bold,
+                    color: royal,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 12 * boxScale),
+
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: cash),
+              duration: const Duration(seconds: 1),
+              builder: (context, value, child) => Text(
+                "₹${value.toStringAsFixed(2)}",
+                style: TextStyle(
+                  fontSize: 34 * textScale,
+                  fontWeight: FontWeight.w500,
+                  color: royal,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -275,12 +275,19 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
           children: [
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 600, // 👈 only form is constrained
+            ),
+            child: Column(
+              children: [
             _buildOverallValue(),
             _buildMedicineWiseList(),
             const SizedBox(height: 70),
           ],
         ),
       ),
-    );
+        ),],),),);
   }
 }

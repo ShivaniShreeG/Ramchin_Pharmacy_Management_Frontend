@@ -663,14 +663,47 @@ class _ViewFinancePageState extends State<ViewFinancePage> {
             const SizedBox(height: 12),
             if (_filteredData.isEmpty)
               Center(
-                child: Text(
-                  "No records found for ${DateFormat('MMMM yyyy').format(_selectedMonth)}.",
-                  style: TextStyle(color: royal, fontSize: 16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    "No records found for ${DateFormat('MMMM yyyy').format(_selectedMonth)}.",
+                    style: TextStyle(
+                      color: royal,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               )
             else
-              ..._filteredData.map(_buildFinanceCard),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 700;
+
+                  if (!isWide) {
+                    // 📱 Mobile → single column
+                    return Column(
+                      children: _filteredData.map(_buildFinanceCard).toList(),
+                    );
+                  }
+
+                  // 💻 Tablet / Web → 2 cards per row
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _filteredData.map((item) {
+                      return SizedBox(
+                        width: (constraints.maxWidth - 12) / 2,
+                        child: _buildFinanceCard(item),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+
             const SizedBox(height: 30),
+
           ],
         ),
       ),

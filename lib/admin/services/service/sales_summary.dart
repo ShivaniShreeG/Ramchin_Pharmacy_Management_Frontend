@@ -417,7 +417,13 @@ class _SalesReportPageState extends State<SalesReportPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (shopDetails != null) _buildHallCard(shopDetails!),
-
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 600, // 👈 only form is constrained
+            ),
+            child: Column(
+              children: [
             const SizedBox(height: 16),
 
             _buildDateAndPdfRow(showPdf: hasMedicineData),
@@ -452,6 +458,6 @@ class _SalesReportPageState extends State<SalesReportPage> {
           ],
         ),
       ),
-    );
+    ),],),),);
   }
 }

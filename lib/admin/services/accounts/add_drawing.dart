@@ -509,7 +509,7 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: screenWidth * labelWidthFactor,
+            width: screenWidth * 0.2,
             alignment: Alignment.centerLeft,
             child: Text(
               label,
@@ -648,28 +648,76 @@ class _AddDrawingPageState extends State<AddDrawingPage> {
           children: [
             if (shopDetails != null) _buildShopCard(shopDetails!),
             const SizedBox(height: 16),
+
+            // ➕ Add Drawing button
             if (!_showForm)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: royal,
-                  foregroundColor: Colors.white,
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: royal,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showForm = true;
+                          if (_reasonController.text.isEmpty) {
+                            _reasonController.text = "Drawing";
+                          }
+                        });
+                      },
+                      child: const Text("Add Drawing"),
+                    ),
+                  ),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _showForm = true;
-                    if (_reasonController.text.isEmpty) {
-                      _reasonController.text = "Drawing";
-                    }
-                  });
-                },
-                child: const Text("Add Drawing"),
               ),
-            if (_showForm) _buildDrawingForm(),
+
+            // 🧾 Drawing form
+            if (_showForm)
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildDrawingForm(),
+                  ),
+                ),
+              ),
+
             const SizedBox(height: 16),
-            ..._drawings.map(_buildDrawingCard),
+
+            // 💳 Drawing cards (responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 700;
+
+                if (!isWide) {
+                  // 📱 Mobile
+                  return Column(
+                    children: _drawings.map(_buildDrawingCard).toList(),
+                  );
+                }
+
+                // 💻 Tablet/Web → 2 per row
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _drawings.map((drawing) {
+                    return SizedBox(
+                      width: (constraints.maxWidth - 12) / 2,
+                      child: _buildDrawingCard(drawing),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),
+
     );
   }
 }

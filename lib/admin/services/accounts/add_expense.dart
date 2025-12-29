@@ -346,7 +346,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: screenWidth * 0.25,
+            width: screenWidth * 0.2,
             alignment: Alignment.centerLeft,
             child: Text(
               label,
@@ -509,21 +509,69 @@ class _AddExpensePageState extends State<AddExpensePage> {
           children: [
             if (shopDetails != null) _buildShopCard(shopDetails!),
             const SizedBox(height: 16),
+
+            // ➕ Add Expense button
             if (!_showForm)
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: royal,
-                  foregroundColor: Colors.white,
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: royal,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => setState(() => _showForm = true),
+                      child: const Text("Add Expense"),
+                    ),
+                  ),
                 ),
-                onPressed: () => setState(() => _showForm = true),
-                child: const Text("Add Expense"),
               ),
-            if (_showForm) _buildExpenseForm(),
+
+            // 🧾 Expense form
+            if (_showForm)
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildExpenseForm(),
+                  ),
+                ),
+              ),
+
             const SizedBox(height: 16),
-            ..._expenses.map(_buildExpenseCard)
+
+            // 💳 Expense cards (responsive)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 700;
+
+                if (!isWide) {
+                  // 📱 Mobile → 1 per row
+                  return Column(
+                    children: _expenses.map(_buildExpenseCard).toList(),
+                  );
+                }
+
+                // 💻 Tablet/Web → 2 per row
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _expenses.map((expense) {
+                    return SizedBox(
+                      width: (constraints.maxWidth - 12) / 2,
+                      child: _buildExpenseCard(expense),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),
+
     );
   }
 }
