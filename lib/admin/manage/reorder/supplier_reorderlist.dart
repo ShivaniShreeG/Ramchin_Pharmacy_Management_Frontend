@@ -188,16 +188,15 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 filled: true,
-                                fillColor: royal.withOpacity(0.05),
+                                fillColor: royal.withValues(alpha: 0.05),
                               ),
                             ),
                         ],
                       ),
                     ),
                   );
-                }).toList(),
+                }),
 
-                /// 🔹 GENERATE PDF BUTTON
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),

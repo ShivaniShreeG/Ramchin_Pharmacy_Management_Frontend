@@ -290,7 +290,7 @@ class _ReorderPdfPageState extends State<ReorderPdfPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 filled: true,
-                                fillColor: royal.withOpacity(0.05),
+                                fillColor: royal.withValues(alpha:0.05),
                               ),
                             ),
                           ],

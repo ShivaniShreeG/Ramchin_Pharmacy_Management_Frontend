@@ -32,6 +32,8 @@ class _SupplierPageState extends State<SupplierPage> {
   Map<String, dynamic>? shopDetails;
   List<Map<String, dynamic>> _suppliers = [];
   int? editingSupplierId;
+  Map<String, String> initialSupplierValues = {};
+  bool isSupplierDirty = false;
 
   @override
   void initState() {
@@ -69,6 +71,10 @@ class _SupplierPageState extends State<SupplierPage> {
     } finally {
       setState(() {});
     }
+  }
+
+  bool get _isDesktop {
+    return MediaQuery.of(context).size.width >= 800;
   }
 
   Future<void> _callSupplier(String phone) async {
@@ -221,80 +227,253 @@ class _SupplierPageState extends State<SupplierPage> {
     }
   }
 
+  bool get _canSubmitSupplier {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+
+    return name.isNotEmpty && (phone.isNotEmpty || email.isNotEmpty);
+  }
+
   Widget _supplierForm() {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: royal),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              labeledTanRow(
-                label: "NAME",
-                controller: _nameController,
-                hintText: "Enter Supplier Name",
-                validator: (v) =>
-                v == null || v.trim().isEmpty ? "Name is required" : null,
-              ),
-              labeledTanRow(
-                label: "PHONE",
-                controller: _phoneController,
-                inputType: TextInputType.phone,
-                hintText: "Enter Phone Number",
-                maxLength: 10,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(10),
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: _isDesktop ? 800 : double.infinity,
+        ),
+        child: Card(
+          elevation: 8,
+          color: Colors.white,
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: royal, width: 1),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  _isDesktop
+                      ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            labeledTanRow(
+                              label: "NAME",
+                              controller: _nameController,
+                              hintText: "Enter Supplier Name",
+                              onChanged: (_) {
+                                _checkSupplierDirty();
+                                setState(() {});
+                              },
+                              validator: (v) =>
+                              v == null || v.trim().isEmpty
+                                  ? "Name is required"
+                                  : null,
+                            ),
+                            labeledTanRow(
+                              label: "PHONE",
+                              controller: _phoneController,
+                              inputType: TextInputType.phone,
+                              hintText: "Enter Phone Number",
+                              maxLength: 10,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              onChanged: (_) {
+                                _checkSupplierDirty();
+                                setState(() {});
+                              },
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return "Phone number required";
+                                }
+                                if (!RegExp(r'^\d{10}$').hasMatch(v)) {
+                                  return "10 digits required";
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 50),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            labeledTanRow(
+                              label: "EMAIL",
+                              controller: _emailController,
+                              inputType: TextInputType.emailAddress,
+                              hintText: "Enter Email Address",
+                              onChanged: (_) {
+                                _checkSupplierDirty();
+                                setState(() {});
+                              },
+                              validator: (v) {
+                                if (v != null && v.isNotEmpty &&
+                                    !RegExp(r'^[\w.-]+@[\w.-]+\.\w+$')
+                                        .hasMatch(v)) {
+                                  return "Enter a valid email";
+                                }
+                                return null;
+                              },
+                            ),
+                            labeledTanRow(
+                              label: "ADDRESS",
+                              controller: _addressController,
+                              hintText: "Enter Supplier Address",
+                              onChanged: (_) {
+                                _checkSupplierDirty();
+                                setState(() {});
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                      : Column(
+                    children: [
+                      labeledTanRow(
+                        label: "NAME",
+                        controller: _nameController,
+                        hintText: "Enter Supplier Name",
+                        onChanged: (_) {
+                          _checkSupplierDirty();
+                          setState(() {});
+                        },
+                        validator: (v) =>
+                        v == null || v.trim().isEmpty
+                            ? "Name is required"
+                            : null,
+                      ),
+                      labeledTanRow(
+                        label: "PHONE",
+                        controller: _phoneController,
+                        inputType: TextInputType.phone,
+                        hintText: "Enter Phone Number",
+                        maxLength: 10,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        onChanged: (_) {
+                          _checkSupplierDirty();
+                          setState(() {});
+                        },
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return "Phone number required";
+                          }
+                          if (!RegExp(r'^\d{10}$').hasMatch(v)) {
+                            return "10 digits required";
+                          }
+                          return null;
+                        },
+                      ),
+                      labeledTanRow(
+                        label: "EMAIL",
+                        controller: _emailController,
+                        inputType: TextInputType.emailAddress,
+                        hintText: "Enter Email Address",
+                        onChanged: (_) {
+                          _checkSupplierDirty();
+                          setState(() {});
+                        },
+                        validator: (v) {
+                          if (v != null && v.isNotEmpty &&
+                              !RegExp(r'^[\w.-]+@[\w.-]+\.\w+$')
+                                  .hasMatch(v)) {
+                            return "Enter a valid email";
+                          }
+                          return null;
+                        },
+                      ),
+                      labeledTanRow(
+                        label: "ADDRESS",
+                        controller: _addressController,
+                        hintText: "Enter Supplier Address",
+                        onChanged: (_) {
+                          _checkSupplierDirty();
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  /// 🔘 BUTTONS (Same UX as Admin)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        height: 48,
+                        width: 180,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: royal,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _isLoading ||
+                              !_canSubmitSupplier ||
+                              (editingSupplierId != null && !isSupplierDirty)
+                              ? null
+                              : editingSupplierId == null
+                              ? _createSupplier
+                              : _updateSupplier,
+
+
+                          child: _isLoading
+                              ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : Text(
+                            editingSupplierId == null
+                                ? "Save Supplier"
+                                : "Update Supplier",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      SizedBox(
+                        height: 48,
+                        width: 90,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: royal,
+                            side: BorderSide(color: royal),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _resetForm,
+                          child: const Text("Close"),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
-                validator: (v) {
-                  if (v == null || v.isEmpty) return "Phone number required";
-                  if (!RegExp(r'^\d{10}$').hasMatch(v)) return "10 digits required";
-                  return null;
-                },
               ),
-
-              labeledTanRow(
-                label: "EMAIL",
-                controller: _emailController,
-                inputType: TextInputType.emailAddress,
-                hintText: "Enter Email Address",
-                validator: (v) {
-                  if (v != null && v.isNotEmpty) {
-                    if (!RegExp(r'^[\w.-]+@[\w.-]+\.\w+$').hasMatch(v)) {
-                      return "Enter a valid email address";
-                    }
-                  }
-                  return null;
-                },
-              ),
-              labeledTanRow(
-                label: "ADDRESS",
-                controller: _addressController,
-                hintText: "Enter Supplier address",
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: royal),
-                onPressed: _isLoading
-                    ? null
-                    : editingSupplierId == null
-                    ? _createSupplier
-                    : _updateSupplier,
-                child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                  editingSupplierId == null
-                      ? "Save Supplier"
-                      : "Update Supplier",
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-
-            ],
+            ),
           ),
         ),
       ),
@@ -362,6 +541,16 @@ class _SupplierPageState extends State<SupplierPage> {
       _phoneController.text = s["phone"] ?? "";
       _emailController.text = s["email"] ?? "";
       _addressController.text = s["address"] ?? "";
+
+      // 👇 store original values
+      initialSupplierValues = {
+        "name": _nameController.text,
+        "phone": _phoneController.text,
+        "email": _emailController.text,
+        "address": _addressController.text,
+      };
+
+      isSupplierDirty = false;
     });
   }
 
@@ -570,16 +759,13 @@ class _SupplierPageState extends State<SupplierPage> {
     int? maxLength,
     List<TextInputFormatter>? inputFormatters,
   }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: screenWidth * labelWidthFactor,
-            alignment: Alignment.centerLeft,
+          SizedBox(
+            width: 100,
             child: Text(
               label,
               style: TextStyle(color: royal, fontWeight: FontWeight.bold),
@@ -646,6 +832,40 @@ class _SupplierPageState extends State<SupplierPage> {
       ),
     );
   }
+  Widget _buildSuppliersResponsive(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // breakpoint (same idea as Admin)
+    final isWide = screenWidth >= 700;
+
+    // card width
+    final cardWidth = isWide
+        ? (screenWidth - 16 * 2 - 12) / 2 // 2 per row
+        : screenWidth;
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: _suppliers.map((supplier) {
+        return SizedBox(
+          width: isWide ? cardWidth : double.infinity,
+          child: _supplierCard(supplier),
+        );
+      }).toList(),
+    );
+  }
+
+  void _checkSupplierDirty() {
+    final isDirty =
+        _nameController.text.trim() != (initialSupplierValues["name"] ?? "") ||
+            _phoneController.text.trim() != (initialSupplierValues["phone"] ?? "") ||
+            _emailController.text.trim() != (initialSupplierValues["email"] ?? "") ||
+            _addressController.text.trim() != (initialSupplierValues["address"] ?? "");
+
+    if (isDirty != isSupplierDirty) {
+      setState(() => isSupplierDirty = isDirty);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -684,25 +904,43 @@ class _SupplierPageState extends State<SupplierPage> {
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(
-              maxWidth: 600, // 👈 only form is constrained
+              maxWidth: 600,
             ),
             child: Column(
               children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: royal),
-              onPressed: () =>
-                  setState(() => _showForm = !_showForm),
-              child: Text(
-                _showForm ? "Close" : "Add Supplier",
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-            if (_showForm) _supplierForm(),
-            const SizedBox(height: 16),
-            ..._suppliers.map(_supplierCard),
+                if (!_showForm)
+                  SizedBox(
+                  height: 48,
+                  width: 200,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: royal,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 3,
+                    ),
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text(
+                      "Add Supplier",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _showForm = true; // 👈 only open form
+                        editingSupplierId = null;
+                      });
+                    },
+                  ),
+                ),
           ],
         ),
       ),
-        ),],),),);
+
+        ),
+            if (_showForm) _supplierForm(),
+            const SizedBox(height: 16),
+            _buildSuppliersResponsive(context),
+          ],),),);
   }
 }

@@ -50,7 +50,6 @@ class _AppDrawerState extends State<AppDrawer> {
     }
   }
 
-
   Future<void> _fetchHallInfo(int shopId) async {
     try {
       final url = Uri.parse('$baseUrl/shops/$shopId');

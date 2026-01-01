@@ -29,7 +29,6 @@ class _InventoryPageState extends State<InventoryPage> {
   bool showAddBatch = false;
   final medicineCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
-  final reorderCtrl = TextEditingController(text: '10');
   final unitCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
   final profitCtrl = TextEditingController();
@@ -42,15 +41,6 @@ class _InventoryPageState extends State<InventoryPage> {
   double totalPurchasePrice = 0;
   double stock = 0, purchase = 0, sell = 0;
 
-  final List<String> medicineCategories = [
-    "Tablets",
-    "Syrups",
-    "Drops",
-    "Ointments",
-    "Creams",
-    "Soap",
-    "Other",
-  ];
   bool isEditingProfit = false;
   bool isEditingSelling = false;
   Timer? debounce;
@@ -217,25 +207,64 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   void searchMedicines(String query) {
-    query = query.toLowerCase();
+    final numericQuery = query.replaceAll(RegExp(r'\D'), '');
+    final lowerQuery = query.toLowerCase();
 
     setState(() {
       filteredMedicines = medicines.where((medicine) {
         final nameMatch =
-            medicine['name']?.toLowerCase().contains(query) ?? false;
+            medicine['name']?.toLowerCase().contains(lowerQuery) ?? false;
 
         final batchMatch = (medicine['batches'] as List).any((batch) {
           final expiry = batch['expiry_date'];
           if (expiry == null) return false;
 
-          final formatted = formatDate(expiry).toLowerCase();
-          return expiry.toLowerCase().contains(query) ||
-              formatted.contains(query);
+          final variants = normalizeDateVariants(expiry);
+
+          return variants.any((v) =>
+          v.replaceAll(RegExp(r'\D'), '').contains(numericQuery) ||
+              v.toLowerCase().contains(lowerQuery));
         });
 
         return nameMatch || batchMatch;
       }).toList();
     });
+  }
+
+  List<String> normalizeDateVariants(String date) {
+    try {
+      final d = DateTime.parse(date);
+
+      final dd = d.day.toString().padLeft(2, '0');
+      final mm = d.month.toString().padLeft(2, '0');
+      final yyyy = d.year.toString();
+      final yy = yyyy.substring(2);
+
+      return [
+        // 🔢 numeric only
+        "$dd$mm$yyyy", // DDMMYYYY
+        "$mm$dd$yyyy", // MMDDYYYY
+        "$yyyy$mm$dd", // YYYYMMDD
+        "$yyyy$dd$mm", // YYYYDDMM
+        "$dd$mm$yy",   // DDMMYY
+        "$mm$dd$yy",   // MMDDYY
+        "$yy$mm$dd",   // YYMMDD
+        "$yy$dd$mm",   // YYDDMM
+
+        // 📅 with separators
+        "$dd/$mm/$yyyy",
+        "$mm/$dd/$yyyy",
+        "$yyyy/$mm/$dd",
+        "$yyyy/$dd/$mm",
+
+        "$dd-$mm-$yyyy",
+        "$mm-$dd-$yyyy",
+        "$yyyy-$mm-$dd",
+        "$yyyy-$dd-$mm",
+      ];
+    } catch (_) {
+      return [];
+    }
   }
 
   Widget medicineCard(Map<String, dynamic> medicine) {
@@ -589,6 +618,20 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
+  String normalizeDate(String date) {
+    try {
+      final d = DateTime.parse(date);
+
+      final day = d.day.toString().padLeft(2, '0');
+      final month = d.month.toString().padLeft(2, '0');
+      final year = d.year.toString();
+
+      return "$day$month$year"; // 30022026
+    } catch (_) {
+      return "";
+    }
+  }
+
   Widget infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -629,6 +672,1177 @@ class _InventoryPageState extends State<InventoryPage> {
     } catch (_) {
       return "-";
     }
+  }
+
+  Widget addMedicineForm() {
+    final reorderCtrl = TextEditingController(text: '10');
+    final nameCtrl = TextEditingController();
+    bool isNameTaken = false; // to track if name exists
+    final ndcCtrl = TextEditingController();
+    final batchCtrl = TextEditingController(text: "01");
+    final rackCtrl = TextEditingController();
+    final quantityCtrl = TextEditingController();
+    final unitCtrl = TextEditingController();
+    final profitCtrl = TextEditingController();
+    final sellerCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final hsnCtrl = TextEditingController();
+    final mrpCtrl = TextEditingController();
+    final List<String> medicineCategories = [
+      "Tablets",
+      "Syrups",
+      "Drops",
+      "Ointments",
+      "Creams",
+      "Soap",
+      "Other",
+    ];
+    String selectedCategory = medicineCategories.first;
+    DateTime? mfgDate;
+    DateTime? expDate;
+    int? selectedSupplierId;     // ✅ real supplier id
+    bool supplierFound = false; // ✅ for UI icon
+    final freeQtyCtrl = TextEditingController();
+    double totalQuantity = 0;
+    double totalStock = 0; // ✅ FIX
+    DateTime purchaseDate = DateTime.now(); // ✅ default today
+    final ratePerQtyCtrl = TextEditingController();
+    final gstCtrl = TextEditingController();
+    double sellingPerUnit = 0;
+    double sellingPerQuantity = 0;
+    double purchasePerUnit = 0;
+    double purchasePerQuantity = 0;
+    double gstPerQuantity = 0;
+    double baseAmount = 0;
+    double totalGstAmount = 0;
+    double purchasePrice = 0;
+    final TextEditingController otherCategoryCtrl = TextEditingController();
+    bool isOtherCategory = false;
+    Timer? phoneDebounce;
+
+    Widget confirmMedicineDialog() {
+      final finalCategory =
+      isOtherCategory ? otherCategoryCtrl.text.trim() : selectedCategory;
+      Widget infoTile(String label, String value,
+          {Color valueColor = royal}) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 140,
+                child: Text(
+                  "$label:",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: royal,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  value.isEmpty ? "-" : value,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: valueColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return AlertDialog(
+        insetPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.all(12),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: royal, width: 1.2),
+        ),
+        title: const Center(
+          child: Text(
+            "Confirm Medicine Details",
+            style: TextStyle(fontWeight: FontWeight.bold, color: royal),
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Card(
+            elevation: 0,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: royal, width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+                  /// 🔹 BASIC INFO
+                  infoTile("Name", nameCtrl.text),
+                  infoTile("Category", finalCategory),
+                  if (ndcCtrl.text.trim().isNotEmpty)
+                    infoTile("NDC", ndcCtrl.text),
+                  infoTile("Batch No", batchCtrl.text),
+                  if (rackCtrl.text.trim().isNotEmpty)
+                    infoTile("Rack No", rackCtrl.text),
+                  if (hsnCtrl.text.trim().isNotEmpty)
+                    infoTile("HSN Code", hsnCtrl.text),
+
+                  const Divider(color: royal),
+
+                  /// 🔹 DATES
+                  infoTile("MFG Date",
+                      mfgDate?.toLocal().toString().split(' ')[0] ?? "-"),
+                  infoTile("EXP Date",
+                      expDate?.toLocal().toString().split(' ')[0] ?? "-"),
+                  infoTile("Purchase Date",
+                      purchaseDate.toLocal().toString().split(' ')[0]),
+
+                  const Divider(color: royal),
+
+                  /// 🔹 STOCK
+                  infoTile("Quantity", quantityCtrl.text),
+                  if (freeQtyCtrl.text.trim().isNotEmpty &&
+                      freeQtyCtrl.text.trim() != "0")
+                    infoTile("Free Qty", freeQtyCtrl.text),
+                  infoTile("Total Quantity", totalQuantity.toString()),
+                  infoTile("Unit / Qty", unitCtrl.text),
+                  infoTile("Total Stock", totalStock.toString()),
+
+                  const Divider(color: royal),
+
+                  /// 🔹 SUPPLIER
+                  infoTile("Supplier Phone", phoneCtrl.text),
+                  infoTile("Supplier Name", sellerCtrl.text),
+                  infoTile("Supplier ID",
+                      selectedSupplierId?.toString() ?? "-"),
+
+                  const Divider(color: royal),
+
+                  /// 🔹 PRICING
+                  infoTile("Rate / Qty", "₹${ratePerQtyCtrl.text}"),
+                  if (gstCtrl.text.trim().isNotEmpty)
+                    infoTile("GST % / Qty", gstCtrl.text),
+                  if (gstPerQuantity > 0)
+                    infoTile(
+                      "GST Amount / Qty",
+                      "₹${gstPerQuantity.toStringAsFixed(2)}",
+                    ),
+
+                  infoTile("Base Amount",
+                      "₹${baseAmount.toStringAsFixed(2)}"),
+                  if (totalGstAmount > 0)
+                    infoTile(
+                      "Total GST",
+                      "₹${totalGstAmount.toStringAsFixed(2)}",
+                      valueColor: Colors.orange,
+                    ),
+
+                  const Divider(color: royal),
+
+                  /// 🔹 PURCHASE & SELLING
+                  infoTile("Purchase / Qty",
+                      "₹${purchasePerQuantity.toStringAsFixed(2)}",
+                      valueColor: Colors.red),
+                  infoTile("Purchase / Unit",
+                      "₹${purchasePerUnit.toStringAsFixed(2)}",
+                      valueColor: Colors.red),
+                  infoTile("Selling / Qty",
+                      "₹${sellingPerQuantity.toStringAsFixed(2)}"),
+                  infoTile("Selling / Unit",
+                      "₹${sellingPerUnit.toStringAsFixed(2)}"),
+                  infoTile("MRP / Quantity", mrpCtrl.text),
+                  infoTile("Profit %",
+                      profitCtrl.text),
+
+                  const Divider(color:royal,thickness: 1.2),
+
+                  /// 🔥 FINAL TOTAL
+                  infoTile(
+                    "Total Purchase Price",
+                    "₹${purchasePrice.toStringAsFixed(2)}",
+                    valueColor: Colors.green,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: royal), // ✅ outline color
+              foregroundColor: royal,               // ✅ text & icon color
+            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel",style: TextStyle(color: royal),),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: royal,foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Confirm"),
+          ),
+        ],
+      );
+    }
+
+    bool isFormValid() {
+      return
+        nameCtrl.text.trim().isNotEmpty &&
+            !isNameTaken &&
+
+            selectedCategory.isNotEmpty &&
+            (!isOtherCategory || otherCategoryCtrl.text.trim().isNotEmpty) &&
+
+            batchCtrl.text.trim().isNotEmpty &&
+
+            quantityCtrl.text.trim().isNotEmpty &&
+            (double.tryParse(quantityCtrl.text) ?? 0) > 0 &&
+
+            unitCtrl.text.trim().isNotEmpty &&
+            (double.tryParse(unitCtrl.text) ?? 0) > 0 &&
+
+            ratePerQtyCtrl.text.trim().isNotEmpty &&
+            (double.tryParse(ratePerQtyCtrl.text) ?? 0) > 0 &&
+
+            profitCtrl.text.trim().isNotEmpty &&
+            (double.tryParse(profitCtrl.text) ?? 0) >= 0 &&
+
+            mrpCtrl.text.trim().isNotEmpty &&
+            (double.tryParse(mrpCtrl.text) ?? 0) > 0 &&
+
+            supplierFound &&
+            selectedSupplierId != null &&
+
+            phoneCtrl.text.length == 10 &&
+
+            mfgDate != null &&
+            expDate != null &&
+            expDate!.isAfter(mfgDate!) ;
+
+    }
+
+
+    return StatefulBuilder(
+      builder: (context, setLocalState) {
+
+        void calculateStock() {
+          final qty = double.tryParse(quantityCtrl.text) ?? 0;
+          final freeQty = double.tryParse(freeQtyCtrl.text) ?? 0;
+          final unit = double.tryParse(unitCtrl.text) ?? 0;
+
+          totalQuantity = qty + freeQty;     // ✅ TOTAL QTY
+          totalStock = totalQuantity * unit;      // ✅ TOTAL STOCK
+
+
+          setLocalState(() {});
+        }
+
+        void calculatePurchaseValues() {
+          final qty = double.tryParse(quantityCtrl.text) ?? 0;
+          final rate = double.tryParse(ratePerQtyCtrl.text) ?? 0;
+          final gstPercent = double.tryParse(gstCtrl.text) ?? 0;
+          final unit = double.tryParse(unitCtrl.text) ?? 0;
+          final mrp = double.tryParse(mrpCtrl.text) ?? 0;
+          final profitPercent = double.tryParse(profitCtrl.text) ?? 0;
+
+
+          if (qty <= 0 || unit <= 0) {
+            purchasePerUnit = 0;
+            purchasePerQuantity = 0;
+            sellingPerUnit = 0;
+            sellingPerQuantity = 0;
+            setLocalState(() {});
+            return;
+          }
+          baseAmount = qty * rate;
+
+          // GST
+          gstPerQuantity = rate * gstPercent / 100;
+          totalGstAmount = gstPerQuantity * qty;
+
+          // PURCHASE PRICE
+          purchasePrice = baseAmount + totalGstAmount;
+          purchasePerQuantity = purchasePrice / qty;   // ✔ strip price
+          purchasePerUnit = purchasePerQuantity / unit; // ✔ tablet price
+          if (purchasePerQuantity <= 0 || qty <= 0) return;
+
+          // Profit-based selling
+          final calculatedSelling =
+              purchasePerQuantity + (purchasePerQuantity * profitPercent / 100);
+
+          // ✅ MRP CAP
+          sellingPerQuantity = calculatedSelling > mrp ? mrp : calculatedSelling;
+
+          // Quantity price
+          sellingPerUnit = sellingPerQuantity / unit;
+          setLocalState(() {});
+          // TOTAL STOCK
+
+        }
+
+        void resetForm() {
+          nameCtrl.clear();
+          ndcCtrl.clear();
+          batchCtrl.text = "01";
+          rackCtrl.clear();
+          quantityCtrl.clear();
+          freeQtyCtrl.clear();
+          unitCtrl.clear();
+          ratePerQtyCtrl.clear();
+          gstCtrl.clear();
+          mrpCtrl.clear();
+          profitCtrl.clear();
+          sellerCtrl.clear();
+          phoneCtrl.clear();
+          hsnCtrl.clear();
+          reorderCtrl.clear();
+          otherCategoryCtrl.clear();
+
+          selectedCategory = medicineCategories.first;
+          isOtherCategory = false;
+
+          mfgDate = null;
+          expDate = null;
+          purchaseDate = DateTime.now();
+
+          selectedSupplierId = null;
+          supplierFound = false;
+
+          totalQuantity = 0;
+          totalStock = 0;
+          gstPerQuantity = 0;
+          baseAmount = 0;
+          totalGstAmount = 0;
+          purchasePrice = 0;
+          purchasePerUnit = 0;
+          purchasePerQuantity = 0;
+          sellingPerUnit = 0;
+          sellingPerQuantity = 0;
+          isNameTaken = false;
+          phoneDebounce?.cancel();
+          setLocalState(() {});
+        }
+
+        return Card(
+          color: Colors.white,
+          margin: const EdgeInsets.all(10),
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: royal, // 👈 border color
+              width: 1.2,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = MediaQuery
+                    .of(context)
+                    .size
+                    .width >= 1000;
+
+                double fieldWidth(BoxConstraints c) {
+                  if (!isDesktop) return c.maxWidth;
+                  return (c.maxWidth - 32) / 3; // 3 columns with spacing
+                }
+                int columnCount;
+                if (constraints.maxWidth >= 1000) {
+                  columnCount = 4; // large desktop
+                } else if (constraints.maxWidth >= 800) {
+                  columnCount = 3; // tablet
+                } else if (constraints.maxWidth >= 600) {
+                  columnCount = 2; // tablet
+                } else {
+                  columnCount = 1; // mobile
+                }
+
+                double columnWidth =
+                    (constraints.maxWidth - ((columnCount - 1) * 16)) / columnCount;
+
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 14,
+                  children: [
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Name",
+                        field: StatefulBuilder(
+                          builder: (context, setLocalState) {
+                            Timer? debounce;
+                            return TextFormField(
+                              controller: nameCtrl,
+                              style: TextStyle(color: royal),
+                              cursorColor: royal,
+                              decoration: InputDecoration(
+                                hintText: "Enter Medicine name",
+                                hintStyle: TextStyle(color: royal),
+                                filled: true,
+                                fillColor: royal.withValues(alpha: 0.1),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                      color: royal, width: 0.5),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                      color: royal, width: 1.5),
+                                ),
+                                suffixIcon: isNameTaken
+                                    ? const Icon(
+                                    Icons.error, color: Colors.red)
+                                    : const Icon(
+                                    Icons.check, color: Colors.green),
+                              ),
+                              onChanged: (value) {
+                                if (debounce?.isActive ?? false) debounce!.cancel();
+                                debounce = Timer(const Duration(
+                                    milliseconds: 500), () async {
+                                  if (value
+                                      .trim()
+                                      .isEmpty) {
+                                    setLocalState(() =>
+                                    isNameTaken = false);
+                                    return;
+                                  }
+                                  try {
+                                    final url = Uri.parse(
+                                        "$baseUrl/inventory/medicine/check-name/$shopId?name=$value");
+                                    final response = await http.get(url);
+                                    if (response.statusCode == 200) {
+                                      final data = jsonDecode(
+                                          response.body);
+                                      setLocalState(() =>
+                                      isNameTaken =
+                                          data['exists'] ?? false);
+                                    } else {
+                                      setLocalState(() =>
+                                      isNameTaken = false);
+                                    }
+                                  } catch (_) {
+                                    setLocalState(() =>
+                                    isNameTaken = false);
+                                  }
+                                });
+                                setLocalState(() {});
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Category",
+                        field: DropdownButtonFormField<String>(
+                          initialValue: selectedCategory,
+                          iconEnabledColor: royal,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Select category"),
+                          items: medicineCategories
+                              .map((c) =>
+                              DropdownMenuItem(value: c, child: Text(c)))
+                              .toList(),
+                          onChanged: (v) {
+                            setLocalState(() {
+                              selectedCategory = v!;
+                              isOtherCategory = v == "Other";
+                              if (!isOtherCategory) otherCategoryCtrl.clear();
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+
+                    if (isOtherCategory)
+                      SizedBox(
+                        width: fieldWidth(constraints),
+                        child: labeledField(
+                          label: "Custom Category",
+                          field: TextFormField(
+                            controller: otherCategoryCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            cursorColor: royal,
+                            style: const TextStyle(color: royal),
+                            onChanged: (_) => setLocalState(() {}),
+                            decoration: _inputDecoration(
+                                "Enter custom category"),
+                          ),
+                        ),
+                      ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "NDC",
+                        field: TextFormField(
+                          controller: ndcCtrl,
+                          cursorColor: royal,
+                          keyboardType: TextInputType.visiblePassword,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration(
+                              "Enter NDC code (optional)"),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Reorder-Level",
+                        field: TextFormField(
+                          cursorColor: royal,
+                          style: TextStyle(color: royal),
+                          keyboardType: TextInputType.number,
+                          controller: reorderCtrl,
+                          onChanged: (_) => setLocalState(() {}),
+                          // ✅ update button state
+                          decoration: _inputDecoration("Enter Re-order value"),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Batch No",
+                        field: TextFormField(
+                          controller: batchCtrl,
+                          cursorColor: royal,
+                          onChanged: (_) => setLocalState(() {}),
+                          keyboardType: TextInputType.visiblePassword,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Enter Batch no"),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Rack No",
+                        field: TextFormField(
+                          controller: rackCtrl,
+                          cursorColor: royal,
+                          keyboardType: TextInputType.visiblePassword,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Optional"),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "MFG Date",
+                        field: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: royal,
+                            backgroundColor: royal.withValues(alpha: 0.1),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                            side: const BorderSide(
+                                color: royal, width: 0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now(),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.light(
+                                      primary: royal,
+                                      onPrimary: Colors.white,
+                                      onSurface: royal,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: royal),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) setLocalState(() => mfgDate = picked);
+                          },
+                          child: Text(
+                            mfgDate == null ? "Select date" : mfgDate!
+                                .toLocal().toString().split(' ')[0],
+                            style: TextStyle(color: royal),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "EXP Date",
+                        field: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: royal,
+                            backgroundColor: royal.withValues(alpha: 0.1),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                            side: const BorderSide(
+                                color: royal, width: 0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.light(
+                                      primary: royal,
+                                      onPrimary: Colors.white,
+                                      onSurface: royal,
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: royal),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) setLocalState(() => expDate = picked);
+                          },
+                          child: Text(
+                            expDate == null ? "Select date" : expDate!
+                                .toLocal().toString().split(' ')[0],
+                            style: TextStyle(color: royal),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "HSN Code",
+                        field: TextFormField(
+                          cursorColor: royal,
+                          style: TextStyle(color: royal),
+                          controller: hsnCtrl,
+                          onChanged: (_) => setLocalState(() {}),
+                          // ✅ update button state
+                          textCapitalization: TextCapitalization.words,
+                          decoration: _inputDecoration("Enter HSN Code"),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Quantity",
+                        field: TextFormField(
+                          controller: quantityCtrl,
+                          keyboardType: TextInputType.number,
+                          cursorColor: royal,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly, // ✅ allows only digits
+                          ],
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Strips Count"),
+                          onChanged: (_) {
+                            calculateStock();
+                            setLocalState(() {});
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Free Quantity",
+                        field: TextFormField(
+                          controller: freeQtyCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly, // ✅ allows only digits
+                          ],
+                          cursorColor: royal,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Free Strips Count "),
+                          onChanged: (_) => calculateStock(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Unit",
+                        field: TextFormField(
+                          controller: unitCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly, // ✅ allows only digits
+                          ],
+                          cursorColor: royal,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Unit(per quantity)"),
+                          onChanged: (_) {
+                            calculateStock();
+                            setLocalState(() {});
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Rate / Quantity (₹)",
+                        field: TextFormField(
+                          controller: ratePerQtyCtrl,
+                          keyboardType: TextInputType.number,
+                          cursorColor: royal,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                          ],
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("Rate per quantity"),
+                          onChanged: (_) => calculatePurchaseValues(),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "GST % / Quantity",
+                        field: TextFormField(
+                          controller: gstCtrl,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                          ],
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          cursorColor: royal,
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration("GST percentage (0–100)"),
+                          onChanged: (value) {
+                            final gst = double.tryParse(value);
+
+                            if (gst != null && gst > 100) {
+                              gstCtrl.text = '100';                 // ⛔ STOP at 100
+                              gstCtrl.selection = TextSelection.collapsed(offset: 3);
+                            }
+
+                            calculatePurchaseValues();
+                          },
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(label: "MRP / Quantity (₹)",
+                        field: TextFormField(
+                          controller: mrpCtrl,
+                          keyboardType: TextInputType.number,
+                          cursorColor: royal,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                          ],
+                          style: const TextStyle(color: royal),
+                          decoration: _inputDecoration(
+                              "Maximum Retail Price"),
+                          onChanged: (_) =>
+                              calculatePurchaseValues(), // 🔥 REQUIRED
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Profit %",
+                        field: TextFormField(
+                          controller: profitCtrl,
+                          keyboardType: TextInputType.number,
+                          cursorColor: royal,
+                          style: const TextStyle(color: royal),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                          ],
+                          decoration: _inputDecoration("Profit percentage"),
+                          onChanged: (_) =>
+                              calculatePurchaseValues(), // 🔥 REQUIRED
+                        ),
+                      ),
+
+
+                    ),
+
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Purchase Date",
+                        field: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: royal,
+                            backgroundColor: royal.withValues(alpha: 0.1),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                            side: const BorderSide(
+                                color: royal, width: 0.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: purchaseDate,
+                              // ✅ today by default
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime.now(),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.light(
+                                      primary: royal,
+                                      onPrimary: Colors.white,
+                                      onSurface: royal,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+
+                            if (picked != null) {
+                              setLocalState(() => purchaseDate = picked);
+                            }
+                          },
+                          child: Text(
+                            purchaseDate.toLocal().toString().split(' ')[0],
+                            style: const TextStyle(color: royal),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: fieldWidth(constraints),
+                      child: labeledField(
+                        label: "Supplier Phone",
+                        field: StatefulBuilder(
+                          builder: (context, setPhoneState) {
+                            return TextFormField(
+                              controller: phoneCtrl,
+                              cursorColor: royal,
+                              style: TextStyle(color: royal),
+                              keyboardType: TextInputType.phone,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              decoration: _inputDecoration("Enter Supplier Phone number").copyWith(
+                                suffixIcon: phoneCtrl.text.length == 10
+                                    ? supplierFound
+                                    ? const Icon(Icons.check_circle, color: Colors.green, size: 24)  // ✅ RIGHT
+                                    : const Icon(Icons.error, color: Colors.red, size: 24)          // ❌ WRONG
+                                    : null,
+                              ),
+                              onChanged: (value) {
+                                setPhoneState(() {
+                                  supplierFound = false;
+                                  selectedSupplierId = null;
+                                  sellerCtrl.clear();
+                                });
+                                setLocalState(() {});
+
+                                if (value.length != 10) return;
+
+                                phoneDebounce?.cancel();
+                                phoneDebounce = Timer(const Duration(milliseconds: 500), () async {
+                                  try {
+                                    final url = Uri.parse("$baseUrl/suppliers/search/by-phone/$shopId?phone=$value");
+                                    final response = await http.get(url);
+
+                                    setPhoneState(() {
+                                      if (response.statusCode == 200) {
+                                        final data = jsonDecode(response.body) as List;
+                                        if (data.isNotEmpty) {
+                                          supplierFound = true;
+                                          selectedSupplierId = data[0]['id'];
+                                          sellerCtrl.text = data[0]['name'] ?? '';
+                                        } else {
+                                          supplierFound = false;  // ❌ Shows RED icon
+                                        }
+                                      } else {
+                                        supplierFound = false;  // ❌ Shows RED icon
+                                      }
+                                    });
+                                    setLocalState(() {});
+                                  } catch (e) {
+                                    setPhoneState(() => supplierFound = false);  // ❌ Shows RED icon
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              supplierFound
+                                  ? "Supplier name: ${sellerCtrl.text}"
+                                  : "No supplier found",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: supplierFound ? royal : Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              selectedSupplierId != null
+                                  ? "Supplier ID: $selectedSupplierId"
+                                  : "Supplier ID: Not Found",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: supplierFound ? royal : Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Total Quantity: $totalQuantity",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Total Stock: $totalStock",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "GST Amount / Qty: ₹${gstPerQuantity.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Purchase / Quantity: ₹${purchasePerQuantity.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Purchase / Unit: ₹${purchasePerUnit.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Selling / Quantity: ₹${sellingPerQuantity.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Selling / Unit: ₹${sellingPerUnit.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Base Amount: ₹${baseAmount.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Total GST: ₹${totalGstAmount.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: columnWidth,
+                          child: Align(
+                            alignment: isDesktop ? Alignment.centerLeft : Alignment.center,
+                            child: Text(
+                              "Purchase Price: ₹${purchasePrice.toStringAsFixed(2)}",
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: royal),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+                    Center(
+                      child: SizedBox(
+                        width: 150,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isFormValid() ? royal : Colors
+                                .grey,
+                            // enabled/disabled color
+                            foregroundColor: isFormValid()
+                                ? Colors.white
+                                : royal,
+                            // text color
+                            elevation: 0,
+                            side: BorderSide(
+                              color: isFormValid() ? royal : Colors.grey
+                                  .shade700,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                          ),
+                          onPressed: isFormValid()
+                              ? () async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => confirmMedicineDialog(),
+                            );
+
+                            if (confirmed != true) return;
+                            final finalCategory = isOtherCategory
+                                ? otherCategoryCtrl.text.trim()
+                                : selectedCategory;
+
+                            await http.post(
+                              Uri.parse("$baseUrl/inventory/medicine"),
+                              headers: {"Content-Type": "application/json"},
+                              body: jsonEncode({
+                                "shop_id": shopId,
+                                "name": nameCtrl.text,
+                                "category": finalCategory,
+                                "ndc_code": ndcCtrl.text,
+                                "batch_no": batchCtrl.text,
+                                "mfg_date": mfgDate?.toIso8601String(),
+                                "exp_date": expDate?.toIso8601String(),
+                                "rack_no": rackCtrl.text,
+                                "quantity": quantityCtrl.text,
+                                "free_quantity": freeQtyCtrl.text,
+                                "total_quantity": totalQuantity,
+                                "unit": unitCtrl.text,
+                                "total_stock": totalStock,
+                                "mrp":mrpCtrl.text,
+                                "supplier_id":selectedSupplierId,
+                                "reorder": int.tryParse(reorderCtrl.text),
+                                "hsncode": hsnCtrl.text,
+                                "purchase_details": {
+                                  "purchase_date": purchaseDate
+                                      .toIso8601String(),
+                                  "rate_per_quantity": double.tryParse(
+                                      ratePerQtyCtrl.text) ?? 0,
+                                  "gst_percent": double.tryParse(
+                                      gstCtrl.text) ?? 0,
+                                  "gst_per_quantity": gstPerQuantity,
+                                  "base_amount": baseAmount,
+                                  "total_gst_amount": totalGstAmount,
+                                  "purchase_price": purchasePrice
+                                },
+                                "purchase_price_per_unit": purchasePerUnit,
+                                "purchase_price_per_quantity": purchasePerQuantity,
+                                "selling_price_per_unit": sellingPerUnit,
+                                "selling_price_per_quantity": sellingPerQuantity,
+                                "profit_percent": double.tryParse(
+                                    profitCtrl.text) ?? 0
+                              }),
+                            );
+
+                            fetchMedicines();
+                            // ✅ Clear the form
+                            resetForm();      // ✅ CLEAR EVERYTHING
+
+                            setState(() => showAddMedicine = false);
+                          }
+                              : null,
+                          child: const Text(
+                            "Submit Medicine",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },),
+          ),);
+      },
+    );
   }
 
   Widget searchBar() {
@@ -817,6 +2031,7 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
+
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -835,657 +2050,6 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-  Widget addMedicineForm() {
-    final nameCtrl = TextEditingController();
-    bool isNameTaken = false; // to track if name exists
-    final ndcCtrl = TextEditingController();
-    final batchCtrl = TextEditingController(text: "01");
-    final rackCtrl = TextEditingController();
-    final quantityCtrl = TextEditingController();
-    final unitCtrl = TextEditingController();
-    final purchasePriceCtrl = TextEditingController();
-    final sellingPriceCtrl = TextEditingController();
-    final profitCtrl = TextEditingController();
-    final sellerCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final hsnCtrl = TextEditingController();
-
-    String selectedCategory = medicineCategories.first;
-    DateTime? mfgDate;
-    DateTime? expDate;
-
-    double stock = 0;
-    double totalPurchasePrice = 0;
-    final TextEditingController otherCategoryCtrl = TextEditingController();
-    bool isOtherCategory = false;
-
-    Widget confirmMedicineDialog() {
-      final finalCategory = isOtherCategory ? otherCategoryCtrl.text.trim() : selectedCategory;
-
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: royal, width: 1.3),
-        ),
-        title: const Center(
-          child: Text(
-            "Confirm Medicine Details",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: royal,
-            ),
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _dialogRow("Name", nameCtrl.text),
-              _dialogRow("Category", finalCategory),
-              _dialogRow("NDC Code", ndcCtrl.text.isEmpty ? "-" : ndcCtrl.text),
-              _dialogRow("Batch No", batchCtrl.text),
-              _dialogRow("MFG Date", mfgDate != null ? mfgDate!.toLocal().toString().split(' ')[0] : "-"),
-              _dialogRow("EXP Date", expDate != null ? expDate!.toLocal().toString().split(' ')[0] : "-"),
-              _dialogRow("Rack No", rackCtrl.text.isEmpty ? "-" : rackCtrl.text),
-              _dialogRow("Quantity", quantityCtrl.text),
-              _dialogRow("Unit", unitCtrl.text),
-              _dialogRow("Stock", stock.toString()),
-              _dialogRow("Purchase Price", purchasePriceCtrl.text),
-              _dialogRow("Profit %", profitCtrl.text),
-              _dialogRow("Selling Price", sellingPriceCtrl.text),
-              _dialogRow("Total Cost", "₹${totalPurchasePrice.toStringAsFixed(2)}"),
-              _dialogRow("Seller Name", sellerCtrl.text),
-              _dialogRow("Phone", phoneCtrl.text),
-            ],
-          ),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: royal,
-              side: const BorderSide(color: royal),
-            ),
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: royal,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("OK"),
-          ),
-        ],
-      );
-    }
-
-    bool isFormValid() {
-      return nameCtrl.text.trim().isNotEmpty &&
-          !isNameTaken && // ✅ disable if name exists
-          selectedCategory.isNotEmpty &&
-          (!isOtherCategory || otherCategoryCtrl.text.trim().isNotEmpty) &&
-          batchCtrl.text.trim().isNotEmpty &&
-          quantityCtrl.text.trim().isNotEmpty &&
-          unitCtrl.text.trim().isNotEmpty &&
-          purchasePriceCtrl.text.trim().isNotEmpty &&
-          profitCtrl.text.trim().isNotEmpty &&
-          sellingPriceCtrl.text.trim().isNotEmpty &&
-          sellerCtrl.text.trim().isNotEmpty &&
-          phoneCtrl.text.trim().isNotEmpty &&
-          mfgDate != null &&
-          expDate != null;
-    }
-
-    return StatefulBuilder(
-      builder: (context, setLocalState) {
-        void calculateStock() {
-          final qty = double.tryParse(quantityCtrl.text) ?? 0;
-          final unit = double.tryParse(unitCtrl.text) ?? 0;
-          stock = qty * unit;
-
-          final purchase = double.tryParse(purchasePriceCtrl.text) ?? 0;
-          totalPurchasePrice = stock * purchase;
-
-          setLocalState(() {});
-        }
-        bool isEditingProfit = false;
-        bool isEditingSelling = false;
-
-        void calculateSellingFromProfit() {
-          if (isEditingSelling) return; // Prevent loop
-          final purchase = double.tryParse(purchasePriceCtrl.text) ?? 0;
-          final profitPercent = double.tryParse(profitCtrl.text) ?? 0;
-          final selling = purchase + (purchase * profitPercent / 100);
-          sellingPriceCtrl.text = selling.toStringAsFixed(2);
-        }
-
-        void calculateProfitFromSelling() {
-          if (isEditingProfit) return; // Prevent loop
-          final purchase = double.tryParse(purchasePriceCtrl.text) ?? 0;
-          final selling = double.tryParse(sellingPriceCtrl.text) ?? 0;
-          if (purchase != 0) {
-            final profit = ((selling - purchase) / purchase) * 100;
-            profitCtrl.text = profit.toStringAsFixed(2);
-          }
-        }
-
-        return Card(
-          color: Colors.white,
-          margin: const EdgeInsets.all(10),
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: royal, // 👈 border color
-              width: 1.2,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                const Center(
-                  child: Text(
-                    "Add Medicine",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: royal,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                labeledField(
-                  label: "Name",
-                  field: StatefulBuilder(
-                    builder: (context, setLocalState) {
-                      Timer? debounce;
-                      return TextFormField(
-                        controller: nameCtrl,
-                        style: TextStyle(color: royal),
-                        cursorColor: royal,
-                        decoration: InputDecoration(
-                          hintText: "Enter Medicine name",
-                          hintStyle: TextStyle(color: royal),
-                          filled: true,
-                          fillColor: royal.withValues(alpha: 0.1),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: royal, width: 0.5),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: royal, width: 1.5),
-                          ),
-                          suffixIcon: isNameTaken
-                              ? const Icon(Icons.error, color: Colors.red)
-                              : const Icon(Icons.check, color: Colors.green),
-                        ),
-                        onChanged: (value) {
-                          if (debounce?.isActive ?? false) debounce!.cancel();
-                          debounce = Timer(const Duration(milliseconds: 500), () async {
-                            if (value.trim().isEmpty) {
-                              setLocalState(() => isNameTaken = false);
-                              return;
-                            }
-
-                            try {
-                              final url = Uri.parse("$baseUrl/inventory/medicine/check-name/$shopId?name=$value");
-                              final response = await http.get(url);
-
-                              if (response.statusCode == 200) {
-                                final data = jsonDecode(response.body);
-                                setLocalState(() => isNameTaken = data['exists'] ?? false);
-                              } else {
-                                setLocalState(() => isNameTaken = false);
-                              }
-                            } catch (_) {
-                              setLocalState(() => isNameTaken = false);
-                            }
-                          });
-                          setLocalState(() {}); // update UI for button
-                        },
-                      );
-                    },
-                  ),
-                ),
-
-                labeledField(
-                  label: "Category",
-                  field: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedCategory,
-                        iconEnabledColor: royal,
-                        style: const TextStyle(color: royal),
-                        decoration: _inputDecoration("Select category"),
-                        items: medicineCategories
-                            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                            .toList(),
-                        onChanged: (v) {
-                          setLocalState(() {
-                            selectedCategory = v!;
-                            isOtherCategory = v == "Other";
-                            if (!isOtherCategory) otherCategoryCtrl.clear();
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                if (isOtherCategory)
-                  labeledField(
-                    label: "Custom Category",
-                    field: TextFormField(
-                      controller: otherCategoryCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      cursorColor: royal,
-                      style: const TextStyle(color: royal),
-                      onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                      decoration: _inputDecoration("Enter custom category"),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Custom category is required";
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-
-                labeledField(
-                  label: "NDC",
-                  field: TextFormField(
-                    controller: ndcCtrl,
-                    cursorColor: royal,
-                    keyboardType: TextInputType.visiblePassword,
-                    style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Enter NDC code (optional)"),
-                  ),
-                ),
-                labeledField(
-                  label: "Batch No",
-                  field: TextFormField(
-                    controller: batchCtrl,
-                    cursorColor: royal,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    keyboardType: TextInputType.visiblePassword,
-                    style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Enter Batch no"),
-                  ),
-                ),
-
-                labeledField(
-                  label: "MFG Date",
-                  field: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: royal,
-                      backgroundColor: royal.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: royal, width: 0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: ColorScheme.light(
-                                primary: royal,       // header & selected date
-                                onPrimary: Colors.white, // selected date text
-                                onSurface: royal,     // unselected dates
-                              ),
-                              textButtonTheme: TextButtonThemeData(
-                                style: TextButton.styleFrom(foregroundColor: royal),
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) setLocalState(() => mfgDate = picked);
-                    },
-                    child: Text(
-                      mfgDate == null ? "Select date" : mfgDate!.toLocal().toString().split(' ')[0],
-                      style: TextStyle(color: royal),
-                    ),
-                  ),
-                ),
-
-                labeledField(
-                  label: "EXP Date",
-                  field: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: royal,
-                      backgroundColor: royal.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: royal, width: 0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                        builder: (context, child) {
-                          return Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: ColorScheme.light(
-                                primary: royal,
-                                onPrimary: Colors.white,
-                                onSurface: royal,
-                              ),
-                              textButtonTheme: TextButtonThemeData(
-                                style: TextButton.styleFrom(foregroundColor: royal),
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) setLocalState(() => expDate = picked);
-                    },
-                    child: Text(
-                      expDate == null ? "Select date" : expDate!.toLocal().toString().split(' ')[0],
-                      style: TextStyle(color: royal),
-                    ),
-                  ),
-                ),
-                labeledField(
-                  label: "Reorder-Level",
-                  field: TextFormField(
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.number,
-                    controller: reorderCtrl,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    decoration: _inputDecoration("Re-order value"),
-                  ),
-                ),
-                labeledField(
-                  label: "Rack No",
-                  field: TextFormField(
-                    controller: rackCtrl,
-                    cursorColor: royal,
-                    keyboardType: TextInputType.visiblePassword,
-                    style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Optional"),
-                  ),
-                ),
-                labeledField(
-                  label: "HSN Code",
-                  field: TextFormField(
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    controller: hsnCtrl,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    textCapitalization: TextCapitalization.words,
-                    decoration: _inputDecoration("Enter HSN Code"),
-                  ),
-                ),
-                labeledField(
-                  label: "Quantity",
-                  field: TextFormField(
-                    controller: quantityCtrl,
-                    keyboardType: TextInputType.number,
-                    cursorColor: royal,
-                    style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Qty"),
-                    onChanged: (_){
-                      calculateStock();
-                      setLocalState(() {});
-                      },
-                  ),
-                ),
-                labeledField(
-                  label: "Unit",
-                  field: TextFormField(
-                    controller: unitCtrl,
-                    keyboardType: TextInputType.number,
-                    cursorColor: royal,
-                    style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Unit"),
-                    onChanged: (_) {
-                      calculateStock();
-                      setLocalState(() {});
-                      },
-                  ),
-                ),
-                labeledField(
-                  label: "Purchase ₹",
-                  field: TextFormField(
-                    controller: purchasePriceCtrl,
-                    keyboardType: TextInputType.number,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    decoration: _inputDecoration("Unit price"),
-                    onChanged: (_) {
-                      calculateStock();
-                      calculateSellingFromProfit();
-                      setLocalState(() {});
-                    },
-                  ),
-                ),
-                labeledField(
-                  label: "Profit %",
-                  field: TextFormField(
-                    controller: profitCtrl,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDecoration("Profit"),
-                    onChanged: (_) {
-                      isEditingProfit = true;
-                      calculateSellingFromProfit();
-                      isEditingProfit = false;
-                      setLocalState(() {});
-                    },
-                  ),
-                ),
-                labeledField(
-                  label: "Selling ₹",
-                  field: TextFormField(
-                    controller: sellingPriceCtrl,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDecoration("Selling Price"),
-                    onChanged: (_) {
-                      isEditingSelling = true;
-                      calculateProfitFromSelling();
-                      isEditingSelling = false;
-                      setLocalState(() {});
-                    },
-                  ),
-                ),
-                labeledField(
-                  label: "Supplier Phone",
-                  field: StatefulBuilder(
-                    builder: (context, setLocalState) {
-                      Timer? debounce;
-                      return TextFormField(
-                        controller: phoneCtrl,
-                        cursorColor: royal,
-                        style: TextStyle(color: royal),
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                        decoration: _inputDecoration("Enter Supplier Phone number"),
-                        onChanged: (value) {
-                          // Reset name if phone changes
-                          setLocalState(() {
-                            sellerCtrl.text = '';
-                          });
-
-                          if (debounce?.isActive ?? false) debounce!.cancel();
-                          debounce = Timer(const Duration(milliseconds: 500), () async {
-                            // ✅ Only call API when 10 digits entered
-                            if (value.length != 10) return;
-
-                            try {
-                              final url = Uri.parse("$baseUrl/suppliers/search/by-phone/$shopId?phone=$value");
-                              final response = await http.get(url);
-
-                              if (response.statusCode == 200) {
-                                final data = jsonDecode(response.body) as List;
-                                if (data.isNotEmpty) {
-                                  // Auto-fill the first supplier's name
-                                  setLocalState(() {
-                                    sellerCtrl.text = data[0]['name'] ?? '';
-                                  });
-                                }
-                              }
-                            } catch (e) {
-                              // Ignore errors silently
-                            }
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-
-                labeledField(
-                  label: "Supplier Name",
-                  field: TextFormField(
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    controller: sellerCtrl,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    textCapitalization: TextCapitalization.words,
-                    decoration: _inputDecoration("Enter Supplier name"),
-                  ),
-                ),
-                const SizedBox(height: 10,),
-                Center(
-                  child: Text(
-                    "Stock: $stock",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: royal,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    "Total Cost: ₹${totalPurchasePrice.toStringAsFixed(2)}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.redAccent,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Center(
-                  child: SizedBox(
-                    width: 150,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isFormValid() ? royal : Colors.grey, // enabled/disabled color
-                        foregroundColor: isFormValid() ? Colors.white : royal, // text color
-                        elevation: 0,
-                        side: BorderSide(
-                          color: isFormValid() ? royal : Colors.grey.shade700,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: isFormValid()
-                          ? () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => confirmMedicineDialog(),
-                        );
-
-                        if (confirmed != true) return;
-                        final finalCategory = isOtherCategory
-                            ? otherCategoryCtrl.text.trim()
-                            : selectedCategory;
-
-                        await http.post(
-                          Uri.parse("$baseUrl/inventory/medicine"),
-                          headers: {"Content-Type": "application/json"},
-                          body: jsonEncode({
-                            "shop_id": shopId,
-                            "name": nameCtrl.text,
-                            "category": finalCategory,
-                            "ndc_code": ndcCtrl.text,
-                            "batch_no": batchCtrl.text,
-                            "mfg_date": mfgDate?.toIso8601String(),
-                            "exp_date": expDate?.toIso8601String(),
-                            "rack_no": rackCtrl.text,
-                            "quantity": quantityCtrl.text,
-                            "unit": unitCtrl.text,
-                            "reorder": int.tryParse(reorderCtrl.text),
-                            "hsncode":hsnCtrl.text,
-                            "stock": stock,
-                            "total_cost":totalPurchasePrice.toStringAsFixed(2),
-                            "profit": double.tryParse(profitCtrl.text) ?? 0,
-                            "purchase_price": purchasePriceCtrl.text,
-                            "selling_price": sellingPriceCtrl.text,
-                            "seller_name": sellerCtrl.text,
-                            "phone": phoneCtrl.text,
-                          }),
-                        );
-
-                        fetchMedicines();
-                        // ✅ Clear the form
-                        nameCtrl.clear();
-                        ndcCtrl.clear();
-                        batchCtrl.text = "01";
-                        rackCtrl.clear();
-                        quantityCtrl.clear();
-                        unitCtrl.clear();
-                        purchasePriceCtrl.clear();
-                        sellingPriceCtrl.clear();
-                        profitCtrl.clear();
-                        sellerCtrl.clear();
-                        phoneCtrl.clear();
-                        otherCategoryCtrl.clear();
-                        selectedCategory = medicineCategories.first;
-                        isOtherCategory = false;
-                        mfgDate = null;
-                        expDate = null;
-                        stock = 0;
-                        totalPurchasePrice = 0;
-                        isNameTaken = false;
-                        setState(() => showAddMedicine = false);
-                      }
-                          : null,
-                      child: const Text(
-                        "Submit Medicine",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Widget _dialogRow(String label, String value) {
     return Padding(
@@ -2122,19 +2686,22 @@ class _InventoryPageState extends State<InventoryPage> {
             const SizedBox(height: 16),
             if (shopDetails != null) _buildHallCard(shopDetails!),
             const SizedBox(height: 16),
-            Center(
-            child: ConstrainedBox(
-            constraints: const BoxConstraints(
-            maxWidth: 600, // constrain width
-            ),
-            child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            SingleChildScrollView(
             child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
 
-            Padding(padding: const EdgeInsets.all(8), child: actionButtons()),
-            const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: actionButtons(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
             if (showAddMedicine) addMedicineForm(),
             if (showAddBatch) addBatchForm(),
             const Divider(color: royal,),
@@ -2157,6 +2724,6 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
 
       ),
-    ),),],),),);
+    ],),),);
   }
 }

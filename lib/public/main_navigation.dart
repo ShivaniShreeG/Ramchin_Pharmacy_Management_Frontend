@@ -12,8 +12,9 @@ import 'message.dart';
 import 'app_navbar.dart';
 import 'login_page.dart';
 import '../public/config.dart';
+import 'dart:io';
 
-/// 🎨 Royal Theme
+
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
 const Color royalLight = Color(0xFF916542);
@@ -38,7 +39,7 @@ class _MainNavigationState extends State<MainNavigation> {
   bool _isDialogShown = false;
   bool _hasNotifications = false;
   bool _hasDueReminder = false;
-
+  DateTime? _lastNotificationTime;
   String? _lastNotificationType;
 
   @override
@@ -54,9 +55,17 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 
   void _showMessage(String message, {String? type}) {
-    // Avoid repeating same message type
-    if (_lastNotificationType == type) return;
+    final now = DateTime.now();
+
+    // ⏱ Prevent same notification every 30 sec
+    if (_lastNotificationType == type &&
+        _lastNotificationTime != null &&
+        now.difference(_lastNotificationTime!).inMinutes < 5) {
+      return;
+    }
+
     _lastNotificationType = type;
+    _lastNotificationTime = now;
 
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -134,7 +143,9 @@ class _MainNavigationState extends State<MainNavigation> {
 
     try {
       final url = Uri.parse('$baseUrl/users/$shopId/$userId');
-      final response = await http.get(url);
+      final response = await http
+          .get(url)
+          .timeout(const Duration(seconds: 10)); // ⏱ timeout added
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -173,11 +184,32 @@ class _MainNavigationState extends State<MainNavigation> {
             _isDialogShown = false;
           }
         }
-      } else {
-        debugPrint('❌ Session check failed: ${response.statusCode} ${response.body}');
       }
-    } catch (e) {
+    }
+
+    // 🌐 NO INTERNET / DNS ISSUE
+    on SocketException {
+      _showMessage(
+        "⚠️ Network issue. Please check your internet connection.",
+        type: "network",
+      );
+    }
+
+    // ⏱ REQUEST TIMEOUT
+    on TimeoutException {
+      _showMessage(
+        "⏱ Server taking too long. Please try again.",
+        type: "timeout",
+      );
+    }
+
+    // ❌ OTHER ERRORS
+    catch (e) {
       debugPrint('❌ Session error: $e');
+      _showMessage(
+        "❌ Something went wrong. Please try again.",
+        type: "error",
+      );
     }
   }
 

@@ -6,7 +6,6 @@ import '../../../../public/config.dart';
 import '../../../../public/main_navigation.dart';
 
 const Color royalblue = Color(0xFF854929);
-const Color royal = Color(0xFF875C3F);
 
 class StockPage extends StatefulWidget {
   const StockPage({super.key});
