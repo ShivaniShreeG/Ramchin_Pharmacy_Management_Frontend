@@ -43,8 +43,16 @@ class _BillingPageState extends State<BillingPage> {
 
   double previewItemTotal = 0; // qty × price (live preview)
   double billTotal = 0;        // sum of added items ONLY
+  bool isResettingForm = false;
 
   String? userId;
+  int getUsedQty(int medicineId, int batchId) {
+    return billItems
+        .where((i) =>
+    i['medicine_id'] == medicineId &&
+        i['batch_id'] == batchId)
+        .fold<int>(0, (sum, i) => sum + (i['quantity'] as int));
+  }
 
   @override
   void initState() {
@@ -53,6 +61,8 @@ class _BillingPageState extends State<BillingPage> {
   }
 
   void clearBillingForm() {
+    isResettingForm = true; // 🔒 BLOCK AUTO-FILL
+
     _formKey.currentState?.reset();
 
     customerCtrl.clear();
@@ -70,13 +80,17 @@ class _BillingPageState extends State<BillingPage> {
     billTotal = 0;
     paymentMode = 'CASH';
 
-    // ✅ CUSTOMER RELATED RESET (FULL)
     customerSuggestions.clear();
     customerBills.clear();
     showCustomerDropdown = false;
     isFetchingCustomers = false;
 
     setState(() {});
+
+    // 🔓 RELEASE AFTER FRAME
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      isResettingForm = false;
+    });
   }
 
   Future<void> fetchCustomersByPhone(String phone) async {
@@ -138,20 +152,32 @@ class _BillingPageState extends State<BillingPage> {
     );
 
     if (res.statusCode == 200) {
+      final List data = jsonDecode(res.body);
+
       setState(() {
-        medicineSuggestions =
-        List<Map<String, dynamic>>.from(jsonDecode(res.body));
+        medicineSuggestions = data.map<Map<String, dynamic>>((med) {
+          final List batches = med['batches'];
+
+          final adjustedBatches = batches.map<Map<String, dynamic>>((b) {
+            final int usedQty =
+            getUsedQty(med['id'], b['id']); // 🔥 KEY LINE
+
+            final int available =
+                (b['available_qty'] as int) - usedQty;
+
+            return {
+              ...b,
+              'available_qty': available < 0 ? 0 : available,
+            };
+          }).where((b) => b['available_qty'] > 0).toList();
+
+          return {
+            'id': med['id'],
+            'name': med['name'],
+            'batches': adjustedBatches,
+          };
+        }).where((m) => (m['batches'] as List).isNotEmpty).toList();
       });
-    }
-  }
-
-  Future<void> fetchBatches(int medicineId) async {
-    final res = await http.get(
-      Uri.parse("$baseUrl/medicine-batches/available/$medicineId"),
-    );
-
-    if (res.statusCode == 200) {
-      selectedBatches = List<Map<String, dynamic>>.from(jsonDecode(res.body));
     }
   }
 
@@ -362,6 +388,7 @@ class _BillingPageState extends State<BillingPage> {
     );
   }
 
+
   void calculateFromQuantity(int qty) {
     if (selectedBatches.isEmpty || qty <= 0) {
       previewItemTotal = 0;
@@ -512,34 +539,55 @@ class _BillingPageState extends State<BillingPage> {
       return;
     }
 
-    final qty = int.parse(qtyCtrl.text);
-    final batch = selectedBatches.first;
-    final int availableQty = batch['available_qty'];
+    int remainingQty = int.parse(qtyCtrl.text);
 
-    if (qty > availableQty) {
-      _showMessage("Quantity exceeds available stock");
-      return;
+    for (final batch in selectedBatches) {
+      if (remainingQty <= 0) break;
+
+      int availableQty = batch['available_qty'];
+      if (availableQty <= 0) continue;
+
+      final int usedQty =
+      remainingQty > availableQty ? availableQty : remainingQty;
+
+      final double unitPrice =
+      (batch['selling_price'] as num).toDouble();
+
+      final existingIndex = billItems.indexWhere((item) =>
+      item['medicine_id'] == selectedMedicine!['id'] &&
+          item['batch_id'] == batch['id']);
+
+      if (existingIndex != -1) {
+        billItems[existingIndex]['quantity'] += usedQty;
+        billItems[existingIndex]['total_price'] =
+            billItems[existingIndex]['quantity'] * unitPrice;
+      } else {
+        billItems.add({
+          "medicine_id": selectedMedicine!['id'],
+          "medicine_name": selectedMedicine!['name'],
+          "batch_id": batch['id'],
+          "batch_no": batch['batch_no'],
+          "rack_no": batch['rack_no'],
+          "quantity": usedQty,
+          "unit_price": unitPrice,
+          "total_price": usedQty * unitPrice,
+        });
+      }
+
+      // 🔥 CRITICAL FIX
+      batch['available_qty'] -= usedQty;
+      remainingQty -= usedQty;
     }
 
-    final double unitPrice =
-    (batch['selling_price'] as num).toDouble();
+    if (remainingQty > 0) {
+      _showMessage("Insufficient stock across all batches");
+    }
 
-    final double total = qty * unitPrice;
-
-
-    billItems.add({
-      "medicine_id": selectedMedicine!['id'],
-      "medicine_name": selectedMedicine!['name'],
-      "batch_id": batch['id'],
-      "quantity": qty,
-      "unit_price": unitPrice,
-      "total_price": total,
-    });
+    // ❌ REMOVE EMPTY BATCHES FROM UI
+    selectedBatches.removeWhere((b) => b['available_qty'] <= 0);
 
     medicineCtrl.clear();
     qtyCtrl.clear();
-    selectedMedicine = null;
-    selectedBatches.clear();
     previewItemTotal = 0;
 
     calculateBillTotal();
@@ -697,11 +745,13 @@ class _BillingPageState extends State<BillingPage> {
                         ],
                         decoration: _inputDecoration("Phone number"),
                         onChanged: (val) {
+                          if (isResettingForm) return; // ✅ KEY LINE
+
                           if (val.length != 10) {
-                            // ✅ CLEAR DROPDOWN + LAST VISITED
                             customerSuggestions.clear();
                             customerBills.clear();
                             showCustomerDropdown = false;
+                            customerCtrl.clear(); // ✅ ALSO CLEAR NAME
 
                             setState(() {});
                             return;
@@ -832,7 +882,14 @@ class _BillingPageState extends State<BillingPage> {
                             medicineSuggestions.clear();
 
                             /// batches already available — no need refetch
-                            selectedBatches = List<Map<String, dynamic>>.from(batches);
+                            selectedBatches = List<Map<String, dynamic>>.from(
+                              batches.where((b) => b['available_qty'] > 0),
+                            );
+
+                            if (selectedBatches.isEmpty) {
+                              _showMessage("No stock available for this medicine");
+                              return;
+                            }
 
 
                             setState(() {});
@@ -915,18 +972,22 @@ class _BillingPageState extends State<BillingPage> {
 
                           if (selectedBatches.isEmpty) return;
 
-                          final int availableQty = selectedBatches.first['available_qty'];
+                          final int totalAvailable = selectedBatches.fold<int>(
+                            0,
+                                (sum, b) => sum + (b['available_qty'] as int),
+                          );
 
-                          if (enteredQty > availableQty) {
-                            qtyCtrl.text = availableQty.toString();
+                          if (enteredQty > totalAvailable) {
+                            qtyCtrl.text = totalAvailable.toString();
                             qtyCtrl.selection = TextSelection.fromPosition(
                               TextPosition(offset: qtyCtrl.text.length),
                             );
 
-                            _showMessage("Only $availableQty units available in this batch");
-                            calculateFromQuantity(availableQty);
+                            _showMessage("Only $totalAvailable units available");
+                            calculateFromQuantity(totalAvailable);
                             return;
                           }
+
 
                           calculateFromQuantity(enteredQty);
                         },
@@ -961,6 +1022,7 @@ class _BillingPageState extends State<BillingPage> {
                         child: const Row(
                           children: [
                             Expanded(flex: 3, child: Text("Medicine", style: _headerStyle)),
+                            Expanded(flex: 2, child: Text("Batch", style: _headerStyle)),
                             Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.center, style: _headerStyle)),
                             Expanded(flex: 2, child: Text("Price", textAlign: TextAlign.right, style: _headerStyle)),
                             Expanded(flex: 2, child: Text("Total", textAlign: TextAlign.right, style: _headerStyle)),
@@ -983,7 +1045,7 @@ class _BillingPageState extends State<BillingPage> {
                                 bottom: BorderSide(color: Colors.black12),
                               ),
                             ),
-                            child: Row(
+                            child:Row(
                               children: [
                                 Expanded(
                                   flex: 3,
@@ -992,6 +1054,19 @@ class _BillingPageState extends State<BillingPage> {
                                     style: const TextStyle(color: royal),
                                   ),
                                 ),
+
+                                /// 👇 Batch & Rack (REFERENCE ONLY)
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Batch: ${item['batch_no']}", style: const TextStyle(fontSize: 12)),
+                                      Text("Rack: ${item['rack_no']}", style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                                    ],
+                                  ),
+                                ),
+
                                 Expanded(
                                   flex: 1,
                                   child: Text(
@@ -1017,7 +1092,7 @@ class _BillingPageState extends State<BillingPage> {
                                 Expanded(
                                   flex: 1,
                                   child: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red,),
+                                    icon: const Icon(Icons.delete, color: Colors.red),
                                     onPressed: () {
                                       billItems.removeAt(index);
                                       calculateBillTotal();
@@ -1025,7 +1100,6 @@ class _BillingPageState extends State<BillingPage> {
                                     },
                                   ),
                                 ),
-
                               ],
                             ),
                           ),

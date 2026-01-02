@@ -149,6 +149,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{21661804-CE45-3163-8601-AC572B5C95E0}</Project>
       <Name>flutter_wrapper_plugin</Name>
     </ProjectReference>
+    <ProjectReference Include="D:\New folder\pharmacy_management\frontend\build\windows\x64\plugins\permission_handler_windows\permission_handler_windows_plugin.vcxproj">
+      <Project>{1934CA1B-EA64-3CE0-9DCB-623708F7F03C}</Project>
+      <Name>permission_handler_windows_plugin</Name>
+    </ProjectReference>
     <ProjectReference Include="D:\New folder\pharmacy_management\frontend\build\windows\x64\plugins\printing\printing_plugin.vcxproj">
       <Project>{F4A1C96D-A818-3D30-ACBB-7D237E5D326B}</Project>
       <Name>printing_plugin</Name>

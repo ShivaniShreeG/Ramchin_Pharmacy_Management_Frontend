@@ -10,6 +10,7 @@ import 'submit.dart';
 import 'stock_management.dart';
 import 'add_medicines.dart';
 import 'reorder/reorder_list.dart';
+import 'bulk_upload.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -313,10 +314,10 @@ class _OwnerPageState extends State<OwnerPage> {
                   icon:Icons.upload_file,
                   label: "Bulk Upload Medicine",
                   onTap: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(builder: (context) => const SupplierPage()),
-                    // );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const BulkUploadPage()),
+                    );
                   },
                   size: buttonSize,
                 ),

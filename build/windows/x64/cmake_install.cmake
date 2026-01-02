@@ -49,6 +49,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/permission_handler_windows/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/printing/cmake_install.cmake")
 endif()
 
@@ -162,7 +167,7 @@ endif()
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xRuntimex" OR NOT CMAKE_INSTALL_COMPONENT)
   if("${CMAKE_INSTALL_CONFIG_NAME}" MATCHES "^([Dd][Ee][Bb][Uu][Gg])$")
     list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-     "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/file_selector_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/printing_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/pdfium.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/url_launcher_windows_plugin.dll")
+     "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/file_selector_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/permission_handler_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/printing_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/pdfium.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug/url_launcher_windows_plugin.dll")
     if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
         message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
     endif()
@@ -171,13 +176,14 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xRuntimex" OR NOT CMAKE_INSTALL_COMP
     endif()
 file(INSTALL DESTINATION "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Debug" TYPE FILE FILES
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/file_selector_windows/Debug/file_selector_windows_plugin.dll"
+      "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/permission_handler_windows/Debug/permission_handler_windows_plugin.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/printing/Debug/printing_plugin.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/pdfium-src/bin/pdfium.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/url_launcher_windows/Debug/url_launcher_windows_plugin.dll"
       )
   elseif("${CMAKE_INSTALL_CONFIG_NAME}" MATCHES "^([Pp][Rr][Oo][Ff][Ii][Ll][Ee])$")
     list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-     "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/file_selector_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/printing_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/pdfium.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/url_launcher_windows_plugin.dll")
+     "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/file_selector_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/permission_handler_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/printing_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/pdfium.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile/url_launcher_windows_plugin.dll")
     if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
         message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
     endif()
@@ -186,13 +192,14 @@ file(INSTALL DESTINATION "D:/New folder/pharmacy_management/frontend/build/windo
     endif()
 file(INSTALL DESTINATION "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Profile" TYPE FILE FILES
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/file_selector_windows/Profile/file_selector_windows_plugin.dll"
+      "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/permission_handler_windows/Profile/permission_handler_windows_plugin.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/printing/Profile/printing_plugin.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/pdfium-src/bin/pdfium.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/url_launcher_windows/Profile/url_launcher_windows_plugin.dll"
       )
   elseif("${CMAKE_INSTALL_CONFIG_NAME}" MATCHES "^([Rr][Ee][Ll][Ee][Aa][Ss][Ee])$")
     list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
-     "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/file_selector_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/printing_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/pdfium.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/url_launcher_windows_plugin.dll")
+     "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/file_selector_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/permission_handler_windows_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/printing_plugin.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/pdfium.dll;D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release/url_launcher_windows_plugin.dll")
     if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
         message(WARNING "ABSOLUTE path INSTALL DESTINATION : ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
     endif()
@@ -201,6 +208,7 @@ file(INSTALL DESTINATION "D:/New folder/pharmacy_management/frontend/build/windo
     endif()
 file(INSTALL DESTINATION "D:/New folder/pharmacy_management/frontend/build/windows/x64/runner/Release" TYPE FILE FILES
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/file_selector_windows/Release/file_selector_windows_plugin.dll"
+      "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/permission_handler_windows/Release/permission_handler_windows_plugin.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/printing/Release/printing_plugin.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/pdfium-src/bin/pdfium.dll"
       "D:/New folder/pharmacy_management/frontend/build/windows/x64/plugins/url_launcher_windows/Release/url_launcher_windows_plugin.dll"

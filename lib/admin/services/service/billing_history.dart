@@ -574,7 +574,7 @@ class _BillingHistoryPageState extends State<BillingHistoryPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildShopCard(shopDetails!),
+            if(shopDetails!=null)_buildShopCard(shopDetails!),
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
@@ -616,46 +616,46 @@ class _BillingHistoryPageState extends State<BillingHistoryPage> {
 }
 
 
-class BillDetailPage extends StatelessWidget {
-  final Map<String, dynamic> bill;
-  const BillDetailPage({super.key, required this.bill});
-
-  @override
-  Widget build(BuildContext context) {
-    final items = List<Map<String, dynamic>>.from(bill['items'] ?? []);
-    final date = DateTime.tryParse(bill['created_at'] ?? '');
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: royal,
-        title: Text('Bill ${bill['bill_id']} Details'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text('Customer: ${bill['customer_name']}'),
-            Text('Phone: ${bill['phone']}'),
-            Text('Total: ₹${bill['total']?.toStringAsFixed(2) ?? '0.0'}'),
-            Text('Date: ${date != null ? DateFormat('dd/MM/yyyy').format(date) : '-'}'),
-            const Divider(),
-            const Text("Items:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Expanded(
-              child: ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (_, index) {
-                  final item = items[index];
-                  return ListTile(
-                    title: Text(item['medicine_name'] ?? '-'),
-                    subtitle: Text('Batch: ${item['batch_no'] ?? '-'} | Qty: ${item['quantity'] ?? 0}'),
-                    trailing: Text('₹${item['total_price']?.toStringAsFixed(2) ?? '0.0'}'),
-                  );
-                },
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
+// class BillDetailPage extends StatelessWidget {
+//   final Map<String, dynamic> bill;
+//   const BillDetailPage({super.key, required this.bill});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final items = List<Map<String, dynamic>>.from(bill['items'] ?? []);
+//     final date = DateTime.tryParse(bill['created_at'] ?? '');
+//
+//     return Scaffold(
+//       appBar: AppBar(
+//         backgroundColor: royal,
+//         title: Text('Bill ${bill['bill_id']} Details'),
+//       ),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16),
+//         child: Column(
+//           children: [
+//             Text('Customer: ${bill['customer_name']}'),
+//             Text('Phone: ${bill['phone']}'),
+//             Text('Total: ₹${bill['total']?.toStringAsFixed(2) ?? '0.0'}'),
+//             Text('Date: ${date != null ? DateFormat('dd/MM/yyyy').format(date) : '-'}'),
+//             const Divider(),
+//             const Text("Items:", style: TextStyle(fontWeight: FontWeight.bold)),
+//             Expanded(
+//               child: ListView.builder(
+//                 itemCount: items.length,
+//                 itemBuilder: (_, index) {
+//                   final item = items[index];
+//                   return ListTile(
+//                     title: Text(item['medicine_name'] ?? '-'),
+//                     subtitle: Text('Batch: ${item['batch_no'] ?? '-'} | Qty: ${item['quantity'] ?? 0}'),
+//                     trailing: Text('₹${item['total_price']?.toStringAsFixed(2) ?? '0.0'}'),
+//                   );
+//                 },
+//               ),
+//             )
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

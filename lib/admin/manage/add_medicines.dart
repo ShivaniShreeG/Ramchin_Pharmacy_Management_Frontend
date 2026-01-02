@@ -417,6 +417,56 @@ class _InventoryPageState extends State<InventoryPage> {
       ),
     );
   }
+  bool isExpired(String expiryDate) {
+    final expiry = DateTime.parse(expiryDate);
+    return expiry.isBefore(DateTime.now());
+  }
+
+  bool isShortDated(String expiryDate, {int thresholdDays = 60}) {
+    final expiry = DateTime.parse(expiryDate);
+    final now = DateTime.now();
+    final diff = expiry.difference(now).inDays;
+    return diff > 0 && diff <= thresholdDays;
+  }
+
+  int daysLeft(String expiryDate) {
+    final expiry = DateTime.parse(expiryDate);
+    return expiry.difference(DateTime.now()).inDays;
+  }
+
+  Widget expiryBadge(String expiryDate) {
+    if (isExpired(expiryDate)) {
+      return _badge("Expired", Colors.red);
+    }
+
+    if (isShortDated(expiryDate)) {
+      return _badge(
+        "${daysLeft(expiryDate)} days left",
+        Colors.orange,
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _badge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
 
   Widget batchTileImproved({
     required Map<String, dynamic> batch,
@@ -449,6 +499,8 @@ class _InventoryPageState extends State<InventoryPage> {
                   ),
                 ),
               ),
+              if (batch['expiry_date'] != null)
+                expiryBadge(batch['expiry_date']),
               Switch(
                 activeThumbColor: royalblue,
                 activeTrackColor: royalblue.withValues(alpha: 0.4),
