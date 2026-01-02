@@ -1,0 +1,49 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/nuget-populate"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/38b663863528e751d584701381accb93/nuget-populate.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/b01a8efd49736d8b3b53b703af5a7aa8/nuget-populate-complete.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-build.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-configure.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-copyfile.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-download.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-install.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-mkdir.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-patch.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-test.rule"
+		},
+		{
+			"file" : "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/a2f6370479f83347cd36d856a8e1a87f/nuget-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"nuget-populate"
+		],
+		"name" : "nuget-populate"
+	}
+}

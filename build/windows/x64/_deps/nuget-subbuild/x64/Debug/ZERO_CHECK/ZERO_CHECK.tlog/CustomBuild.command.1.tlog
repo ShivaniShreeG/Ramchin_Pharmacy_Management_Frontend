@@ -1,0 +1,10 @@
+^D:\NEW FOLDER\PHARMACY_MANAGEMENT\FRONTEND\BUILD\WINDOWS\X64\_DEPS\NUGET-SUBBUILD\CMAKEFILES\38B663863528E751D584701381ACCB93\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" "-SD:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild" "-BD:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/nuget-populate.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
