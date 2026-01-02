@@ -1,0 +1,3 @@
+D:/New folder/pharmacy_management/frontend/build/windows/x64/pdfium-download/CMakeFiles/pdfium-download.dir
+D:/New folder/pharmacy_management/frontend/build/windows/x64/pdfium-download/CMakeFiles/ALL_BUILD.dir
+D:/New folder/pharmacy_management/frontend/build/windows/x64/pdfium-download/CMakeFiles/ZERO_CHECK.dir

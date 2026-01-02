@@ -248,6 +248,7 @@ class _MedicineHistoryPageState extends State<MedicineHistoryPage> {
                     Icons.qr_code_2,
                     "NDC: $ndc",
                   ),
+
               ],
             ),
           ],

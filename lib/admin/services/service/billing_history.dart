@@ -460,6 +460,8 @@ class _BillingHistoryPageState extends State<BillingHistoryPage> {
                           const SizedBox(height: 4),
                           Text('Date: ${date != null ? DateFormat('dd/MM/yyyy').format(date) : '-'}',
                               style: const TextStyle(fontSize: 14)),
+                          Text('Doctor: ${bill['doctor_name'] ?? '-'}',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
                           Text('Total: ₹${bill['total']?.toStringAsFixed(2) ?? '0.0'}',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -480,7 +482,7 @@ class _BillingHistoryPageState extends State<BillingHistoryPage> {
                         final item = items[index];
                         final name = item['medicine']?['name'] ?? item['name'] ?? 'Unnamed Medicine';
                         final batch = item['batch']?['batch_no'] ?? item['batch'] ?? '-';
-                        final qty = item['quantity'] ?? 0;
+                        final qty = item['unit'] ?? 0;
                         final unitPrice = (item['unit_price'] ?? 0).toDouble();
                         final total = qty * unitPrice;
 

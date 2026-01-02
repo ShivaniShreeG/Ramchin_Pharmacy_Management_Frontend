@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\New folder\pharmacy_management\frontend\build\windows\x64\CMakeFiles\2e00cb5b15d226fa1a389a5ea6756ced\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{B7CAF70D-98E7-3E4C-8F05-6E5FD82E1824}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

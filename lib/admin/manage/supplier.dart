@@ -25,6 +25,10 @@ class _SupplierPageState extends State<SupplierPage> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _addressController = TextEditingController();
+  final _nameFocus =FocusNode();
+  final _phoneFocus =FocusNode();
+  final _emailFocus =FocusNode();
+  final _addressFocus =FocusNode();
 
   bool _isLoading = false;
   bool _isLoadingSuppliers = true;
@@ -40,6 +44,15 @@ class _SupplierPageState extends State<SupplierPage> {
     super.initState();
     _fetchSuppliers();
    _fetchHallDetails();
+  }
+
+  @override
+  void dispose() {
+    _nameFocus.dispose();
+    _phoneFocus.dispose();
+    _emailFocus.dispose();
+    _addressFocus.dispose();
+    super.dispose();
   }
 
   void _showMessage(String message) {
@@ -265,6 +278,8 @@ class _SupplierPageState extends State<SupplierPage> {
                             labeledTanRow(
                               label: "NAME",
                               controller: _nameController,
+                              focusNode: _nameFocus,
+                              nextFocusNode: _phoneFocus,
                               hintText: "Enter Supplier Name",
                               onChanged: (_) {
                                 _checkSupplierDirty();
@@ -279,6 +294,8 @@ class _SupplierPageState extends State<SupplierPage> {
                               label: "PHONE",
                               controller: _phoneController,
                               inputType: TextInputType.phone,
+                              focusNode: _phoneFocus,
+                              nextFocusNode: _emailFocus,
                               hintText: "Enter Phone Number",
                               maxLength: 10,
                               inputFormatters: [
@@ -311,6 +328,8 @@ class _SupplierPageState extends State<SupplierPage> {
                               controller: _emailController,
                               inputType: TextInputType.emailAddress,
                               hintText: "Enter Email Address",
+                              focusNode: _emailFocus,
+                              nextFocusNode: _addressFocus,
                               onChanged: (_) {
                                 _checkSupplierDirty();
                                 setState(() {});
@@ -328,6 +347,7 @@ class _SupplierPageState extends State<SupplierPage> {
                               label: "ADDRESS",
                               controller: _addressController,
                               hintText: "Enter Supplier Address",
+                              focusNode: _addressFocus,
                               onChanged: (_) {
                                 _checkSupplierDirty();
                                 setState(() {});
@@ -343,6 +363,8 @@ class _SupplierPageState extends State<SupplierPage> {
                       labeledTanRow(
                         label: "NAME",
                         controller: _nameController,
+                        focusNode: _nameFocus,
+                        nextFocusNode: _phoneFocus,
                         hintText: "Enter Supplier Name",
                         onChanged: (_) {
                           _checkSupplierDirty();
@@ -358,6 +380,8 @@ class _SupplierPageState extends State<SupplierPage> {
                         controller: _phoneController,
                         inputType: TextInputType.phone,
                         hintText: "Enter Phone Number",
+                        focusNode: _phoneFocus,
+                        nextFocusNode: _emailFocus,
                         maxLength: 10,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -382,6 +406,8 @@ class _SupplierPageState extends State<SupplierPage> {
                         controller: _emailController,
                         inputType: TextInputType.emailAddress,
                         hintText: "Enter Email Address",
+                        focusNode: _emailFocus,
+                        nextFocusNode: _addressFocus,
                         onChanged: (_) {
                           _checkSupplierDirty();
                           setState(() {});
@@ -399,6 +425,7 @@ class _SupplierPageState extends State<SupplierPage> {
                         label: "ADDRESS",
                         controller: _addressController,
                         hintText: "Enter Supplier Address",
+                        focusNode: _addressFocus,
                         onChanged: (_) {
                           _checkSupplierDirty();
                           setState(() {});
@@ -757,6 +784,8 @@ class _SupplierPageState extends State<SupplierPage> {
     void Function(String?)? onDropdownChanged,
     double labelWidthFactor = 0.3,
     int? maxLength,
+    FocusNode? focusNode,
+    FocusNode? nextFocusNode,
     List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
@@ -802,6 +831,14 @@ class _SupplierPageState extends State<SupplierPage> {
               cursorColor: royal,
               style: TextStyle(color: royal),
               maxLength: maxLength,
+              focusNode: focusNode,
+              onFieldSubmitted: (_) {
+                if (nextFocusNode != null) {
+                  FocusScope.of(context).requestFocus(nextFocusNode);
+                } else {
+                  FocusScope.of(context).unfocus();
+                }
+              },
               inputFormatters: inputFormatters,
               decoration: InputDecoration(
                 counterText: "",

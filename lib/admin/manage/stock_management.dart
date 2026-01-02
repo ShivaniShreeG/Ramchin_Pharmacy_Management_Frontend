@@ -341,6 +341,8 @@ class _StockPageState extends State<StockPage> {
               spacing: 8,
               runSpacing: 6,
               children: [
+                if (shouldShow(medicine['id']))
+                  badge(Icons.lock, "Medicine-ID", medicine['id'].toString(), Colors.teal),
                 badge(Icons.category, "Category", medicine['category'], Colors.orange),
                 badge(Icons.inventory_2, "Stock", batch['total_stock'].toString(), Colors.green),
                 badge(Icons.batch_prediction_outlined, "Batch", batch['batch_no'], Colors.blue),
@@ -388,16 +390,33 @@ class _StockPageState extends State<StockPage> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: Column(
                         children: [
-                          infoRow("Rack No", batch['rack_no']),
-                          infoRow("Total Stock", batch['total_stock']),
-                          infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
-                          infoRow("Expiry Date", formatDate(batch['expiry_date'])),
-                          infoRow("Quantity", batch['quantity']),
-                          infoRow("Unit", batch['unit']),
-                          infoRow("Unit Price", "₹${batch['unit_price']}"),
-                          infoRow("Selling Price", "₹${batch['selling_price']}"),
-                          infoRow("Profit", batch['profit']),
-                          infoRow("GST", batch['gst']),
+                          if (shouldShow(batch['rack_no']))
+                            infoRow("Rack No", batch['rack_no'] ?? "-"),
+                          if (shouldShow(batch['total_stock']))
+                            infoRow("Total Stock", batch['total_stock'].toString()),
+                          if (shouldShow(batch['total_quantity']))
+                            infoRow("Total Quantity", batch['total_quantity'].toString()),
+                          if (shouldShow(batch['manufacture_date']))
+                            infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
+                          if (shouldShow(batch['expiry_date']))
+                            infoRow("Expiry Date", formatDate(batch['expiry_date'])),
+                          if (shouldShow(batch['HSN']))
+                            infoRow("HSN Code", batch['HSN'] ?? "-"),
+                          if (shouldShow(batch['unit']))
+                            infoRow("Unit", batch['unit'].toString()),
+                          if (shouldShow(batch['purchase_price_quantity']))
+                            infoRow("Purchase Price/Quantity", "₹${batch['purchase_price_quantity']}"),
+                          if (shouldShow(batch['purchase_price_unit']))
+                            infoRow("Purchase Price/Unit", batch['purchase_price_unit']?.toString() ?? "-"),
+                          if (shouldShow(batch['selling_price_quantity']))
+                            infoRow("Selling Price/Quantity", "₹${batch['selling_price_quantity']}"),
+                          if (shouldShow(batch['selling_price_unit']))
+                            infoRow("Selling Price/Unit", "₹${batch['selling_price_unit']}"),
+                          if (shouldShow(batch['profit']))
+                            infoRow("Profit", batch['profit']?.toString() ?? "-"),
+                          if (shouldShow(batch['mrp']))
+                            infoRow("MRP", batch['mrp']?.toString() ?? "-"),
+
                         ],
                       ),
                     ),
@@ -445,14 +464,29 @@ class _StockPageState extends State<StockPage> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: Column(
                         children: [
-                          infoRow("Supplier", batch['name']),
-                          infoRow("Phone", batch['phone']),
-                          infoRow("Purchase Price", "₹${batch['purchase_price']}"),
-                          infoRow("Purchase Stock", batch['purchase_stock']),
-                          infoRow(
-                            "Purchased Date",
-                            formatDate(batch['purchased_date']),
-                          ),
+                          if (shouldShow(batch['quantity']))
+                            infoRow("Purchased Quantity", batch['quantity'].toString()),
+                          if (shouldShow(batch['free_quantity']))
+                            infoRow("Free Quantity", batch['free_quantity'].toString()),
+                          if (shouldShow(batch['purchase_details']['rate_per_quantity']))
+                            infoRow("Rate/ Quantity", "₹${batch['purchase_details']['rate_per_quantity']}"),
+                          if (shouldShow(batch['purchase_details']['gst_percent']))
+                            infoRow("GST %/Quantity", "${batch['purchase_details']['gst_percent']}%"),
+                          if (shouldShow(batch['purchase_details']['gst_per_quantity']))
+                            infoRow("GST Amount/Quantity", "₹${batch['purchase_details']['gst_per_quantity']}"),
+                          if (shouldShow(batch['purchase_details']['base_amount']))
+                            infoRow("Base Amount", "₹${batch['purchase_details']['base_amount']}"),
+                          if (shouldShow(batch['purchase_details']['total_gst_amount']))
+                            infoRow("Total GST Amount", "₹${batch['purchase_details']['total_gst_amount']}"),
+                          if (shouldShow(batch['purchase_details']['purchase_price']))
+                            infoRow("Purchased price", "₹${batch['purchase_details']['purchase_price']}"),
+                          if (shouldShow(batch['supplier']?['name']))
+                            infoRow("Supplier Name", batch['supplier']?['name'] ?? "-",),
+                          if (shouldShow(batch['supplier']?['phone']))
+                            infoRow("Supplier Phone", batch['supplier']?['phone'] ?? "-",),
+                          if (shouldShow(batch['purchase_details']['purchase_date']))
+                            infoRow("Date", formatDate(batch['purchase_details']['purchase_date'])),
+
                         ],
                       ),
                     ),

@@ -22,24 +22,12 @@ class _InventoryPageState extends State<InventoryPage> {
   List<Map<String, dynamic>> medicines = [];
   bool isLoading = true;
   Map<String, dynamic>? shopDetails;
-  int? selectedMedicineId;
-  Map<String, dynamic>? selectedMedicine;
-
   bool showAddMedicine = false;
   bool showAddBatch = false;
-  final medicineCtrl = TextEditingController();
-  final qtyCtrl = TextEditingController();
-  final unitCtrl = TextEditingController();
-  final priceCtrl = TextEditingController();
-  final profitCtrl = TextEditingController();
-  final expiryCtrl = TextEditingController();
-  final mfgCtrl = TextEditingController();
   final TextEditingController searchCtrl = TextEditingController();
-  final batchCtrl = TextEditingController();
 
   List<Map<String, dynamic>> filteredMedicines = [];
-  double totalPurchasePrice = 0;
-  double stock = 0, purchase = 0, sell = 0;
+
 
   bool isEditingProfit = false;
   bool isEditingSelling = false;
@@ -373,6 +361,8 @@ class _InventoryPageState extends State<InventoryPage> {
               spacing: 8,
               runSpacing: 6,
               children: [
+                if (shouldShow(medicine['id']))
+                  badge(Icons.lock, "Medicine-ID", medicine['id'].toString(), Colors.teal),
                 if (shouldShow(medicine['category']))
                   badge(Icons.category, "Category", medicine['category'], Colors.orange),
                 if (shouldShow(medicine['stock']))
@@ -553,26 +543,28 @@ class _InventoryPageState extends State<InventoryPage> {
                                         infoRow("Rack No", batch['rack_no'] ?? "-"),
                                       if (shouldShow(batch['total_stock']))
                                         infoRow("Total Stock", batch['total_stock'].toString()),
+                                      if (shouldShow(batch['total_quantity']))
+                                        infoRow("Total Quantity", batch['total_quantity'].toString()),
                                       if (shouldShow(batch['manufacture_date']))
                                         infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
                                       if (shouldShow(batch['expiry_date']))
                                         infoRow("Expiry Date", formatDate(batch['expiry_date'])),
                                       if (shouldShow(batch['HSN']))
                                         infoRow("HSN Code", batch['HSN'] ?? "-"),
-                                      if (shouldShow(batch['quantity']))
-                                        infoRow("Quantity", batch['quantity'].toString()),
                                       if (shouldShow(batch['unit']))
                                         infoRow("Unit", batch['unit'].toString()),
-                                      if (shouldShow(batch['unit_price']))
-                                        infoRow("Unit Price", "₹${batch['unit_price']}"),
-                                      if (shouldShow(batch['single_price']))
-                                        infoRow("Single Price", batch['single_price']?.toString() ?? "-"),
-                                      if (shouldShow(batch['selling_price']))
-                                        infoRow("Selling Price", "₹${batch['selling_price']}"),
+                                      if (shouldShow(batch['purchase_price_quantity']))
+                                        infoRow("Purchase Price/Quantity", "₹${batch['purchase_price_quantity']}"),
+                                      if (shouldShow(batch['purchase_price_unit']))
+                                        infoRow("Purchase Price/Unit", batch['purchase_price_unit']?.toString() ?? "-"),
+                                      if (shouldShow(batch['selling_price_quantity']))
+                                        infoRow("Selling Price/Quantity", "₹${batch['selling_price_quantity']}"),
+                                      if (shouldShow(batch['selling_price_unit']))
+                                        infoRow("Selling Price/Unit", "₹${batch['selling_price_unit']}"),
                                       if (shouldShow(batch['profit']))
                                         infoRow("Profit", batch['profit']?.toString() ?? "-"),
-                                      if (shouldShow(batch['gst']))
-                                        infoRow("GST", batch['gst']?.toString() ?? "-"),
+                                      if (shouldShow(batch['mrp']))
+                                        infoRow("MRP", batch['mrp']?.toString() ?? "-"),
                                     ],
                                   ),
                                 ],
@@ -591,14 +583,28 @@ class _InventoryPageState extends State<InventoryPage> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      if (shouldShow(batch['name'])) infoRow("Name", batch['name']),
-                                      if (shouldShow(batch['phone'])) infoRow("Phone", batch['phone']),
-                                      if (shouldShow(batch['purchase_price']))
-                                        infoRow("Price", "₹${batch['purchase_price']}"),
-                                      if (shouldShow(batch['purchase_stock']))
-                                        infoRow("Stock", "${batch['purchase_stock']}"),
-                                      if (shouldShow(batch['purchased_date']))
-                                        infoRow("Date", formatDate(batch['purchased_date'])),
+                                      if (shouldShow(batch['quantity']))
+                                        infoRow("Purchased Quantity", batch['quantity'].toString()),
+                                      if (shouldShow(batch['free_quantity']))
+                                        infoRow("Free Quantity", batch['free_quantity'].toString()),
+                                      if (shouldShow(batch['purchase_details']['rate_per_quantity']))
+                                        infoRow("Rate/ Quantity", "₹${batch['purchase_details']['rate_per_quantity']}"),
+                                      if (shouldShow(batch['purchase_details']['gst_percent']))
+                                        infoRow("GST %/Quantity", "${batch['purchase_details']['gst_percent']}%"),
+                                      if (shouldShow(batch['purchase_details']['gst_per_quantity']))
+                                        infoRow("GST Amount/Quantity", "₹${batch['purchase_details']['gst_per_quantity']}"),
+                                      if (shouldShow(batch['purchase_details']['base_amount']))
+                                        infoRow("Base Amount", "₹${batch['purchase_details']['base_amount']}"),
+                                      if (shouldShow(batch['purchase_details']['total_gst_amount']))
+                                        infoRow("Total GST Amount", "₹${batch['purchase_details']['total_gst_amount']}"),
+                                      if (shouldShow(batch['purchase_details']['purchase_price']))
+                                        infoRow("Purchased price", "₹${batch['purchase_details']['purchase_price']}"),
+                                      if (shouldShow(batch['supplier']?['name']))
+                                        infoRow("Supplier Name", batch['supplier']?['name'] ?? "-",),
+                                      if (shouldShow(batch['supplier']?['phone']))
+                                        infoRow("Supplier Phone", batch['supplier']?['phone'] ?? "-",),
+                                      if (shouldShow(batch['purchase_details']['purchase_date']))
+                                        infoRow("Date", formatDate(batch['purchase_details']['purchase_date'])),
                                     ],
                                   ),
                                 ],
@@ -679,15 +685,6 @@ class _InventoryPageState extends State<InventoryPage> {
     final nameCtrl = TextEditingController();
     bool isNameTaken = false; // to track if name exists
     final ndcCtrl = TextEditingController();
-    final batchCtrl = TextEditingController(text: "01");
-    final rackCtrl = TextEditingController();
-    final quantityCtrl = TextEditingController();
-    final unitCtrl = TextEditingController();
-    final profitCtrl = TextEditingController();
-    final sellerCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final hsnCtrl = TextEditingController();
-    final mrpCtrl = TextEditingController();
     final List<String> medicineCategories = [
       "Tablets",
       "Syrups",
@@ -698,6 +695,15 @@ class _InventoryPageState extends State<InventoryPage> {
       "Other",
     ];
     String selectedCategory = medicineCategories.first;
+    final batchCtrl = TextEditingController(text: "01");
+    final rackCtrl = TextEditingController();
+    final quantityCtrl = TextEditingController();
+    final unitCtrl = TextEditingController();
+    final profitCtrl = TextEditingController();
+    final sellerCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final hsnCtrl = TextEditingController();
+    final mrpCtrl = TextEditingController();
     DateTime? mfgDate;
     DateTime? expDate;
     int? selectedSupplierId;     // ✅ real supplier id
@@ -1042,7 +1048,20 @@ class _InventoryPageState extends State<InventoryPage> {
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: LayoutBuilder(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+
+            const Center(
+            child: Text("Add Medicine & Batch",
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: royal)),
+          ),
+
+          const SizedBox(height: 14),
+            LayoutBuilder(
               builder: (context, constraints) {
                 final isDesktop = MediaQuery
                     .of(context)
@@ -1226,6 +1245,7 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
+
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
@@ -1239,7 +1259,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
@@ -1288,7 +1307,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
@@ -1337,7 +1355,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
@@ -1453,7 +1470,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ),
                     ),
-
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(label: "MRP / Quantity (₹)",
@@ -1492,7 +1508,6 @@ class _InventoryPageState extends State<InventoryPage> {
 
 
                     ),
-
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
@@ -1743,7 +1758,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 14),
                     Center(
                       child: SizedBox(
@@ -1840,7 +1854,7 @@ class _InventoryPageState extends State<InventoryPage> {
                   ],
                 );
               },),
-          ),);
+        ],),),);
       },
     );
   }
@@ -1877,69 +1891,6 @@ class _InventoryPageState extends State<InventoryPage> {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-    );
-  }
-
-  Widget medicineAutocomplete(void Function(VoidCallback fn) setLocalState) {
-    return RawAutocomplete<Map<String, dynamic>>(
-      textEditingController: medicineCtrl,
-      focusNode: FocusNode(),
-      optionsBuilder: (TextEditingValue value) {
-        if (value.text.isEmpty) return [];
-        return medicines.where(
-              (m) => m['name']
-              .toLowerCase()
-              .contains(value.text.toLowerCase()),
-        );
-      },
-      displayStringForOption: (m) => m['name'],
-
-      // ✅ THIS is the ONLY place selection logic should be
-      onSelected: (m) {
-        setLocalState(() {
-          selectedMedicine = m;
-          selectedMedicineId = m['id'];
-
-          // 🔥 RESET batch-related state
-          batchCtrl.clear();
-          isBatchTaken = false;
-          debounce?.cancel();
-
-          // OPTIONAL – reset calculations
-          stock = 0;
-          totalPurchasePrice = 0;
-        });
-      },
-
-      fieldViewBuilder: (context, controller, focusNode, _) {
-        return TextFormField(
-          controller: controller,
-          focusNode: focusNode,
-          cursorColor: royal,
-          style: const TextStyle(color: royal),
-          decoration: _inputDecoration("Medicine Name"),
-        );
-      },
-
-      optionsViewBuilder: (context, onSelected, options) {
-        return Material(
-          elevation: 4,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: options.length,
-            itemBuilder: (context, i) {
-              final m = options.elementAt(i);
-              return ListTile(
-                title: Text(m['name']),
-                subtitle: Text("Stock: ${m['stock']}"),
-
-                // ✅ JUST call onSelected
-                onTap: () => onSelected(m),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 
@@ -1989,9 +1940,7 @@ class _InventoryPageState extends State<InventoryPage> {
 
                     // Close medicine form
                     showAddMedicine = false;
-                    medicineCtrl.clear();
-                    selectedMedicineId=null;
-                    selectedMedicine=null;
+
                   });
                 },
                 child: Text(
@@ -2031,7 +1980,6 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
@@ -2050,76 +1998,190 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
-
-  Widget _dialogRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 90, // fixed width for label
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: royal, // label color
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              ":$value",
-              style: const TextStyle(
-                color: royal, // value color
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void calculate() {
-    final q = double.tryParse(qtyCtrl.text) ?? 0;
-    final u = double.tryParse(unitCtrl.text) ?? 0;
-    final p = double.tryParse(priceCtrl.text) ?? 0;
-    final pr = double.tryParse(profitCtrl.text) ?? 0;
-
-    stock = q * u;
-    purchase = stock * p;
-    sell = p + (p * pr / 100);
-    setState(() {});
-  }
-
   Widget addBatchForm() {
     final rackCtrl = TextEditingController();
     final quantityCtrl = TextEditingController();
     final unitCtrl = TextEditingController();
-    final purchasePriceCtrl = TextEditingController();
-    final sellingPriceCtrl = TextEditingController();
     final profitCtrl = TextEditingController();
     final sellerCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final hsnCtrl = TextEditingController();
-
+    final mrpCtrl = TextEditingController();
     DateTime? mfgDate;
     DateTime? expDate;
+    int? selectedSupplierId;     // ✅ real supplier id
+    bool supplierFound = false; // ✅ for UI icon
+    final freeQtyCtrl = TextEditingController();
+    double totalQuantity = 0;
+    double totalStock = 0; // ✅ FIX
+    DateTime purchaseDate = DateTime.now(); // ✅ default today
+    final ratePerQtyCtrl = TextEditingController();
+    final gstCtrl = TextEditingController();
+    double sellingPerUnit = 0;
+    double sellingPerQuantity = 0;
+    double purchasePerUnit = 0;
+    double purchasePerQuantity = 0;
+    double gstPerQuantity = 0;
+    double baseAmount = 0;
+    double totalGstAmount = 0;
+    double purchasePrice = 0;
+    Timer? phoneDebounce;
+    int? selectedMedicineId;
+    Map<String, dynamic>? selectedMedicine;
+    final batchCtrl = TextEditingController();
+    final medicineCtrl = TextEditingController();
 
-    double stock = 0;
 
     return StatefulBuilder(
       builder: (context, setLocalState) {
 
+        void resetForm() {
+          medicineCtrl.clear();   // ✅ Clears autocomplete text
+          selectedMedicine = null;
+          selectedMedicineId = null;
+          batchCtrl.clear();
+          rackCtrl.clear();
+          quantityCtrl.clear();
+          freeQtyCtrl.clear();
+          unitCtrl.clear();
+          ratePerQtyCtrl.clear();
+          gstCtrl.clear();
+          mrpCtrl.clear();
+          profitCtrl.clear();
+          sellerCtrl.clear();
+          phoneCtrl.clear();
+          hsnCtrl.clear();
+
+          mfgDate = null;
+          expDate = null;
+          purchaseDate = DateTime.now();
+
+          selectedSupplierId = null;
+          supplierFound = false;
+
+          totalQuantity = 0;
+          totalStock = 0;
+          gstPerQuantity = 0;
+          baseAmount = 0;
+          totalGstAmount = 0;
+          purchasePrice = 0;
+          purchasePerUnit = 0;
+          purchasePerQuantity = 0;
+          sellingPerUnit = 0;
+          sellingPerQuantity = 0;
+          phoneDebounce?.cancel();
+          setLocalState(() {});
+        }
+
+        Widget medicineAutocomplete(void Function(VoidCallback fn) setLocalState) {
+          return RawAutocomplete<Map<String, dynamic>>(
+            textEditingController: medicineCtrl,
+            focusNode: FocusNode(),
+            optionsBuilder: (TextEditingValue value) {
+              if (value.text.isEmpty) return [];
+              return medicines.where(
+                    (m) => m['name']
+                    .toLowerCase()
+                    .contains(value.text.toLowerCase()),
+              );
+            },
+            displayStringForOption: (m) => m['name'],
+            onSelected: (m) {
+              setLocalState(() {
+                selectedMedicine = m;
+                selectedMedicineId = m['id'];
+
+                batchCtrl.clear();
+                isBatchTaken = false;
+                debounce?.cancel();
+              });
+            },
+
+            fieldViewBuilder: (context, controller, focusNode, _) {
+              return TextFormField(
+                controller: controller,
+                focusNode: focusNode,
+                cursorColor: royal,
+                style: const TextStyle(color: royal),
+                decoration: _inputDecoration("Medicine Name"),
+              );
+            },
+
+            optionsViewBuilder: (context, onSelected, options) {
+              return Material(
+                elevation: 4,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (context, i) {
+                    final m = options.elementAt(i);
+                    return ListTile(
+                      title: Text(m['name']),
+                      subtitle: Text("Stock: ${m['stock']}"),
+
+                      // ✅ JUST call onSelected
+                      onTap: () => onSelected(m),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        }
+
         void calculateStock() {
           final qty = double.tryParse(quantityCtrl.text) ?? 0;
+          final freeQty = double.tryParse(freeQtyCtrl.text) ?? 0;
           final unit = double.tryParse(unitCtrl.text) ?? 0;
-          stock = qty * unit;
 
-          final purchase = double.tryParse(purchasePriceCtrl.text) ?? 0;
-          totalPurchasePrice = stock * purchase;
+          totalQuantity = qty + freeQty;     // ✅ TOTAL QTY
+          totalStock = totalQuantity * unit;      // ✅ TOTAL STOCK
+
 
           setLocalState(() {});
+        }
+
+        void calculatePurchaseValues() {
+          final qty = double.tryParse(quantityCtrl.text) ?? 0;
+          final rate = double.tryParse(ratePerQtyCtrl.text) ?? 0;
+          final gstPercent = double.tryParse(gstCtrl.text) ?? 0;
+          final unit = double.tryParse(unitCtrl.text) ?? 0;
+          final mrp = double.tryParse(mrpCtrl.text) ?? 0;
+          final profitPercent = double.tryParse(profitCtrl.text) ?? 0;
+
+
+          if (qty <= 0 || unit <= 0) {
+            purchasePerUnit = 0;
+            purchasePerQuantity = 0;
+            sellingPerUnit = 0;
+            sellingPerQuantity = 0;
+            setLocalState(() {});
+            return;
+          }
+          baseAmount = qty * rate;
+
+          // GST
+          gstPerQuantity = rate * gstPercent / 100;
+          totalGstAmount = gstPerQuantity * qty;
+
+          // PURCHASE PRICE
+          purchasePrice = baseAmount + totalGstAmount;
+          purchasePerQuantity = purchasePrice / qty;   // ✔ strip price
+          purchasePerUnit = purchasePerQuantity / unit; // ✔ tablet price
+          if (purchasePerQuantity <= 0 || qty <= 0) return;
+
+          // Profit-based selling
+          final calculatedSelling =
+              purchasePerQuantity + (purchasePerQuantity * profitPercent / 100);
+
+          // ✅ MRP CAP
+          sellingPerQuantity = calculatedSelling > mrp ? mrp : calculatedSelling;
+
+          // Quantity price
+          sellingPerUnit = sellingPerQuantity / unit;
+          setLocalState(() {});
+          // TOTAL STOCK
+
         }
 
         Future<bool> validateBatchBackend(String batchNo) async {
@@ -2143,93 +2205,196 @@ class _InventoryPageState extends State<InventoryPage> {
           return true; // fallback allow
         }
 
-        void calculateSellingFromProfit() {
-          if (isEditingSelling) return; // Prevent loop
-          final purchase = double.tryParse(purchasePriceCtrl.text) ?? 0;
-          final profitPercent = double.tryParse(profitCtrl.text) ?? 0;
-          final selling = purchase + (purchase * profitPercent / 100);
-          sellingPriceCtrl.text = selling.toStringAsFixed(2);
-        }
-
-        void calculateProfitFromSelling() {
-          if (isEditingProfit) return; // Prevent loop
-          final purchase = double.tryParse(purchasePriceCtrl.text) ?? 0;
-          final selling = double.tryParse(sellingPriceCtrl.text) ?? 0;
-          if (purchase != 0) {
-            final profit = ((selling - purchase) / purchase) * 100;
-            profitCtrl.text = profit.toStringAsFixed(2);
-          }
-        }
-
         bool isFormValid() {
           return selectedMedicineId != null &&
               batchCtrl.text.isNotEmpty &&
               !isBatchTaken &&   // ✅ disable if batch exists
-              quantityCtrl.text.isNotEmpty &&
-              unitCtrl.text.isNotEmpty &&
-              purchasePriceCtrl.text.isNotEmpty &&
-              sellingPriceCtrl.text.isNotEmpty &&
-              sellerCtrl.text.isNotEmpty &&
-              phoneCtrl.text.isNotEmpty &&
+              quantityCtrl.text.trim().isNotEmpty &&
+              (double.tryParse(quantityCtrl.text) ?? 0) > 0 &&
+
+              unitCtrl.text.trim().isNotEmpty &&
+              (double.tryParse(unitCtrl.text) ?? 0) > 0 &&
+
+              ratePerQtyCtrl.text.trim().isNotEmpty &&
+              (double.tryParse(ratePerQtyCtrl.text) ?? 0) > 0 &&
+
+              profitCtrl.text.trim().isNotEmpty &&
+              (double.tryParse(profitCtrl.text) ?? 0) >= 0 &&
+
+              mrpCtrl.text.trim().isNotEmpty &&
+              (double.tryParse(mrpCtrl.text) ?? 0) > 0 &&
+
+              supplierFound &&
+              selectedSupplierId != null &&
+
+              phoneCtrl.text.length == 10 &&
+
               mfgDate != null &&
-              expDate != null;
+              expDate != null &&
+              expDate!.isAfter(mfgDate!) ;
+
         }
 
         Widget confirmBatchDialog() {
-
+          Widget infoTile(String label, String value,
+              {Color valueColor = royal}) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 140,
+                    child: Text(
+                      "$label:",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: royal,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      value.isEmpty ? "-" : value,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: valueColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
           return AlertDialog(
+            insetPadding: const EdgeInsets.all(16),
+            contentPadding: const EdgeInsets.all(12),
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: royal, width: 1.3),
+              side: const BorderSide(color: royal, width: 1.2),
             ),
             title: const Center(
               child: Text(
                 "Confirm Batch Details",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: royal,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, color: royal),
               ),
             ),
             content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _dialogRow("Medicine", selectedMedicine!['name']),
-                  _dialogRow("Batch No", batchCtrl.text),
-                  _dialogRow("MFG Date", mfgDate != null ? mfgDate!.toLocal().toString().split(' ')[0] : "-"),
-                  _dialogRow("EXP Date", expDate != null ? expDate!.toLocal().toString().split(' ')[0] : "-"),
-                  _dialogRow("Rack No", rackCtrl.text.isEmpty ? "-" : rackCtrl.text),
-                  _dialogRow("Quantity", quantityCtrl.text),
-                  _dialogRow("Unit", unitCtrl.text),
-                  _dialogRow("Stock", stock.toString()),
-                  _dialogRow("Purchase Price", purchasePriceCtrl.text),
-                  _dialogRow("Profit %", profitCtrl.text),
-                  _dialogRow("Selling Price", sellingPriceCtrl.text),
-                  _dialogRow("Total Cost", "₹${totalPurchasePrice.toStringAsFixed(2)}"),
-                  _dialogRow("Seller Name", sellerCtrl.text),
-                  _dialogRow("Phone", phoneCtrl.text),
-                ],
-              ),
-            ),
+                child: Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: royal, width: 1),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        infoTile("Medicine", selectedMedicine!['name']),
+                        infoTile("Batch No", batchCtrl.text),
+                        if (rackCtrl.text.trim().isNotEmpty)
+                          infoTile("Rack No", rackCtrl.text),
+                        if (hsnCtrl.text.trim().isNotEmpty)
+                          infoTile("HSN Code", hsnCtrl.text),
+
+                        const Divider(color: royal),
+
+                        /// 🔹 DATES
+                        infoTile("MFG Date",
+                            mfgDate?.toLocal().toString().split(' ')[0] ?? "-"),
+                        infoTile("EXP Date",
+                            expDate?.toLocal().toString().split(' ')[0] ?? "-"),
+                        infoTile("Purchase Date",
+                            purchaseDate.toLocal().toString().split(' ')[0]),
+
+                        const Divider(color: royal),
+
+                        /// 🔹 STOCK
+                        infoTile("Quantity", quantityCtrl.text),
+                        if (freeQtyCtrl.text.trim().isNotEmpty &&
+                            freeQtyCtrl.text.trim() != "0")
+                          infoTile("Free Qty", freeQtyCtrl.text),
+                        infoTile("Total Quantity", totalQuantity.toString()),
+                        infoTile("Unit / Qty", unitCtrl.text),
+                        infoTile("Total Stock", totalStock.toString()),
+
+                        const Divider(color: royal),
+
+                        /// 🔹 SUPPLIER
+                        infoTile("Supplier Phone", phoneCtrl.text),
+                        infoTile("Supplier Name", sellerCtrl.text),
+                        infoTile("Supplier ID",
+                            selectedSupplierId?.toString() ?? "-"),
+
+                        const Divider(color: royal),
+
+                        /// 🔹 PRICING
+                        infoTile("Rate / Qty", "₹${ratePerQtyCtrl.text}"),
+                        if (gstCtrl.text.trim().isNotEmpty)
+                          infoTile("GST % / Qty", gstCtrl.text),
+                        if (gstPerQuantity > 0)
+                          infoTile(
+                            "GST Amount / Qty",
+                            "₹${gstPerQuantity.toStringAsFixed(2)}",
+                          ),
+
+                        infoTile("Base Amount",
+                            "₹${baseAmount.toStringAsFixed(2)}"),
+                        if (totalGstAmount > 0)
+                          infoTile(
+                            "Total GST",
+                            "₹${totalGstAmount.toStringAsFixed(2)}",
+                            valueColor: Colors.orange,
+                          ),
+
+                        const Divider(color: royal),
+
+                        /// 🔹 PURCHASE & SELLING
+                        infoTile("Purchase / Qty",
+                            "₹${purchasePerQuantity.toStringAsFixed(2)}",
+                            valueColor: Colors.red),
+                        infoTile("Purchase / Unit",
+                            "₹${purchasePerUnit.toStringAsFixed(2)}",
+                            valueColor: Colors.red),
+                        infoTile("Selling / Qty",
+                            "₹${sellingPerQuantity.toStringAsFixed(2)}"),
+                        infoTile("Selling / Unit",
+                            "₹${sellingPerUnit.toStringAsFixed(2)}"),
+                        infoTile("MRP / Quantity", mrpCtrl.text),
+                        infoTile("Profit %",
+                            profitCtrl.text),
+
+                        const Divider(color:royal,thickness: 1.2),
+
+                        /// 🔥 FINAL TOTAL
+                        infoTile(
+                          "Total Purchase Price",
+                          "₹${purchasePrice.toStringAsFixed(2)}",
+                          valueColor: Colors.green,
+
+                        ),
+        ],
+        ),
+        ),
+        ),
+        ),
             actionsAlignment: MainAxisAlignment.center,
             actions: [
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: royal,
-                  side: const BorderSide(color: royal),
+                  side: const BorderSide(color: royal), // ✅ outline color
+                  foregroundColor: royal,               // ✅ text & icon color
                 ),
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
+                child: const Text("Cancel",style: TextStyle(color: royal),),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: royal,
-                  foregroundColor: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: royal,foregroundColor: Colors.white),
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text("OK"),
+                child: const Text("Confirm"),
               ),
             ],
           );
@@ -2258,70 +2423,120 @@ class _InventoryPageState extends State<InventoryPage> {
                 const SizedBox(height: 14),
 
                 // 🔍 MEDICINE AUTOCOMPLETE
-                medicineAutocomplete(setLocalState), // ✅ pass it here
 
-                if (selectedMedicine != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      "Current Stock: ${selectedMedicine!['stock']}",
-                      style: const TextStyle(color: royal),
-                    ),
+        LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = MediaQuery
+              .of(context)
+              .size
+              .width >= 1000;
+
+          double fieldWidth(BoxConstraints c) {
+            if (!isDesktop) return c.maxWidth;
+            return (c.maxWidth - 32) / 3; // 3 columns with spacing
+          }
+          int columnCount;
+          if (constraints.maxWidth >= 1000) {
+            columnCount = 4; // large desktop
+          } else if (constraints.maxWidth >= 800) {
+            columnCount = 3; // tablet
+          } else if (constraints.maxWidth >= 600) {
+            columnCount = 2; // tablet
+          } else {
+            columnCount = 1; // mobile
+          }
+
+          double columnWidth =
+              (constraints.maxWidth - ((columnCount - 1) * 16)) / columnCount;
+
+          return Wrap(
+            spacing: 16,
+            runSpacing: 14,
+            children: [
+              SizedBox(
+                  width: fieldWidth(constraints),
+                  child:labeledField(
+                    label: "Medicine",
+                    field: medicineAutocomplete(setLocalState),
                   ),
-                labeledField(
-                  label: "Batch No",
+              ),
+              SizedBox(
+              width: fieldWidth(constraints),
+              child:
+              labeledField(
+                label: "Batch No",
+                field: TextFormField(
+                  controller: batchCtrl,
+                  cursorColor: royal,
+                  keyboardType: TextInputType.visiblePassword,
+                  style: const TextStyle(color: royal),
+                  decoration: InputDecoration(
+                    hintText: "Enter Batch no",
+                    filled: true,
+                    hintStyle: TextStyle(color: royal),
+                    fillColor: royal.withAlpha(25),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: royal, width: 0.5),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: royal, width: 1.5),
+                    ),
+                    suffixIcon: batchCtrl.text.isEmpty
+                        ? null
+                        : isBatchTaken
+                        ? const Icon(Icons.error, color: Colors.red)
+                        : const Icon(Icons.check_circle, color: Colors.green),
+                  ),
+                  onChanged: (value) {
+                    debounce?.cancel();
+
+                    debounce =
+                        Timer(const Duration(milliseconds: 500), () async {
+                          final batch = value.trim();
+
+                          if (batch.isEmpty) {
+                            setLocalState(() => isBatchTaken = false);
+                            return;
+                          }
+
+                          final isValid = await validateBatchBackend(batch);
+
+                          setLocalState(() {
+                            isBatchTaken =
+                            !isValid; // ❌ taken when backend returns false
+                          });
+                        });
+                  },
+                ),
+              ),
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
+                  label: "Rack No",
                   field: TextFormField(
-                    controller: batchCtrl,
+                    controller: rackCtrl,
                     cursorColor: royal,
                     keyboardType: TextInputType.visiblePassword,
                     style: const TextStyle(color: royal),
-                    decoration: InputDecoration(
-                      hintText: "Enter Batch no",
-                      filled: true,
-                      hintStyle: TextStyle(color: royal),
-                      fillColor: royal.withAlpha(25),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: royal, width: 0.5),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: royal, width: 1.5),
-                      ),
-                      suffixIcon: batchCtrl.text.isEmpty
-                          ? null
-                          : isBatchTaken
-                          ? const Icon(Icons.error, color: Colors.red)
-                          : const Icon(Icons.check_circle, color: Colors.green),
-                    ),
-                    onChanged: (value) {
-                      debounce?.cancel();
-
-                      debounce = Timer(const Duration(milliseconds: 500), () async {
-                        final batch = value.trim();
-
-                        if (batch.isEmpty) {
-                          setLocalState(() => isBatchTaken = false);
-                          return;
-                        }
-
-                        final isValid = await validateBatchBackend(batch);
-
-                        setLocalState(() {
-                          isBatchTaken = !isValid; // ❌ taken when backend returns false
-                        });
-                      });
-                    },
+                    decoration: _inputDecoration("Optional"),
                   ),
                 ),
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "MFG Date",
                   field: TextButton(
                     style: TextButton.styleFrom(
                       foregroundColor: royal,
                       backgroundColor: royal.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: royal, width: 0.5),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      side: const BorderSide(
+                          color: royal, width: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -2335,12 +2550,13 @@ class _InventoryPageState extends State<InventoryPage> {
                           return Theme(
                             data: Theme.of(context).copyWith(
                               colorScheme: ColorScheme.light(
-                                primary: royal,       // header & selected date
-                                onPrimary: Colors.white, // selected date text
-                                onSurface: royal,     // unselected dates
+                                primary: royal,
+                                onPrimary: Colors.white,
+                                onSurface: royal,
                               ),
                               textButtonTheme: TextButtonThemeData(
-                                style: TextButton.styleFrom(foregroundColor: royal),
+                                style: TextButton.styleFrom(
+                                    foregroundColor: royal),
                               ),
                             ),
                             child: child!,
@@ -2350,20 +2566,25 @@ class _InventoryPageState extends State<InventoryPage> {
                       if (picked != null) setLocalState(() => mfgDate = picked);
                     },
                     child: Text(
-                      mfgDate == null ? "Select date" : mfgDate!.toLocal().toString().split(' ')[0],
+                      mfgDate == null ? "Select date" : mfgDate!
+                          .toLocal().toString().split(' ')[0],
                       style: TextStyle(color: royal),
                     ),
                   ),
                 ),
-
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "EXP Date",
                   field: TextButton(
                     style: TextButton.styleFrom(
                       foregroundColor: royal,
                       backgroundColor: royal.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: royal, width: 0.5),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      side: const BorderSide(
+                          color: royal, width: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -2382,7 +2603,8 @@ class _InventoryPageState extends State<InventoryPage> {
                                 onSurface: royal,
                               ),
                               textButtonTheme: TextButtonThemeData(
-                                style: TextButton.styleFrom(foregroundColor: royal),
+                                style: TextButton.styleFrom(
+                                    foregroundColor: royal),
                               ),
                             ),
                             child: child!,
@@ -2392,112 +2614,228 @@ class _InventoryPageState extends State<InventoryPage> {
                       if (picked != null) setLocalState(() => expDate = picked);
                     },
                     child: Text(
-                      expDate == null ? "Select date" : expDate!.toLocal().toString().split(' ')[0],
+                      expDate == null ? "Select date" : expDate!
+                          .toLocal().toString().split(' ')[0],
                       style: TextStyle(color: royal),
                     ),
                   ),
                 ),
-
-                labeledField(
-                  label: "Rack No",
-                  field: TextFormField(
-                    controller: rackCtrl,
-                    cursorColor: royal,
-                    style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Optional"),
-                  ),
-                ),
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "HSN Code",
                   field: TextFormField(
                     cursorColor: royal,
                     style: TextStyle(color: royal),
                     controller: hsnCtrl,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
+                    onChanged: (_) => setLocalState(() {}),
+                    // ✅ update button state
                     textCapitalization: TextCapitalization.words,
                     decoration: _inputDecoration("Enter HSN Code"),
                   ),
                 ),
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "Quantity",
                   field: TextFormField(
                     controller: quantityCtrl,
                     keyboardType: TextInputType.number,
                     cursorColor: royal,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      // ✅ allows only digits
+                    ],
                     style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Qty"),
-                    onChanged: (_){
+                    decoration: _inputDecoration("Strips Count"),
+                    onChanged: (_) {
                       calculateStock();
                       setLocalState(() {});
                     },
                   ),
                 ),
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
+                  label: "Free Quantity",
+                  field: TextFormField(
+                    controller: freeQtyCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      // ✅ allows only digits
+                    ],
+                    cursorColor: royal,
+                    style: const TextStyle(color: royal),
+                    decoration: _inputDecoration("Free Strips Count "),
+                    onChanged: (_) => calculateStock(),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "Unit",
                   field: TextFormField(
                     controller: unitCtrl,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      // ✅ allows only digits
+                    ],
                     cursorColor: royal,
                     style: const TextStyle(color: royal),
-                    decoration: _inputDecoration("Unit"),
+                    decoration: _inputDecoration("Unit(per quantity)"),
                     onChanged: (_) {
                       calculateStock();
                       setLocalState(() {});
                     },
                   ),
                 ),
-                labeledField(
-                  label: "Purchase ₹",
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
+                  label: "Rate / Quantity (₹)",
                   field: TextFormField(
-                    controller: purchasePriceCtrl,
+                    controller: ratePerQtyCtrl,
                     keyboardType: TextInputType.number,
                     cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    decoration: _inputDecoration("Unit price"),
-                    onChanged: (_) {
-                      calculateStock();
-                      calculateSellingFromProfit();
-                      setLocalState(() {});
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                    ],
+                    style: const TextStyle(color: royal),
+                    decoration: _inputDecoration("Rate per quantity"),
+                    onChanged: (_) => calculatePurchaseValues(),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
+                  label: "GST % / Quantity",
+                  field: TextFormField(
+                    controller: gstCtrl,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                    ],
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true),
+                    cursorColor: royal,
+                    style: const TextStyle(color: royal),
+                    decoration: _inputDecoration("GST percentage (0–100)"),
+                    onChanged: (value) {
+                      final gst = double.tryParse(value);
+
+                      if (gst != null && gst > 100) {
+                        gstCtrl.text = '100'; // ⛔ STOP at 100
+                        gstCtrl.selection = TextSelection.collapsed(offset: 3);
+                      }
+
+                      calculatePurchaseValues();
                     },
                   ),
                 ),
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(label: "MRP / Quantity (₹)",
+                  field: TextFormField(
+                    controller: mrpCtrl,
+                    keyboardType: TextInputType.number,
+                    cursorColor: royal,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                    ],
+                    style: const TextStyle(color: royal),
+                    decoration: _inputDecoration(
+                        "Maximum Retail Price"),
+                    onChanged: (_) =>
+                        calculatePurchaseValues(), // 🔥 REQUIRED
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "Profit %",
                   field: TextFormField(
                     controller: profitCtrl,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
                     keyboardType: TextInputType.number,
-                    decoration: _inputDecoration("Profit"),
-                    onChanged: (_) {
-                      isEditingProfit = true;
-                      calculateSellingFromProfit();
-                      isEditingProfit = false;
-                      setLocalState(() {});
-                    },
+                    cursorColor: royal,
+                    style: const TextStyle(color: royal),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
+                    ],
+                    decoration: _inputDecoration("Profit percentage"),
+                    onChanged: (_) =>
+                        calculatePurchaseValues(), // 🔥 REQUIRED
                   ),
                 ),
-                labeledField(
-                  label: "Selling ₹",
-                  field: TextFormField(
-                    controller: sellingPriceCtrl,
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    keyboardType: TextInputType.number,
-                    decoration: _inputDecoration("Selling Price"),
-                    onChanged: (_) {
-                      isEditingSelling = true;
-                      calculateProfitFromSelling();
-                      isEditingSelling = false;
-                      setLocalState(() {});
+
+
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
+                  label: "Purchase Date",
+                  field: TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: royal,
+                      backgroundColor: royal.withValues(alpha: 0.1),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      side: const BorderSide(
+                          color: royal, width: 0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: purchaseDate,
+                        // ✅ today by default
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: royal,
+                                onPrimary: Colors.white,
+                                onSurface: royal,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+
+                      if (picked != null) {
+                        setLocalState(() => purchaseDate = picked);
+                      }
                     },
+                    child: Text(
+                      purchaseDate.toLocal().toString().split(' ')[0],
+                      style: const TextStyle(color: royal),
+                    ),
                   ),
                 ),
-                labeledField(
+              ),
+              SizedBox(
+                width: fieldWidth(constraints),
+                child: labeledField(
                   label: "Supplier Phone",
                   field: StatefulBuilder(
-                    builder: (context, setLocalState) {
-                      Timer? debounce;
+                    builder: (context, setPhoneState) {
                       return TextFormField(
                         controller: phoneCtrl,
                         cursorColor: royal,
@@ -2507,33 +2845,54 @@ class _InventoryPageState extends State<InventoryPage> {
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(10),
                         ],
-                        decoration: _inputDecoration("Enter Supplier Phone number"),
+                        decoration: _inputDecoration(
+                            "Enter Supplier Phone number").copyWith(
+                          suffixIcon: phoneCtrl.text.length == 10
+                              ? supplierFound
+                              ? const Icon(
+                              Icons.check_circle, color: Colors.green,
+                              size: 24) // ✅ RIGHT
+                              : const Icon(Icons.error, color: Colors.red,
+                              size: 24) // ❌ WRONG
+                              : null,
+                        ),
                         onChanged: (value) {
-                          // Reset name if phone changes
-                          setLocalState(() {
-                            sellerCtrl.text = '';
+                          setPhoneState(() {
+                            supplierFound = false;
+                            selectedSupplierId = null;
+                            sellerCtrl.clear();
                           });
+                          setLocalState(() {});
 
-                          if (debounce?.isActive ?? false) debounce!.cancel();
-                          debounce = Timer(const Duration(milliseconds: 500), () async {
-                            // ✅ Only call API when 10 digits entered
-                            if (value.length != 10) return;
+                          if (value.length != 10) return;
 
+                          phoneDebounce?.cancel();
+                          phoneDebounce = Timer(
+                              const Duration(milliseconds: 500), () async {
                             try {
-                              final url = Uri.parse("$baseUrl/suppliers/search/by-phone/$shopId?phone=$value");
+                              final url = Uri.parse(
+                                  "$baseUrl/suppliers/search/by-phone/$shopId?phone=$value");
                               final response = await http.get(url);
 
-                              if (response.statusCode == 200) {
-                                final data = jsonDecode(response.body) as List;
-                                if (data.isNotEmpty) {
-                                  // Auto-fill the first supplier's name
-                                  setLocalState(() {
+                              setPhoneState(() {
+                                if (response.statusCode == 200) {
+                                  final data = jsonDecode(
+                                      response.body) as List;
+                                  if (data.isNotEmpty) {
+                                    supplierFound = true;
+                                    selectedSupplierId = data[0]['id'];
                                     sellerCtrl.text = data[0]['name'] ?? '';
-                                  });
+                                  } else {
+                                    supplierFound = false; // ❌ Shows RED icon
+                                  }
+                                } else {
+                                  supplierFound = false; // ❌ Shows RED icon
                                 }
-                              }
+                              });
+                              setLocalState(() {});
                             } catch (e) {
-                              // Ignore errors silently
+                              setPhoneState(() =>
+                              supplierFound = false); // ❌ Shows RED icon
                             }
                           });
                         },
@@ -2541,110 +2900,255 @@ class _InventoryPageState extends State<InventoryPage> {
                     },
                   ),
                 ),
+              ),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                children: [
 
-                labeledField(
-                  label: "Supplier Name",
-                  field: TextFormField(
-                    cursorColor: royal,
-                    style: TextStyle(color: royal),
-                    controller: sellerCtrl,
-                    onChanged: (_) => setLocalState(() {}), // ✅ update button state
-                    textCapitalization: TextCapitalization.words,
-                    decoration: _inputDecoration("Enter Supplier name"),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                Center(
-                  child: Text("Stock: $stock",
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: royal)),
-                ),
-
-                Center(
-                  child: Text("Total Cost: ₹${totalPurchasePrice.toStringAsFixed(2)}",
-                      style: const TextStyle(
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        supplierFound
+                            ? "Supplier name: ${sellerCtrl.text}"
+                            : "No supplier found",
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.redAccent)),
-                ),
-
-                const SizedBox(height: 14),
-                Center(
-                  child: SizedBox(
-                    width: 150,
-                    child:  ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isFormValid() ? royal : Colors.grey, // enabled/disabled color
-                        foregroundColor: isFormValid() ? Colors.white : royal, // text color
-                        elevation: 0,
-                        side: BorderSide(
-                          color: isFormValid() ? royal : Colors.grey.shade700,
-                          width: 1.5,
+                          color: supplierFound ? royal : Colors.grey,
+                          fontSize: 14,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onPressed: isFormValid()
-                          ? () async {
-                        final ok = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => confirmBatchDialog(),
-                        );
-                        if (ok != true) return;
-                        await http.post(
-                          Uri.parse("$baseUrl/inventory/medicine/$selectedMedicineId/batch"),
-                          headers: {"Content-Type": "application/json"},
-                          body: jsonEncode({
-                            "shop_id": shopId,
-                            "batch_no": batchCtrl.text,
-                            "mfg_date": mfgDate!.toIso8601String(),
-                            "exp_date": expDate!.toIso8601String(),
-                            "quantity": quantityCtrl.text,
-                            "unit": unitCtrl.text,
-                            "rack_no": rackCtrl.text,
-                            "profit": profitCtrl.text,
-                            "purchase_price": purchasePriceCtrl.text,
-                            "selling_price": sellingPriceCtrl.text,
-                            "stock_quantity": stock.toInt(),
-                            "total_cost":totalPurchasePrice,
-                            "hsncode":hsnCtrl.text,
-                            "seller_name": sellerCtrl.text,
-                            "seller_phone": phoneCtrl.text,
-                            "reason": "New Batch",
-                          }),
-                        );
-
-                        fetchMedicines();
-                        medicineCtrl.clear();   // ✅ Clears autocomplete text
-                        selectedMedicine = null;
-                        selectedMedicineId = null;
-                        batchCtrl.clear();
-                        rackCtrl.clear();
-                        quantityCtrl.clear();
-                        unitCtrl.clear();
-                        purchasePriceCtrl.clear();
-                        sellingPriceCtrl.clear();
-                        profitCtrl.clear();
-                        sellerCtrl.clear();
-                        phoneCtrl.clear();
-                        mfgDate = null;
-                        expDate = null;
-                        stock = 0;
-                        totalPurchasePrice = 0;
-
-                        setState(() => showAddBatch = false);
-                      }
-                          : null,
-                      child: const Text("Submit Batch"),
                     ),
                   ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        selectedSupplierId != null
+                            ? "Supplier ID: $selectedSupplierId"
+                            : "Supplier ID: Not Found",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: supplierFound ? royal : Colors.grey,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Total Quantity: $totalQuantity",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Total Stock: $totalStock",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "GST Amount / Qty: ₹${gstPerQuantity.toStringAsFixed(
+                            2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Purchase / Quantity: ₹${purchasePerQuantity
+                            .toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Purchase / Unit: ₹${purchasePerUnit.toStringAsFixed(
+                            2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Selling / Quantity: ₹${sellingPerQuantity
+                            .toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Selling / Unit: ₹${sellingPerUnit.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Base Amount: ₹${baseAmount.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Total GST: ₹${totalGstAmount.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: columnWidth,
+                    child: Align(
+                      alignment: isDesktop ? Alignment.centerLeft : Alignment
+                          .center,
+                      child: Text(
+                        "Purchase Price: ₹${purchasePrice.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: royal),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Center(
+                child: SizedBox(
+                  width: 150,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isFormValid() ? royal : Colors.grey,
+                      // enabled/disabled color
+                      foregroundColor: isFormValid() ? Colors.white : royal,
+                      // text color
+                      elevation: 0,
+                      side: BorderSide(
+                        color: isFormValid() ? royal : Colors.grey.shade700,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: isFormValid()
+                        ? () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => confirmBatchDialog(),
+                      );
+                      double d2(double value) =>
+                          double.parse(value.toStringAsFixed(2));
+                      if (ok != true) return;
+                      await http.post(
+                        Uri.parse(
+                            "$baseUrl/inventory/medicine/$selectedMedicineId/batch"),
+                        headers: {"Content-Type": "application/json"},
+                        body: jsonEncode({
+                          "shop_id": shopId,
+                          "batch_no": batchCtrl.text,
+                          "mfg_date": mfgDate?.toIso8601String(),
+                          "exp_date": expDate?.toIso8601String(),
+                          "rack_no": rackCtrl.text,
+                          "quantity": int.parse(quantityCtrl.text),
+                          "free_quantity": int.tryParse(freeQtyCtrl.text) ?? 0,
+                          "total_quantity": d2(totalQuantity),
+                          "unit": int.parse(unitCtrl.text),
+                          "total_stock": d2(totalStock),
+                          "mrp": d2(double.parse(mrpCtrl.text)),
+                          "supplier_id": selectedSupplierId,
+                          "hsncode": hsnCtrl.text,
+
+                          "purchase_details": {
+                            "purchase_date": purchaseDate.toIso8601String(),
+                            "rate_per_quantity": d2(double.parse(ratePerQtyCtrl.text)),
+                            "gst_percent": d2(double.tryParse(gstCtrl.text) ?? 0),
+                            "gst_per_quantity": d2(gstPerQuantity),
+                            "base_amount": d2(baseAmount),
+                            "total_gst_amount": d2(totalGstAmount),
+                            "purchase_price": d2(purchasePrice),
+                          },
+
+                          "purchase_price_per_unit": d2(purchasePerUnit),
+                          "purchase_price_per_quantity": d2(purchasePerQuantity),
+                          "selling_price_per_unit": d2(sellingPerUnit),
+                          "selling_price_per_quantity": d2(sellingPerQuantity),
+                          "profit_percent": d2(double.tryParse(profitCtrl.text) ?? 0),
+                          "reason": "New Batch",
+                        }),
+                      );
+
+                      fetchMedicines();
+                      resetForm();
+
+
+                      setState(() => showAddBatch = false);
+                    }
+                        : null,
+                    child: const Text("Submit Batch"),
+                  ),
                 ),
-              ],
-            ),
-          ),
-        );
+              ),
+            ],
+          );
+        },),
+          ],),
+        ),);
       },
     );
   }

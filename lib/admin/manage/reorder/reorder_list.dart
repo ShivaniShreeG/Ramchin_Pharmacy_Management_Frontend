@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../public/config.dart';
 import '../../../../../public/main_navigation.dart';
-import 'reorder_pdf.dart'; // PDF page
+import 'reorder_pdf.dart';
 import 'supplier_reorderlist.dart';
 import 'reorder_supplier_pdf.dart';
 

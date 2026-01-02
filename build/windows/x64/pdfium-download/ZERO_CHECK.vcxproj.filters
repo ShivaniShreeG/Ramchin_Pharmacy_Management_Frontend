@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\New folder\pharmacy_management\frontend\build\windows\x64\pdfium-download\CMakeFiles\3261f77eb7929795ab4fd05e9fa1f1bb\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{293A1E8B-4DD5-3DED-ACD8-08F6C6B0E978}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

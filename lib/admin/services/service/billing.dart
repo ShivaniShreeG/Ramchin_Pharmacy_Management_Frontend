@@ -54,21 +54,28 @@ class _BillingPageState extends State<BillingPage> {
 
   void clearBillingForm() {
     _formKey.currentState?.reset();
+
     customerCtrl.clear();
     phoneCtrl.clear();
     doctorCtrl.clear();
     medicineCtrl.clear();
     qtyCtrl.clear();
+
     billItems.clear();
-    medicineSuggestions.clear();  // Add this
-    selectedBatches.clear();      // Add this
-    selectedMedicine = null;      // Add this
+    medicineSuggestions.clear();
+    selectedBatches.clear();
+    selectedMedicine = null;
+
     previewItemTotal = 0;
     billTotal = 0;
     paymentMode = 'CASH';
-    showCustomerDropdown = false; // Add customer details reset
-    customerSuggestions.clear();  // Add this
-    customerBills.clear();        // Add this
+
+    // ✅ CUSTOMER RELATED RESET (FULL)
+    customerSuggestions.clear();
+    customerBills.clear();
+    showCustomerDropdown = false;
+    isFetchingCustomers = false;
+
     setState(() {});
   }
 
@@ -372,6 +379,9 @@ class _BillingPageState extends State<BillingPage> {
 
   Future<void> submitBill() async {
     if (!_formKey.currentState!.validate()) return;
+    double toTwoDecimals(num value) {
+      return double.parse(value.toStringAsFixed(2));
+    }
 
     final body = {
       "shop_id": shopId,
@@ -379,15 +389,15 @@ class _BillingPageState extends State<BillingPage> {
       "customer_name": customerCtrl.text,
       "phone": phoneCtrl.text,
       "doctor_name": doctorCtrl.text.isEmpty ? null : doctorCtrl.text,
-      "total": billTotal,
+      "total": toTwoDecimals(billTotal),
       "payment_mode": paymentMode,
       "items": billItems.map((e) => {
         "medicine_id": e['medicine_id'],
         "medicine_name":e['medicine_name'],
         "batch_id": e['batch_id'],
         "quantity": e['quantity'],
-        "unit_price": e['unit_price'],
-        "total_price": e['total_price'],
+        "unit_price": toTwoDecimals(e['unit_price']),
+        "total_price":toTwoDecimals( e['total_price']),
       }).toList(),
     };
 
@@ -687,8 +697,19 @@ class _BillingPageState extends State<BillingPage> {
                         ],
                         decoration: _inputDecoration("Phone number"),
                         onChanged: (val) {
+                          if (val.length != 10) {
+                            // ✅ CLEAR DROPDOWN + LAST VISITED
+                            customerSuggestions.clear();
+                            customerBills.clear();
+                            showCustomerDropdown = false;
+
+                            setState(() {});
+                            return;
+                          }
+
                           fetchCustomersByPhone(val);
                         },
+
                       ),
                     ),
                     if (showCustomerDropdown)
@@ -715,6 +736,7 @@ class _BillingPageState extends State<BillingPage> {
                               onTap: () {
                                 customerCtrl.text = c['customer_name'];
                                 showCustomerDropdown = false;
+                                customerSuggestions.clear(); // ✅ clear list
 
                                 setState(() {});
                               },
@@ -873,15 +895,6 @@ class _BillingPageState extends State<BillingPage> {
                                 ),
 
                                 const SizedBox(height: 4),
-
-                                const Text(
-                                  "FIFO applied automatically",
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                )
                               ],
                             ),
                           ),
@@ -989,14 +1002,14 @@ class _BillingPageState extends State<BillingPage> {
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    "₹${item['unit_price']}",
+                                    "₹${item['unit_price'].toStringAsFixed(2)}",
                                     textAlign: TextAlign.right,
                                   ),
                                 ),
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    "₹${item['total_price']}",
+                                    "₹${item['total_price'].toStringAsFixed(2)}",
                                     textAlign: TextAlign.right,
                                     style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),

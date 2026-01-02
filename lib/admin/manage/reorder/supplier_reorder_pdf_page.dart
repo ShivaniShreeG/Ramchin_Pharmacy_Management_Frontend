@@ -47,6 +47,7 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
     }
     final hall = widget.shopDetails;
 
+
     final royal = PdfColor.fromInt(0xFF19527A);
 
     pdf.addPage(
@@ -72,7 +73,7 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
                     crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
                       pw.Text(
-                        hall?['name']?.toString().toUpperCase() ?? 'HALL NAME',
+                        hall?['name']?.toString().toUpperCase() ?? 'SHOP NAME',
                         style: pw.TextStyle(
                           fontSize: 20,
                           fontWeight: pw.FontWeight.bold,
@@ -127,19 +128,13 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
                       fontSize: 12,
                     ),
                   ),
+
                   pw.SizedBox(height: 4),
-                  pw.Text(
-                    "Phone: ${widget.supplier['phone']}",
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
-                  pw.Text(
-                    "Mail: ${widget.supplier['email']}",
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
-                  pw.Text(
-                    "Address: ${widget.supplier['address']}",
-                    style: const pw.TextStyle(fontSize: 12),
-                  ),
+                  ...[
+                    textIfNotNull(widget.supplier['phone']?.toString(), "Phone"),
+                    textIfNotNull(widget.supplier['email']?.toString(), "Mail"),
+                    textIfNotNull(widget.supplier['address']?.toString(), "Address"),
+                  ].whereType<pw.Widget>(),
                 ],
               ),
             ),
@@ -172,6 +167,14 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
     );
 
     return pdf.save();
+  }
+
+  pw.Widget? textIfNotNull(String? value, String label) {
+    if (value == null || value.trim().isEmpty) return null;
+    return pw.Text(
+      "$label: $value",
+      style: const pw.TextStyle(fontSize: 12),
+    );
   }
 
   pw.Widget _th(String t) => pw.Padding(
