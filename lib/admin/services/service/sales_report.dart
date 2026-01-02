@@ -137,9 +137,9 @@ class _SalesReportPdfPageState extends State<SalesReportPdfPage> {
                 ),
                 child: pw.Column(
                   children: [
-                    _summaryRow("Total Sales", "₹${summary['totalSales']}"),
+                    _summaryRow("Total Sales", "₹${summary['totalSales'].toStringAsFixed(2)}"),
                     _summaryRow("Total Bills", summary['totalBills'].toString()),
-                    _summaryRow("Total Profit", "₹${summary['totalProfit']}"),
+                    _summaryRow("Total Profit", "₹${summary['totalProfit'].toStringAsFixed(2)}"),
                     _summaryRow("Units Sold", summary['totalUnitsSold'].toString()),
                   ],
                 ),
@@ -174,8 +174,8 @@ class _SalesReportPdfPageState extends State<SalesReportPdfPage> {
                     m['medicine'],
                     m['quantity_units'].toString(),
                     m['quantity_strips'].toStringAsFixed(2),
-                    '₹${m['sales']}',
-                    '₹${m['profit']}',
+                    '₹${m['sales'].toStringAsFixed(2)}',
+                    '₹${m['profit'].toStringAsFixed(2)}',
                   ];
                 }).toList(),
               ),

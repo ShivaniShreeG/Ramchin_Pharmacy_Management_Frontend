@@ -240,6 +240,10 @@ class _MedicineHistoryPageState extends State<MedicineHistoryPage> {
               runSpacing: 6,
               children: [
                 _buildInfoChip(
+                  Icons.lock,
+                  medicine['id'].toString(),
+                ),
+                _buildInfoChip(
                   Icons.category,
                   medicine['category'],
                 ),
