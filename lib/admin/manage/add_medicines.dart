@@ -417,6 +417,7 @@ class _InventoryPageState extends State<InventoryPage> {
       ),
     );
   }
+
   bool isExpired(String expiryDate) {
     final expiry = DateTime.parse(expiryDate);
     return expiry.isBefore(DateTime.now());
@@ -777,6 +778,21 @@ class _InventoryPageState extends State<InventoryPage> {
     final TextEditingController otherCategoryCtrl = TextEditingController();
     bool isOtherCategory = false;
     Timer? phoneDebounce;
+
+    final nameFocus = FocusNode();
+    final ndcFocus = FocusNode();
+    final reorderFocus = FocusNode();
+    final batchFocus = FocusNode();
+    final rackFocus = FocusNode();
+    final hsnFocus = FocusNode();
+    final quantityFocus = FocusNode();
+    final freeQtyFocus = FocusNode();
+    final unitFocus = FocusNode();
+    final rateFocus = FocusNode();
+    final gstFocus = FocusNode();
+    final mrpFocus = FocusNode();
+    final profitFocus = FocusNode();
+    final phoneFocus = FocusNode();
 
     Widget confirmMedicineDialog() {
       final finalCategory =
@@ -1154,6 +1170,11 @@ class _InventoryPageState extends State<InventoryPage> {
                               controller: nameCtrl,
                               style: TextStyle(color: royal),
                               cursorColor: royal,
+                              focusNode: nameFocus,
+                              textInputAction: TextInputAction.next, // 👈 shows NEXT / Enter
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).requestFocus(ndcFocus); // 👈 NEXT FOCUS
+                              }, //                              autofocus: true,
                               decoration: InputDecoration(
                                 hintText: "Enter Medicine name",
                                 hintStyle: TextStyle(color: royal),
@@ -1263,6 +1284,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           cursorColor: royal,
                           keyboardType: TextInputType.visiblePassword,
                           style: const TextStyle(color: royal),
+                          focusNode: ndcFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(reorderFocus);
+                          },
                           decoration: _inputDecoration(
                               "Enter NDC code (optional)"),
                         ),
@@ -1277,6 +1303,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           style: TextStyle(color: royal),
                           keyboardType: TextInputType.number,
                           controller: reorderCtrl,
+                          focusNode: reorderFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(batchFocus);
+                          },
                           onChanged: (_) => setLocalState(() {}),
                           // ✅ update button state
                           decoration: _inputDecoration("Enter Re-order value"),
@@ -1290,6 +1321,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         field: TextFormField(
                           controller: batchCtrl,
                           cursorColor: royal,
+                          focusNode: batchFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(rackFocus);
+                          },
                           onChanged: (_) => setLocalState(() {}),
                           keyboardType: TextInputType.visiblePassword,
                           style: const TextStyle(color: royal),
@@ -1305,6 +1341,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         field: TextFormField(
                           controller: rackCtrl,
                           cursorColor: royal,
+                          focusNode: rackFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(hsnFocus);
+                          },
                           keyboardType: TextInputType.visiblePassword,
                           style: const TextStyle(color: royal),
                           decoration: _inputDecoration("Optional"),
@@ -1415,6 +1456,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           cursorColor: royal,
                           style: TextStyle(color: royal),
                           controller: hsnCtrl,
+                          focusNode: hsnFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(quantityFocus);
+                          },
                           onChanged: (_) => setLocalState(() {}),
                           // ✅ update button state
                           textCapitalization: TextCapitalization.words,
@@ -1430,6 +1476,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           controller: quantityCtrl,
                           keyboardType: TextInputType.number,
                           cursorColor: royal,
+                          focusNode: quantityFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(freeQtyFocus);
+                          },
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly, // ✅ allows only digits
                           ],
@@ -1449,6 +1500,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         field: TextFormField(
                           controller: freeQtyCtrl,
                           keyboardType: TextInputType.number,
+                          focusNode: freeQtyFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(unitFocus);
+                          },
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly, // ✅ allows only digits
                           ],
@@ -1465,6 +1521,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         label: "Unit",
                         field: TextFormField(
                           controller: unitCtrl,
+                          focusNode: unitFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(rateFocus);
+                          },
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly, // ✅ allows only digits
@@ -1486,6 +1547,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         field: TextFormField(
                           controller: ratePerQtyCtrl,
                           keyboardType: TextInputType.number,
+                          focusNode: rateFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(gstFocus);
+                          },
                           cursorColor: royal,
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
@@ -1502,6 +1568,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         label: "GST % / Quantity",
                         field: TextFormField(
                           controller: gstCtrl,
+                          focusNode: gstFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(mrpFocus);
+                          },
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
                           ],
@@ -1529,6 +1600,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           controller: mrpCtrl,
                           keyboardType: TextInputType.number,
                           cursorColor: royal,
+                          focusNode: mrpFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(profitFocus);
+                          },
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
                           ],
@@ -1548,6 +1624,11 @@ class _InventoryPageState extends State<InventoryPage> {
                           controller: profitCtrl,
                           keyboardType: TextInputType.number,
                           cursorColor: royal,
+                          focusNode: profitFocus,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            FocusScope.of(context).requestFocus(phoneFocus);
+                          },
                           style: const TextStyle(color: royal),
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
@@ -1618,6 +1699,11 @@ class _InventoryPageState extends State<InventoryPage> {
                               controller: phoneCtrl,
                               cursorColor: royal,
                               style: TextStyle(color: royal),
+                              focusNode: phoneFocus,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) {
+                                FocusScope.of(context).unfocus(); // close keyboard
+                              },
                               keyboardType: TextInputType.phone,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
@@ -2082,6 +2168,18 @@ class _InventoryPageState extends State<InventoryPage> {
     Map<String, dynamic>? selectedMedicine;
     final batchCtrl = TextEditingController();
     final medicineCtrl = TextEditingController();
+    final hsnFocus = FocusNode();
+    final medicineFocus = FocusNode();
+    final batchFocus = FocusNode();
+    final rackFocus = FocusNode();
+    final qtyFocus = FocusNode();
+    final freeQtyFocus = FocusNode();
+    final unitFocus = FocusNode();
+    final rateFocus = FocusNode();
+    final gstFocus = FocusNode();
+    final mrpFocus = FocusNode();
+    final profitFocus = FocusNode();
+    final phoneFocus = FocusNode();
 
 
     return StatefulBuilder(
@@ -2152,8 +2250,11 @@ class _InventoryPageState extends State<InventoryPage> {
             fieldViewBuilder: (context, controller, focusNode, _) {
               return TextFormField(
                 controller: controller,
-                focusNode: focusNode,
-                cursorColor: royal,
+                focusNode: medicineFocus,
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) {
+                  FocusScope.of(context).requestFocus(batchFocus); // 👈 NEXT FOCUS
+                },                cursorColor: royal,
                 style: const TextStyle(color: royal),
                 decoration: _inputDecoration("Medicine Name"),
               );
@@ -2522,6 +2623,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   cursorColor: royal,
                   keyboardType: TextInputType.visiblePassword,
                   style: const TextStyle(color: royal),
+                  focusNode: batchFocus,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) {
+                    FocusScope.of(context).requestFocus(rackFocus); // 👈 NEXT FOCUS
+                  },
                   decoration: InputDecoration(
                     hintText: "Enter Batch no",
                     filled: true,
@@ -2571,6 +2677,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   field: TextFormField(
                     controller: rackCtrl,
                     cursorColor: royal,
+                    focusNode: rackFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(hsnFocus); // 👈 NEXT FOCUS
+                    },
                     keyboardType: TextInputType.visiblePassword,
                     style: const TextStyle(color: royal),
                     decoration: _inputDecoration("Optional"),
@@ -2679,6 +2790,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   label: "HSN Code",
                   field: TextFormField(
                     cursorColor: royal,
+                    focusNode: hsnFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(qtyFocus); // 👈 NEXT FOCUS
+                    },
                     style: TextStyle(color: royal),
                     controller: hsnCtrl,
                     onChanged: (_) => setLocalState(() {}),
@@ -2696,6 +2812,11 @@ class _InventoryPageState extends State<InventoryPage> {
                     controller: quantityCtrl,
                     keyboardType: TextInputType.number,
                     cursorColor: royal,
+                    focusNode: qtyFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(freeQtyFocus); // 👈 NEXT FOCUS
+                    },
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                       // ✅ allows only digits
@@ -2715,6 +2836,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   label: "Free Quantity",
                   field: TextFormField(
                     controller: freeQtyCtrl,
+                    focusNode: freeQtyFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(unitFocus); // 👈 NEXT FOCUS
+                    },
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -2734,6 +2860,11 @@ class _InventoryPageState extends State<InventoryPage> {
                   field: TextFormField(
                     controller: unitCtrl,
                     keyboardType: TextInputType.number,
+                    focusNode: unitFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(rateFocus); // 👈 NEXT FOCUS
+                    },
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
                       // ✅ allows only digits
@@ -2756,6 +2887,11 @@ class _InventoryPageState extends State<InventoryPage> {
                     controller: ratePerQtyCtrl,
                     keyboardType: TextInputType.number,
                     cursorColor: royal,
+                    focusNode: rateFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(gstFocus); // 👈 NEXT FOCUS
+                    },
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
                           RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
@@ -2776,6 +2912,11 @@ class _InventoryPageState extends State<InventoryPage> {
                       FilteringTextInputFormatter.allow(
                           RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
                     ],
+                    focusNode: gstFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(mrpFocus); // 👈 NEXT FOCUS
+                    },
                     keyboardType: const TextInputType.numberWithOptions(
                         decimal: true),
                     cursorColor: royal,
@@ -2805,6 +2946,11 @@ class _InventoryPageState extends State<InventoryPage> {
                       FilteringTextInputFormatter.allow(
                           RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
                     ],
+                    focusNode: mrpFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(profitFocus); // 👈 NEXT FOCUS
+                    },
                     style: const TextStyle(color: royal),
                     decoration: _inputDecoration(
                         "Maximum Retail Price"),
@@ -2826,6 +2972,11 @@ class _InventoryPageState extends State<InventoryPage> {
                       FilteringTextInputFormatter.allow(
                           RegExp(r'^\d*\.?\d{0,2}')), // allows 2 decimals
                     ],
+                    focusNode: profitFocus,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) {
+                      FocusScope.of(context).requestFocus(phoneFocus); // 👈 NEXT FOCUS
+                    },
                     decoration: _inputDecoration("Profit percentage"),
                     onChanged: (_) =>
                         calculatePurchaseValues(), // 🔥 REQUIRED
@@ -2893,6 +3044,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         cursorColor: royal,
                         style: TextStyle(color: royal),
                         keyboardType: TextInputType.phone,
+                        focusNode: phoneFocus,
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) {
+                          FocusScope.of(context).unfocus(); // 👈 NEXT FOCUS
+                        },
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(10),
@@ -3280,6 +3436,7 @@ class _InventoryPageState extends State<InventoryPage> {
         ),
 
       ),
-    ],),),);
+    ],),),
+    );
   }
 }

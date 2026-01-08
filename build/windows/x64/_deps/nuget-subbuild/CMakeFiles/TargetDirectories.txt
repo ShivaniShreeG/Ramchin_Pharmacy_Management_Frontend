@@ -1,3 +1,0 @@
-D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/nuget-populate.dir
-D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/ALL_BUILD.dir
-D:/New folder/pharmacy_management/frontend/build/windows/x64/_deps/nuget-subbuild/CMakeFiles/ZERO_CHECK.dir
