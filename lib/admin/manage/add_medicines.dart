@@ -40,6 +40,10 @@ class _InventoryPageState extends State<InventoryPage> {
     loadShopId();
   }
 
+  bool isDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width >= 900;
+  }
+
   Future loadShopId() async {
     final prefs = await SharedPreferences.getInstance();
     shopId = prefs.getInt('shopId');
@@ -195,24 +199,30 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   void searchMedicines(String query) {
-    final numericQuery = query.replaceAll(RegExp(r'\D'), '');
-    final lowerQuery = query.toLowerCase();
+    final trimmedQuery = query.trim();
+    final lowerQuery = trimmedQuery.toLowerCase();
+    final numericQuery = trimmedQuery.replaceAll(RegExp(r'\D'), '');
 
     setState(() {
       filteredMedicines = medicines.where((medicine) {
+        // 🔍 NAME MATCH
+        final name = (medicine['name'] ?? '').toString().toLowerCase().trim();
         final nameMatch =
-            medicine['name']?.toLowerCase().contains(lowerQuery) ?? false;
+            lowerQuery.isNotEmpty && name.contains(lowerQuery);
 
-        final batchMatch = (medicine['batches'] as List).any((batch) {
-          final expiry = batch['expiry_date'];
-          if (expiry == null) return false;
+        // 📅 BATCH EXPIRY MATCH
+        final List batches = medicine['batches'] ?? [];
 
-          final variants = normalizeDateVariants(expiry);
+        final batchMatch = numericQuery.isNotEmpty &&
+            batches.any((batch) {
+              final expiry = batch['expiry_date'];
+              if (expiry == null) return false;
 
-          return variants.any((v) =>
-          v.replaceAll(RegExp(r'\D'), '').contains(numericQuery) ||
-              v.toLowerCase().contains(lowerQuery));
-        });
+              final variants = normalizeDateVariants(expiry);
+
+              return variants.any((v) =>
+                  v.replaceAll(RegExp(r'\D'), '').contains(numericQuery));
+            });
 
         return nameMatch || batchMatch;
       }).toList();
@@ -469,6 +479,38 @@ class _InventoryPageState extends State<InventoryPage> {
     );
   }
 
+  Widget responsiveDetails({
+    required BuildContext context,
+    required List<Widget> left,
+    required List<Widget> right,
+  }) {
+    if (!isDesktop(context)) {
+      // Mobile → single column
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [...left, ...right],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: left,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: right,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget batchTileImproved({
     required Map<String, dynamic> batch,
     required String medicineName,
@@ -567,7 +609,119 @@ class _InventoryPageState extends State<InventoryPage> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
+              child:isDesktop(context)
+                  ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ================= MEDICINE DETAILS =================
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                        child: Text(
+                          "Medicine Details",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: royal),
+                        ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        if (shouldShow(batch['rack_no']))
+                          infoRow("Rack No", batch['rack_no'] ?? "-"),
+                        if (shouldShow(batch['total_stock']))
+                          infoRow("Total Stock", batch['total_stock'].toString()),
+                        if (shouldShow(batch['total_quantity']))
+                          infoRow("Total Quantity", batch['total_quantity'].toString()),
+                        if (shouldShow(batch['manufacture_date']))
+                          infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
+                        if (shouldShow(batch['expiry_date']))
+                          infoRow("Expiry Date", formatDate(batch['expiry_date'])),
+                        if (shouldShow(batch['unit']))
+                          infoRow("Unit", batch['unit'].toString()),
+                        if (shouldShow(batch['purchase_price_quantity']))
+                          infoRow("Purchase Price/Qty", "₹${batch['purchase_price_quantity']}"),
+                        if (shouldShow(batch['purchase_price_unit']))
+                          infoRow("Purchase Price/Unit", batch['purchase_price_unit']?.toString() ?? "-"),
+                        if (shouldShow(batch['selling_price_quantity']))
+                          infoRow("Selling Price/Qty", "₹${batch['selling_price_quantity']}"),
+                        if (shouldShow(batch['selling_price_unit']))
+                          infoRow("Selling Price/Unit", "₹${batch['selling_price_unit']}"),
+                        if (shouldShow(batch['profit']))
+                          infoRow("Profit", batch['profit']?.toString() ?? "-"),
+                        if (shouldShow(batch['mrp']))
+                          infoRow("MRP", batch['mrp']?.toString() ?? "-"),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 32),
+
+                  // ================= PURCHASED DETAILS =================
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Center(
+                    child:
+                         Text(
+                          "Purchased Details",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: royal),
+                        ),
+                    ),
+                        const SizedBox(height: 8),
+
+                        if (shouldShow(batch['quantity']))
+                          infoRow("Purchased Quantity", batch['quantity'].toString()),
+                        if (shouldShow(batch['free_quantity']))
+                          infoRow("Free Quantity", batch['free_quantity'].toString()),
+                        if (shouldShow(batch['purchase_details']['rate_per_quantity']))
+                          infoRow(
+                            "Rate / Quantity",
+                            "₹${batch['purchase_details']['rate_per_quantity']}",
+                          ),
+                        if (shouldShow(batch['purchase_details']['gst_percent']))
+                          infoRow(
+                            "GST %",
+                            "${batch['purchase_details']['gst_percent']}%",
+                          ),
+                        if (shouldShow(batch['purchase_details']['gst_per_quantity']))
+                          infoRow(
+                            "GST Amount / Qty",
+                            "₹${batch['purchase_details']['gst_per_quantity']}",
+                          ),
+                        if (shouldShow(batch['purchase_details']['base_amount']))
+                          infoRow(
+                            "Base Amount",
+                            "₹${batch['purchase_details']['base_amount']}",
+                          ),
+                        if (shouldShow(batch['purchase_details']['total_gst_amount']))
+                          infoRow(
+                            "Total GST Amount",
+                            "₹${batch['purchase_details']['total_gst_amount']}",
+                          ),
+                        if (shouldShow(batch['purchase_details']['purchase_price']))
+                          infoRow(
+                            "Purchased Price",
+                            "₹${batch['purchase_details']['purchase_price']}",
+                          ),
+                        if (shouldShow(batch['supplier']?['name']))
+                          infoRow("Supplier Name", batch['supplier']?['name'] ?? "-"),
+                        if (shouldShow(batch['supplier']?['phone']))
+                          infoRow("Supplier Phone", batch['supplier']?['phone'] ?? "-"),
+                        if (shouldShow(batch['HSN']))
+                          infoRow("HSN Code", batch['HSN'] ?? "-"),
+                        if (shouldShow(batch['purchase_details']['purchase_date']))
+                          infoRow(
+                            "Purchase Date",
+                            formatDate(batch['purchase_details']['purchase_date']),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+
+                  : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
@@ -584,40 +738,43 @@ class _InventoryPageState extends State<InventoryPage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  Center(
+                                    child:
                                   const Text(
                                     "Medicine Details",
                                     style: TextStyle(fontWeight: FontWeight.bold, color: royal),
+                                  ),
                                   ),
                                   const SizedBox(height: 6),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       if (shouldShow(batch['rack_no']))
-                                        infoRow("Rack No", batch['rack_no'] ?? "-"),
+                                        infoRowMob("Rack No", batch['rack_no'] ?? "-"),
                                       if (shouldShow(batch['total_stock']))
-                                        infoRow("Total Stock", batch['total_stock'].toString()),
+                                        infoRowMob("Total Stock", batch['total_stock'].toString()),
                                       if (shouldShow(batch['total_quantity']))
-                                        infoRow("Total Quantity", batch['total_quantity'].toString()),
+                                        infoRowMob("Total Quantity", batch['total_quantity'].toString()),
                                       if (shouldShow(batch['manufacture_date']))
-                                        infoRow("Manufacture Date", formatDate(batch['manufacture_date'])),
+                                        infoRowMob("Manufacture Date", formatDate(batch['manufacture_date'])),
                                       if (shouldShow(batch['expiry_date']))
-                                        infoRow("Expiry Date", formatDate(batch['expiry_date'])),
+                                        infoRowMob("Expiry Date", formatDate(batch['expiry_date'])),
                                       if (shouldShow(batch['HSN']))
-                                        infoRow("HSN Code", batch['HSN'] ?? "-"),
+                                        infoRowMob("HSN Code", batch['HSN'] ?? "-"),
                                       if (shouldShow(batch['unit']))
-                                        infoRow("Unit", batch['unit'].toString()),
+                                        infoRowMob("Unit", batch['unit'].toString()),
                                       if (shouldShow(batch['purchase_price_quantity']))
-                                        infoRow("Purchase Price/Quantity", "₹${batch['purchase_price_quantity']}"),
+                                        infoRowMob("Purchase Price/Qty", "₹${batch['purchase_price_quantity']}"),
                                       if (shouldShow(batch['purchase_price_unit']))
-                                        infoRow("Purchase Price/Unit", batch['purchase_price_unit']?.toString() ?? "-"),
+                                        infoRowMob("Purchase Price/Unit", batch['purchase_price_unit']?.toString() ?? "-"),
                                       if (shouldShow(batch['selling_price_quantity']))
-                                        infoRow("Selling Price/Quantity", "₹${batch['selling_price_quantity']}"),
+                                        infoRowMob("Selling Price/Qty", "₹${batch['selling_price_quantity']}"),
                                       if (shouldShow(batch['selling_price_unit']))
-                                        infoRow("Selling Price/Unit", "₹${batch['selling_price_unit']}"),
+                                        infoRowMob("Selling Price/Unit", "₹${batch['selling_price_unit']}"),
                                       if (shouldShow(batch['profit']))
-                                        infoRow("Profit", batch['profit']?.toString() ?? "-"),
+                                        infoRowMob("Profit", batch['profit']?.toString() ?? "-"),
                                       if (shouldShow(batch['mrp']))
-                                        infoRow("MRP", batch['mrp']?.toString() ?? "-"),
+                                        infoRowMob("MRP", batch['mrp']?.toString() ?? "-"),
                                     ],
                                   ),
                                 ],
@@ -628,36 +785,39 @@ class _InventoryPageState extends State<InventoryPage> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  Center(
+                                  child:
                                   const Text(
                                     "Purchased Details",
                                     style: TextStyle(fontWeight: FontWeight.bold, color: royal),
+                                  ),
                                   ),
                                   const SizedBox(height: 6),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       if (shouldShow(batch['quantity']))
-                                        infoRow("Purchased Quantity", batch['quantity'].toString()),
+                                        infoRowMob("Purchased Quantity", batch['quantity'].toString()),
                                       if (shouldShow(batch['free_quantity']))
-                                        infoRow("Free Quantity", batch['free_quantity'].toString()),
+                                        infoRowMob("Free Quantity", batch['free_quantity'].toString()),
                                       if (shouldShow(batch['purchase_details']['rate_per_quantity']))
-                                        infoRow("Rate/ Quantity", "₹${batch['purchase_details']['rate_per_quantity']}"),
+                                        infoRowMob("Rate/ Quantity", "₹${batch['purchase_details']['rate_per_quantity']}"),
                                       if (shouldShow(batch['purchase_details']['gst_percent']))
-                                        infoRow("GST %/Quantity", "${batch['purchase_details']['gst_percent']}%"),
+                                        infoRowMob("GST %/Quantity", "${batch['purchase_details']['gst_percent']}%"),
                                       if (shouldShow(batch['purchase_details']['gst_per_quantity']))
-                                        infoRow("GST Amount/Quantity", "₹${batch['purchase_details']['gst_per_quantity']}"),
+                                        infoRowMob("GST Amount/Quantity", "₹${batch['purchase_details']['gst_per_quantity']}"),
                                       if (shouldShow(batch['purchase_details']['base_amount']))
-                                        infoRow("Base Amount", "₹${batch['purchase_details']['base_amount']}"),
+                                        infoRowMob("Base Amount", "₹${batch['purchase_details']['base_amount']}"),
                                       if (shouldShow(batch['purchase_details']['total_gst_amount']))
-                                        infoRow("Total GST Amount", "₹${batch['purchase_details']['total_gst_amount']}"),
+                                        infoRowMob("Total GST Amount", "₹${batch['purchase_details']['total_gst_amount']}"),
                                       if (shouldShow(batch['purchase_details']['purchase_price']))
-                                        infoRow("Purchased price", "₹${batch['purchase_details']['purchase_price']}"),
+                                        infoRowMob("Purchased price", "₹${batch['purchase_details']['purchase_price']}"),
                                       if (shouldShow(batch['supplier']?['name']))
-                                        infoRow("Supplier Name", batch['supplier']?['name'] ?? "-",),
+                                        infoRowMob("Supplier Name", batch['supplier']?['name'] ?? "-",),
                                       if (shouldShow(batch['supplier']?['phone']))
-                                        infoRow("Supplier Phone", batch['supplier']?['phone'] ?? "-",),
+                                        infoRowMob("Supplier Phone", batch['supplier']?['phone'] ?? "-",),
                                       if (shouldShow(batch['purchase_details']['purchase_date']))
-                                        infoRow("Date", formatDate(batch['purchase_details']['purchase_date'])),
+                                        infoRowMob("Date", formatDate(batch['purchase_details']['purchase_date'])),
                                     ],
                                   ),
                                 ],
@@ -692,6 +852,25 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Widget infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 180,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600, color: royalblue),
+            ),
+          ),
+          Expanded(child: Text(":$value", style: const TextStyle(color: royal))),
+        ],
+      ),
+    );
+  }
+
+  Widget infoRowMob(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -2226,9 +2405,9 @@ class _InventoryPageState extends State<InventoryPage> {
         Widget medicineAutocomplete(void Function(VoidCallback fn) setLocalState) {
           return RawAutocomplete<Map<String, dynamic>>(
             textEditingController: medicineCtrl,
-            focusNode: FocusNode(),
+            focusNode: medicineFocus, // ✅ SAME focus node
             optionsBuilder: (TextEditingValue value) {
-              if (value.text.isEmpty) return [];
+              if (value.text.isEmpty) return const Iterable.empty();
               return medicines.where(
                     (m) => m['name']
                     .toLowerCase()
@@ -2240,21 +2419,21 @@ class _InventoryPageState extends State<InventoryPage> {
               setLocalState(() {
                 selectedMedicine = m;
                 selectedMedicineId = m['id'];
-
+                medicineCtrl.text = m['name']; // ✅ FORCE TEXT SET
                 batchCtrl.clear();
                 isBatchTaken = false;
                 debounce?.cancel();
               });
+
+              FocusScope.of(context).requestFocus(batchFocus); // ✅ move focus
             },
 
             fieldViewBuilder: (context, controller, focusNode, _) {
               return TextFormField(
-                controller: controller,
-                focusNode: medicineFocus,
+                controller: controller, // ✅ USE PROVIDED CONTROLLER
+                focusNode: focusNode,     // ✅ USE PROVIDED FOCUS NODE
                 textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(batchFocus); // 👈 NEXT FOCUS
-                },                cursorColor: royal,
+                cursorColor: royal,
                 style: const TextStyle(color: royal),
                 decoration: _inputDecoration("Medicine Name"),
               );
@@ -2271,9 +2450,7 @@ class _InventoryPageState extends State<InventoryPage> {
                     return ListTile(
                       title: Text(m['name']),
                       subtitle: Text("Stock: ${m['stock']}"),
-
-                      // ✅ JUST call onSelected
-                      onTap: () => onSelected(m),
+                      onTap: () => onSelected(m), // ✅ MUST CALL THIS
                     );
                   },
                 ),

@@ -18,12 +18,14 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
   bool loading = true;
   Map<String, dynamic>? valueData;
   Map<String, dynamic>? shopDetails;
+  Map<String, dynamic>? stockSummary;
 
   @override
   void initState() {
     super.initState();
     fetchMedicineValue();
     fetchShopDetails();
+    fetchStockSummary(); // ✅ ADD THIS
   }
 
   void _showMessage(String message) {
@@ -89,6 +91,107 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
     }
 
     setState(() => loading = false);
+  }
+
+  Future<void> fetchStockSummary() async {
+    final prefs = await SharedPreferences.getInstance();
+    final shopId = prefs.getInt("shopId");
+
+    if (shopId == null) return;
+
+    try {
+      final res = await http.get(
+        Uri.parse("$baseUrl/medicine-value/stock-summary/$shopId"),
+      );
+
+      if (res.statusCode == 200) {
+        setState(() {
+          stockSummary = jsonDecode(res.body);
+        });
+      }
+    } catch (e) {
+      _showMessage("Error fetching stock summary");
+    }
+  }
+
+  Widget _buildStockSummaryCard() {
+    if (stockSummary == null) return const SizedBox.shrink();
+
+    return Card(
+      color: Colors.white,
+      elevation: 4,
+      shadowColor: royal.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: royal.withValues(alpha: 0.4)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "📦 Stock Summary (Today)",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: royal,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            _row("Previous Stock", stockSummary!['previousStock']),
+            _row("New Stock Today", stockSummary!['newStockToday']),
+            _row("Total Stock Today", stockSummary!['totalStockToday']),
+            const Divider(),
+            _row("Sold Today", stockSummary!['stockSoldToday']),
+            _row("Stock On Hand", stockSummary!['stockOnHand'], bold: true),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(String label, Map<String, dynamic> data, {bool bold = false}) {
+    final qty = data['qty'] ?? 0;
+    final value = (data['value'] ?? 0).toDouble();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "Qty: $qty",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                "₹${value.toStringAsFixed(2)}",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: royal,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildHallCard(Map<String, dynamic> hall) {
@@ -178,8 +281,9 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
         const SizedBox(height: 12),
         ...medicineList.map((med) {
           final medValue = (med['value'] ?? 0).toDouble();
+          final medStock = med['totalStock'] ?? 0;
 
-          // Filter batches for this medicine and non-zero values
+          // Filter batches for this medicine
           final relatedBatches = batchList
               .where((batch) =>
           batch['medicine'] == med['medicine'] &&
@@ -188,18 +292,18 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
 
           return Card(
             elevation: 4,
-            shadowColor: royal.withValues(alpha:0.3),
+            shadowColor: royal.withValues(alpha: 0.3),
             color: Colors.white,
             margin: const EdgeInsets.symmetric(vertical: 6),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: royal.withValues(alpha:0.35)),
+              side: BorderSide(color: royal.withValues(alpha: 0.35)),
             ),
             child: ExpansionTile(
               initiallyExpanded: false,
               leading: const Icon(Icons.medical_services, color: royal),
               title: Text(
-                "${med['medicine']} - ₹${medValue.toStringAsFixed(2)}",
+                "${med['medicine']} (Stock: $medStock) - ₹${medValue.toStringAsFixed(2)}",
                 style: const TextStyle(
                     fontWeight: FontWeight.bold, color: royal),
               ),
@@ -214,25 +318,28 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
               ]
                   : relatedBatches.map((batch) {
                 final batchValue = (batch['value'] ?? 0).toDouble();
+                final batchStock = batch['totalStock'] ?? 0;
+
                 return Container(
                   margin: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 4),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: royal.withValues(alpha:0.05),
+                    color: royal.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: royal.withValues(alpha:0.2),
+                      color: royal.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "${batch['batchNo']}",
+                        "${batch['batchNo']} (Stock: $batchStock)",
                         style: const TextStyle(
-                            fontWeight: FontWeight.w500, color: Colors.black87),
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87),
                       ),
                       Text(
                         "₹${batchValue.toStringAsFixed(2)}",
@@ -250,14 +357,13 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: royal,
-        title: const Text("Medicine Value ", style: TextStyle(color: Colors.white)),
+        title: const Text("Stock Value ", style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
@@ -282,12 +388,13 @@ class _MedicineValuePageState extends State<MedicineValuePage> {
             ),
             child: Column(
               children: [
-            _buildOverallValue(),
-            _buildMedicineWiseList(),
-            const SizedBox(height: 70),
-          ],
-        ),
-      ),
+                _buildOverallValue(),
+                _buildStockSummaryCard(),
+                _buildMedicineWiseList(),
+                const SizedBox(height: 70),
+              ],
+            ),
+          ),
         ),],),),);
   }
 }

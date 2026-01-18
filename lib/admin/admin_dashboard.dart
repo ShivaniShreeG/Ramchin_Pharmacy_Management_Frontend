@@ -411,7 +411,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 _buildManageButton(
                   icon: Icons.medical_services, // ✅ medicine-related icon
-                  label: "Medicine Value",      // Button label
+                  label: "Stock Value",      // Button label
                   onTap: () {
                     Navigator.push(
                       context,

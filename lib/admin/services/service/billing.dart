@@ -28,6 +28,8 @@ class _BillingPageState extends State<BillingPage> {
   List<Map<String, dynamic>> customerBills = [];
   bool showCustomerDropdown = false;
   bool isFetchingCustomers = false;
+  final FocusNode medicineFocus = FocusNode();
+  final FocusNode qtyFocus = FocusNode();
 
   final TextEditingController customerCtrl = TextEditingController();
   final TextEditingController phoneCtrl = TextEditingController();
@@ -58,6 +60,13 @@ class _BillingPageState extends State<BillingPage> {
   void initState() {
     super.initState();
     loadShopId();
+  }
+
+  @override
+  void dispose() {
+    medicineFocus.dispose();
+    qtyFocus.dispose();
+    super.dispose();
   }
 
   void clearBillingForm() {
@@ -91,6 +100,10 @@ class _BillingPageState extends State<BillingPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       isResettingForm = false;
     });
+  }
+
+  bool isDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width >= 700;
   }
 
   Future<void> fetchCustomersByPhone(String phone) async {
@@ -535,9 +548,10 @@ class _BillingPageState extends State<BillingPage> {
 
   void addMedicineItem() {
     if (selectedMedicine == null || qtyCtrl.text.isEmpty) {
-      _showMessage("Select medicine and quantity");
+      _showMessage("Select medicine and enter quantity");
       return;
     }
+
 
     int remainingQty = int.parse(qtyCtrl.text);
 
@@ -587,8 +601,10 @@ class _BillingPageState extends State<BillingPage> {
     selectedBatches.removeWhere((b) => b['available_qty'] <= 0);
 
     medicineCtrl.clear();
+    selectedMedicine=null;
     qtyCtrl.clear();
     previewItemTotal = 0;
+    FocusScope.of(context).requestFocus(medicineFocus);
 
     calculateBillTotal();
     setState(() {});
@@ -721,506 +737,1067 @@ class _BillingPageState extends State<BillingPage> {
               if (shopDetails != null) _buildHallCard(shopDetails!),
 
               const SizedBox(height: 16),
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 600, // 👈 only form is constrained
-            ),
-            child: Column(
-              children: [
-              _sectionCard(
-                title: "Billing Details",
-                child: Column(
+
+              if (isDesktop(context))
+                Column(
                   children: [
-                    labeledField(
-                      label: "Phone",
-                      field: TextFormField(
-                        controller: phoneCtrl,
-                        cursorColor: royal,
-                        style: TextStyle(color: royal),
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(10),
-                        ],
-                        decoration: _inputDecoration("Phone number"),
-                        onChanged: (val) {
-                          if (isResettingForm) return; // ✅ KEY LINE
-
-                          if (val.length != 10) {
-                            customerSuggestions.clear();
-                            customerBills.clear();
-                            showCustomerDropdown = false;
-                            customerCtrl.clear(); // ✅ ALSO CLEAR NAME
-
-                            setState(() {});
-                            return;
-                          }
-
-                          fetchCustomersByPhone(val);
-                        },
-
-                      ),
-                    ),
-                    if (showCustomerDropdown)
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: royal.withValues(alpha: 0.4)),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: customerSuggestions.length,
-                          itemBuilder: (_, i) {
-                            final c = customerSuggestions[i];
-                            return ListTile(
-                              title: Text(
-                                c['customer_name'],
-                                style: const TextStyle(color: royal),
-                              ),
-                              subtitle: Text(
-                                "Last visit: ${c['last_bill_date'].toString().substring(0, 10)}",
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              onTap: () {
-                                customerCtrl.text = c['customer_name'];
-                                showCustomerDropdown = false;
-                                customerSuggestions.clear(); // ✅ clear list
-
-                                setState(() {});
-                              },
-                            );
-                          },
-                        ),
-                      ),
-
-                    labeledField(
-                      label: "Customer Name",
-                      field: TextFormField(
-                        controller: customerCtrl,
-                        style: TextStyle(color: royal),
-                        cursorColor: royal,
-                        decoration: _inputDecoration("Customer name"),
-                        validator: (v) =>
-                        v == null || v.isEmpty ? "Required" : null,
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.history, color: royal),
-                        label: const Text(
-                          "View Previous Bills",
-                          style: TextStyle(
-                            color: royal,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        onPressed: () async {
-                          if (phoneCtrl.text.length != 10 || customerCtrl.text.isEmpty) {
-                            _showMessage("Enter phone number and customer name");
-                            return;
-                          }
-
-                          await fetchBillsByCustomer(customerCtrl.text);
-
-                          if (customerBills.isEmpty) {
-                            _showMessage("No previous bills found");
-                            return;
-                          }
-
-                          _showBillsBottomSheet();
-                        },
-                      ),
-                    ),
-
-
-                    labeledField(
-                      label: "Doctor",
-                      field: TextFormField(
-                        controller: doctorCtrl,
-                        cursorColor: royal,
-                        style: TextStyle(color: royal),
-                        decoration: _inputDecoration("Doctor name"),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              _sectionCard(
-                title: "Bill Items",
-                child: Column(
-                  children: [
-                    labeledField(
-                      label: "Medicine",
-                      field: TextFormField(
-                        controller: medicineCtrl,
-                        cursorColor: royal,
-                        style: TextStyle(color: royal),
-                        decoration: _inputDecoration("Search medicine"),
-                        onChanged: fetchMedicines,
-                      ),
-                    ),
-
-                    /// Suggestions
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: medicineSuggestions.length,
-                      itemBuilder: (_, i) {
-                        final med = medicineSuggestions[i];
-                        final batches = med['batches'] as List<dynamic>;
-
-                        return InkWell(
-                          onTap: () async {
-                            selectedMedicine = med;
-                            medicineCtrl.text = med['name'];
-                            medicineSuggestions.clear();
-
-                            /// batches already available — no need refetch
-                            selectedBatches = List<Map<String, dynamic>>.from(
-                              batches.where((b) => b['available_qty'] > 0),
-                            );
-
-                            if (selectedBatches.isEmpty) {
-                              _showMessage("No stock available for this medicine");
-                              return;
-                            }
-
-
-                            setState(() {});
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: royal.withValues(alpha: 0.4)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: royal.withValues(alpha: 0.12),
-                                  blurRadius: 4,
-                                )
-                              ],
-                            ),
+                       Column(
+                        children: [
+                          _sectionCard(
+                            title: "Billing Details",
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                /// Medicine Name
-                                Text(
-                                  med['name'],
-                                  style: const TextStyle(
-                                    color: royal,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: labeledField(
+                                        label: "Phone",
+                                        field: TextFormField(
+                                          controller: phoneCtrl,
+                                          cursorColor: royal,
+                                          style: TextStyle(color: royal),
+                                          keyboardType: TextInputType.phone,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.digitsOnly,
+                                            LengthLimitingTextInputFormatter(10),
+                                          ],
+                                          decoration: _inputDecoration("Phone number"),
+                                          onChanged: (val) {
+                                            if (isResettingForm) return;
+
+                                            if (val.length != 10) {
+                                              customerSuggestions.clear();
+                                              customerBills.clear();
+                                              showCustomerDropdown = false;
+                                              customerCtrl.clear();
+                                              setState(() {});
+                                              return;
+                                            }
+
+                                            fetchCustomersByPhone(val);
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: labeledField(
+                                        label: "Customer Name",
+                                        field: TextFormField(
+                                          controller: customerCtrl,
+                                          style: TextStyle(color: royal),
+                                          cursorColor: royal,
+                                          decoration: _inputDecoration("Customer name"),
+                                          validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
 
-                                const SizedBox(height: 6),
-
-                                /// Batch Info
-                                Column(
-                                  children: batches.map((b) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 2),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            "Batch: ${b['batch_no']}",
-                                            style: const TextStyle(fontSize: 13),
+                                if (showCustomerDropdown)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 6),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: royal.withValues(alpha: 0.4)),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: ListView.builder(
+                                      shrinkWrap: true,
+                                      itemCount: customerSuggestions.length,
+                                      itemBuilder: (_, i) {
+                                        final c = customerSuggestions[i];
+                                        return ListTile(
+                                          title: Text(
+                                            c['customer_name'],
+                                            style: const TextStyle(color: royal),
                                           ),
-                                          Text(
-                                            "Stock: ${b['available_qty']}",
+                                          subtitle: Text(
+                                            "Last visit: ${c['last_bill_date'].toString().substring(0, 10)}",
+                                            style: const TextStyle(fontSize: 12),
+                                          ),
+                                          onTap: () {
+                                            customerCtrl.text = c['customer_name'];
+                                            showCustomerDropdown = false;
+                                            customerSuggestions.clear();
+                                            setState(() {});
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 16),
+
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: labeledField(
+                                        label: "Doctor",
+                                        field: TextFormField(
+                                          controller: doctorCtrl,
+                                          cursorColor: royal,
+                                          style: TextStyle(color: royal),
+                                          decoration: _inputDecoration("Doctor name"),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: TextButton.icon(
+                                          icon: const Icon(Icons.history, color: royal),
+                                          label: const Text(
+                                            "View Previous Bills",
                                             style: TextStyle(
-                                              fontSize: 13,
-                                              color: b['available_qty'] > 0
-                                                  ? Colors.green
-                                                  : Colors.red,
+                                              color: royal,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                        ],
+                                          onPressed: () async {
+                                            if (phoneCtrl.text.length != 10 || customerCtrl.text.isEmpty) {
+                                              _showMessage("Enter phone number and customer name");
+                                              return;
+                                            }
+
+                                            await fetchBillsByCustomer(customerCtrl.text);
+
+                                            if (customerBills.isEmpty) {
+                                              _showMessage("No previous bills found");
+                                              return;
+                                            }
+
+                                            _showBillsBottomSheet();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          _sectionCard(
+                            title: "Bill Items",
+                            child: Column(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    /// 🔹 Medicine + Quantity in same row
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          flex: 2,
+                                          child: labeledField(
+                                            label: "Medicine",
+                                            field: TextFormField(
+                                              controller: medicineCtrl,
+                                              cursorColor: royal,
+                                              focusNode: medicineFocus,
+                                              textInputAction: TextInputAction.next,
+                                              onFieldSubmitted: (_) {
+                                                FocusScope.of(context).requestFocus(qtyFocus);
+                                              },
+                                              style: const TextStyle(color: royal),
+                                              decoration: _inputDecoration("Search medicine"),
+                                              onChanged: fetchMedicines,
+                                            ),
+                                          ),
+                                        ),
+
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          flex: 2,
+                                          child: labeledField(
+                                            label: "Quantity",
+                                            field:TextFormField(
+                                              controller: qtyCtrl,
+                                              focusNode: qtyFocus,
+                                              cursorColor: royal,
+                                              style: const TextStyle(color: royal),
+                                              keyboardType: TextInputType.number,
+                                              textInputAction: TextInputAction.done,
+                                              decoration: _inputDecoration("Qty"),
+
+                                              onChanged: (val) {
+                                                if (selectedMedicine == null) {
+                                                  previewItemTotal = 0;
+                                                  setState(() {});
+                                                  return;
+                                                }
+
+                                                final enteredQty = int.tryParse(val) ?? 0;
+                                                if (selectedBatches.isEmpty) return;
+
+                                                final totalAvailable = selectedBatches.fold<int>(
+                                                  0,
+                                                      (sum, b) => sum + (b['available_qty'] as int),
+                                                );
+
+                                                if (enteredQty > totalAvailable) {
+                                                  qtyCtrl.text = totalAvailable.toString();
+                                                  qtyCtrl.selection = TextSelection.fromPosition(
+                                                    TextPosition(offset: qtyCtrl.text.length),
+                                                  );
+
+                                                  _showMessage("Only $totalAvailable units available");
+                                                  calculateFromQuantity(totalAvailable);
+                                                  return;
+                                                }
+
+                                                calculateFromQuantity(enteredQty);
+                                              },
+
+                                              /// 🔥 ENTER KEY HANDLER
+                                              onFieldSubmitted: (_) {
+                                                if (selectedMedicine == null || qtyCtrl.text.isEmpty) return;
+
+                                                addMedicineItem();
+
+                                                /// Clear quantity + medicine if needed
+                                                qtyCtrl.clear();
+                                                medicineCtrl.clear();
+                                                selectedMedicine = null;
+                                                selectedBatches.clear();
+                                                previewItemTotal = 0;
+
+                                                setState(() {});
+
+                                                /// 🔁 MOVE FOCUS BACK TO MEDICINE
+                                                FocusScope.of(context).requestFocus(medicineFocus);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    /// 🔹 Suggestions (BELOW medicine field)
+
+                                  ],
+                                ),
+                                if (medicineSuggestions.isNotEmpty)
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: medicineSuggestions.length,
+                                      itemBuilder: (_, i) {
+                                        final med = medicineSuggestions[i];
+                                        final batches = med['batches'] as List<dynamic>;
+
+                                        return InkWell(
+                                          onTap: () {
+                                            // ✅ Select medicine
+                                            selectedMedicine = med;
+                                            medicineCtrl.text = med['name'];
+                                            medicineSuggestions.clear();
+
+                                            // ✅ Set available batches
+                                            selectedBatches = List<Map<String, dynamic>>.from(
+                                              batches.where((b) => b['available_qty'] > 0),
+                                            );
+
+                                            if (selectedBatches.isEmpty) {
+                                              _showMessage("No stock available for this medicine");
+                                              return;
+                                            }
+
+                                            setState(() {});
+
+                                            // 🔹 Move focus to Quantity field
+                                            FocusScope.of(context).requestFocus(qtyFocus);
+                                          },
+                                          child: Container(
+                                            margin: const EdgeInsets.symmetric(vertical: 6),
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(color: royal.withValues(alpha: 0.4)),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: royal.withValues(alpha: 0.12),
+                                                  blurRadius: 4,
+                                                ),
+                                              ],
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  med['name'],
+                                                  style: const TextStyle(
+                                                    color: royal,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                ...batches.map(
+                                                      (b) => Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Text("Batch: ${b['batch_no']}", style: const TextStyle(fontSize: 13)),
+                                                      Text(
+                                                        "Stock: ${b['available_qty']}",
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: b['available_qty'] > 0 ? Colors.green : Colors.red,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+
+                                if (previewItemTotal > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        "Item Total: ₹ ${previewItemTotal.toStringAsFixed(2)}",
+                                        style: const TextStyle(
+                                          color: royal,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                if (billItems.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+
+                                  /// 🔹 TABLE HEADER
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: royal.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Expanded(flex: 3, child: Text("Medicine", style: _headerStyle)),
+                                        Expanded(flex: 2, child: Text("Batch", style: _headerStyle)),
+                                        Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.center, style: _headerStyle)),
+                                        Expanded(flex: 2, child: Text("Price", textAlign: TextAlign.right, style: _headerStyle)),
+                                        Expanded(flex: 2, child: Text("Total", textAlign: TextAlign.right, style: _headerStyle)),
+                                        Expanded(flex: 1, child: Text("")),
+                                      ],
+                                    ),
+                                  ),
+
+                                  /// 🔹 TABLE ROWS (FIXED)
+                                  ...billItems.asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final item = entry.value;
+
+                                    return InkWell(
+                                      onTap: () => editBillItem(index),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        decoration: const BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(color: Colors.black12),
+                                          ),
+                                        ),
+                                        child:Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 3,
+                                              child: Text(
+                                                item['medicine_name'],
+                                                style: const TextStyle(color: royal),
+                                              ),
+                                            ),
+
+                                            /// 👇 Batch & Rack (REFERENCE ONLY)
+                                            Expanded(
+                                              flex: 2,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text("Batch: ${item['batch_no']}", style: const TextStyle(fontSize: 12)),
+                                                  Text("Rack: ${item['rack_no']}", style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                                                ],
+                                              ),
+                                            ),
+
+                                            Expanded(
+                                              flex: 1,
+                                              child: Text(
+                                                item['quantity'].toString(),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                "₹${item['unit_price'].toStringAsFixed(2)}",
+                                                textAlign: TextAlign.right,
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                "₹${item['total_price'].toStringAsFixed(2)}",
+                                                textAlign: TextAlign.right,
+                                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 1,
+                                              child: IconButton(
+                                                icon: const Icon(Icons.delete, color: Colors.red),
+                                                onPressed: () {
+                                                  billItems.removeAt(index);
+                                                  calculateBillTotal();
+                                                  setState(() {});
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
+                                ],
+
+                                SizedBox(
+                                  width: 200,
+                                  height: 40,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.add, color: royal),
+                                    label: const Text(
+                                      "Add Item",
+                                      style: TextStyle(color: royal),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: royal),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: addMedicineItem,
+                                  ),
                                 ),
 
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 10),
+                                const Divider(thickness:0.5,color: royal),
+
+                                /// TOTAL
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    /// 🔹 LEFT: Payment Mode
+                                    Expanded(
+                                      flex: 1,
+                                      child: labeledField(
+                                        label: "Payment",
+                                        field: DropdownButtonFormField<String>(
+                                          initialValue: paymentMode,
+                                          decoration: _inputDecoration("Payment mode"),
+                                          dropdownColor: Colors.white,
+                                          icon: const Icon(
+                                            Icons.keyboard_arrow_down_rounded,
+                                            color: royal,
+                                          ),
+                                          style: const TextStyle(
+                                            color: royal,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          items: ["CASH", "ONLINE"]
+                                              .map(
+                                                (e) => DropdownMenuItem<String>(
+                                              value: e,
+                                              child: Text(
+                                                e,
+                                                style: const TextStyle(
+                                                  color: royal,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                              .toList(),
+                                          onChanged: (v) => setState(() => paymentMode = v!),
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              "Grand Total : ₹${billTotal.toStringAsFixed(2)}",
+                                              style: TextStyle(
+                                                color: royal,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+
                               ],
                             ),
                           ),
-                        );
-                      },
-                    ),
 
-                    labeledField(
-                      label: "Quantity",
-                      field: TextFormField(
-                        controller: qtyCtrl,
-                        cursorColor: royal,
-                        style: TextStyle(color: royal),
-                        keyboardType: TextInputType.number,
-                        decoration: _inputDecoration("Qty"),
-                        onChanged: (val) {
-                          final enteredQty = int.tryParse(val) ?? 0;
+                          const SizedBox(height: 30),
 
-                          if (selectedBatches.isEmpty) return;
-
-                          final int totalAvailable = selectedBatches.fold<int>(
-                            0,
-                                (sum, b) => sum + (b['available_qty'] as int),
-                          );
-
-                          if (enteredQty > totalAvailable) {
-                            qtyCtrl.text = totalAvailable.toString();
-                            qtyCtrl.selection = TextSelection.fromPosition(
-                              TextPosition(offset: qtyCtrl.text.length),
-                            );
-
-                            _showMessage("Only $totalAvailable units available");
-                            calculateFromQuantity(totalAvailable);
-                            return;
-                          }
-
-
-                          calculateFromQuantity(enteredQty);
-                        },
-                      ),
-                    ),
-                    if (previewItemTotal > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "Item Total: ₹ ${previewItemTotal.toStringAsFixed(2)}",
-                            style: const TextStyle(
-                              color: royal,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    if (billItems.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-
-                      /// 🔹 TABLE HEADER
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: royal.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          children: [
-                            Expanded(flex: 3, child: Text("Medicine", style: _headerStyle)),
-                            Expanded(flex: 2, child: Text("Batch", style: _headerStyle)),
-                            Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.center, style: _headerStyle)),
-                            Expanded(flex: 2, child: Text("Price", textAlign: TextAlign.right, style: _headerStyle)),
-                            Expanded(flex: 2, child: Text("Total", textAlign: TextAlign.right, style: _headerStyle)),
-                            Expanded(flex: 1, child: Text("")),
-                          ],
-                        ),
-                      ),
-
-                      /// 🔹 TABLE ROWS (FIXED)
-                      ...billItems.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-
-                        return InkWell(
-                          onTap: () => editBillItem(index),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.black12),
+                          SizedBox(
+                            width: 200,
+                            height: 50,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: royal,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: submitBill,
+                              child: const Text(
+                                "Submit",
+                                style: TextStyle(fontSize: 16, color: Colors.white),
                               ),
                             ),
-                            child:Row(
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    item['medicine_name'],
-                                    style: const TextStyle(color: royal),
-                                  ),
-                                ),
-
-                                /// 👇 Batch & Rack (REFERENCE ONLY)
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Batch: ${item['batch_no']}", style: const TextStyle(fontSize: 12)),
-                                      Text("Rack: ${item['rack_no']}", style: const TextStyle(fontSize: 11, color: Colors.black54)),
-                                    ],
-                                  ),
-                                ),
-
-                                Expanded(
-                                  flex: 1,
-                                  child: Text(
-                                    item['quantity'].toString(),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    "₹${item['unit_price'].toStringAsFixed(2)}",
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    "₹${item['total_price'].toStringAsFixed(2)}",
-                                    textAlign: TextAlign.right,
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () {
-                                      billItems.removeAt(index);
-                                      calculateBillTotal();
-                                      setState(() {});
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
-                        );
-                      }),
-                    ],
 
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.add, color: royal),
-                        label: const Text(
-                          "Add Item",
-                          style: TextStyle(color: royal),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: royal),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: addMedicineItem,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    /// TOTAL
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: royal.withValues(alpha: 0.4), width: 1.2),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "Grand Total",
-                            style: TextStyle(
-                              color: royal,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            "₹ ${billTotal.toStringAsFixed(2)}",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: royal,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          const SizedBox(height: 40),
                         ],
-                      ),
                     ),
+                  ],
+                ),
 
-                    const SizedBox(height: 10),
+              if (!isDesktop(context))
+                Column(
+                  children: [
+                    Center(
+            child: Column(
+              children: [
 
-                    /// PAYMENT MODE
-                    labeledField(
-                      label: "Payment",
-                      field: DropdownButtonFormField<String>(
-                        initialValue: paymentMode,
-                        decoration: _inputDecoration("Payment mode"),
-                        dropdownColor: Colors.white,
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: royal,
+                _sectionCard(
+                  title: "Bill Items",
+                  child: Column(
+                    children: [
+                      labeledField(
+                        label: "Medicine",
+                        field: TextFormField(
+                          controller: medicineCtrl,
+                          cursorColor: royal,
+                          focusNode: medicineFocus,
+                          style: TextStyle(color: royal),
+                          decoration: _inputDecoration("Search medicine"),
+                          onChanged: fetchMedicines,
                         ),
-                        style: const TextStyle(
-                          color: royal,
-                          fontWeight: FontWeight.w600,
+                      ),
+
+                      /// Suggestions
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: medicineSuggestions.length,
+                        itemBuilder: (_, i) {
+                          final med = medicineSuggestions[i];
+                          final batches = med['batches'] as List<dynamic>;
+
+                          return InkWell(
+                            onTap: () async {
+                              selectedMedicine = med;
+                              medicineCtrl.text = med['name'];
+                              medicineSuggestions.clear();
+
+                              /// batches already available — no need refetch
+                              selectedBatches = List<Map<String, dynamic>>.from(
+                                batches.where((b) => b['available_qty'] > 0),
+                              );
+
+                              if (selectedBatches.isEmpty) {
+                                _showMessage("No stock available for this medicine");
+                                return;
+                              }
+
+
+                              setState(() {});
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: royal.withValues(alpha: 0.4)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: royal.withValues(alpha: 0.12),
+                                    blurRadius: 4,
+                                  )
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  /// Medicine Name
+                                  Text(
+                                    med['name'],
+                                    style: const TextStyle(
+                                      color: royal,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  /// Batch Info
+                                  Column(
+                                    children: batches.map((b) {
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 2),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              "Batch: ${b['batch_no']}",
+                                              style: const TextStyle(fontSize: 13),
+                                            ),
+                                            Text(
+                                              "Stock: ${b['available_qty']}",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: b['available_qty'] > 0
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+
+                                  const SizedBox(height: 4),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
+                      labeledField(
+                        label: "Quantity",
+                        field: TextFormField(
+                          controller: qtyCtrl,
+                          cursorColor: royal,
+                          style: TextStyle(color: royal),
+                          keyboardType: TextInputType.number,
+                          decoration: _inputDecoration("Qty"),
+                          onChanged: (val) {
+                            if (selectedMedicine == null) {
+                              previewItemTotal = 0;
+                              setState(() {});
+                              return;
+                            }
+
+                            final enteredQty = int.tryParse(val) ?? 0;
+
+                            if (selectedBatches.isEmpty) return;
+
+                            final int totalAvailable = selectedBatches.fold<int>(
+                              0,
+                                  (sum, b) => sum + (b['available_qty'] as int),
+                            );
+
+                            if (enteredQty > totalAvailable) {
+                              qtyCtrl.text = totalAvailable.toString();
+                              qtyCtrl.selection = TextSelection.fromPosition(
+                                TextPosition(offset: qtyCtrl.text.length),
+                              );
+
+                              _showMessage("Only $totalAvailable units available");
+                              calculateFromQuantity(totalAvailable);
+                              return;
+                            }
+
+                            calculateFromQuantity(enteredQty);
+                          },
                         ),
-                        items: ["CASH", "ONLINE"].map(
-                              (e) => DropdownMenuItem<String>(
-                            value: e,
+                      ),
+                      if (previewItemTotal > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Align(
+                            alignment: Alignment.centerRight,
                             child: Text(
-                              e,
+                              "Item Total: ₹ ${previewItemTotal.toStringAsFixed(2)}",
                               style: const TextStyle(
                                 color: royal,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
-                        ).toList(),
-                        onChanged: (v) => setState(() => paymentMode = v!),
+                        ),
+
+                      if (billItems.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+
+                        /// 🔹 TABLE HEADER
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: royal.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(flex: 3, child: Text("Medicine", style: _headerStyle)),
+                              Expanded(flex: 2, child: Text("Batch", style: _headerStyle)),
+                              Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.center, style: _headerStyle)),
+                              Expanded(flex: 2, child: Text("Price", textAlign: TextAlign.right, style: _headerStyle)),
+                              Expanded(flex: 2, child: Text("Total", textAlign: TextAlign.right, style: _headerStyle)),
+                              Expanded(flex: 1, child: Text("")),
+                            ],
+                          ),
+                        ),
+
+                        /// 🔹 TABLE ROWS (FIXED)
+                        ...billItems.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
+
+                          return InkWell(
+                            onTap: () => editBillItem(index),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.black12),
+                                ),
+                              ),
+                              child:Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      item['medicine_name'],
+                                      style: const TextStyle(color: royal),
+                                    ),
+                                  ),
+
+                                  /// 👇 Batch & Rack (REFERENCE ONLY)
+                                  Expanded(
+                                    flex: 2,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Batch: ${item['batch_no']}", style: const TextStyle(fontSize: 12)),
+                                        Text("Rack: ${item['rack_no']}", style: const TextStyle(fontSize: 11, color: Colors.black54)),
+                                      ],
+                                    ),
+                                  ),
+
+                                  Expanded(
+                                    flex: 1,
+                                    child: Text(
+                                      item['quantity'].toString(),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      "₹${item['unit_price'].toStringAsFixed(2)}",
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      "₹${item['total_price'].toStringAsFixed(2)}",
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 1,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () {
+                                        billItems.removeAt(index);
+                                        calculateBillTotal();
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.add, color: royal),
+                          label: const Text(
+                            "Add Item",
+                            style: TextStyle(color: royal),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: royal),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: addMedicineItem,
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      /// TOTAL
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: royal.withValues(alpha: 0.4), width: 1.2),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Grand Total",
+                              style: TextStyle(
+                                color: royal,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "₹ ${billTotal.toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: royal,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      /// PAYMENT MODE
+                      labeledField(
+                        label: "Payment",
+                        field: DropdownButtonFormField<String>(
+                          initialValue: paymentMode,
+                          decoration: _inputDecoration("Payment mode"),
+                          dropdownColor: Colors.white,
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: royal,
+                          ),
+                          style: const TextStyle(
+                            color: royal,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          items: ["CASH", "ONLINE"].map(
+                                (e) => DropdownMenuItem<String>(
+                              value: e,
+                              child: Text(
+                                e,
+                                style: const TextStyle(
+                                  color: royal,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ).toList(),
+                          onChanged: (v) => setState(() => paymentMode = v!),
+                        ),
+                      ),
+
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+                _sectionCard(
+                  title: "Billing Details",
+                  child: Column(
+                    children: [
+                      labeledField(
+                        label: "Phone",
+                        field: TextFormField(
+                          controller: phoneCtrl,
+                          cursorColor: royal,
+                          style: TextStyle(color: royal),
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(10),
+                          ],
+                          decoration: _inputDecoration("Phone number"),
+                          onChanged: (val) {
+                            if (isResettingForm) return; // ✅ KEY LINE
+
+                            if (val.length != 10) {
+                              customerSuggestions.clear();
+                              customerBills.clear();
+                              showCustomerDropdown = false;
+                              customerCtrl.clear(); // ✅ ALSO CLEAR NAME
+
+                              setState(() {});
+                              return;
+                            }
+
+                            fetchCustomersByPhone(val);
+                          },
+
+                        ),
+                      ),
+                      if (showCustomerDropdown)
+                        Container(
+                          margin: const EdgeInsets.only(top: 6),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: royal.withValues(alpha: 0.4)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: customerSuggestions.length,
+                            itemBuilder: (_, i) {
+                              final c = customerSuggestions[i];
+                              return ListTile(
+                                title: Text(
+                                  c['customer_name'],
+                                  style: const TextStyle(color: royal),
+                                ),
+                                subtitle: Text(
+                                  "Last visit: ${c['last_bill_date'].toString().substring(0, 10)}",
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                onTap: () {
+                                  customerCtrl.text = c['customer_name'];
+                                  showCustomerDropdown = false;
+                                  customerSuggestions.clear(); // ✅ clear list
+
+                                  setState(() {});
+                                },
+                              );
+                            },
+                          ),
+                        ),
+
+                      labeledField(
+                        label: "Customer Name",
+                        field: TextFormField(
+                          controller: customerCtrl,
+                          style: TextStyle(color: royal),
+                          cursorColor: royal,
+                          decoration: _inputDecoration("Customer name"),
+                          validator: (v) =>
+                          v == null || v.isEmpty ? "Required" : null,
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.history, color: royal),
+                          label: const Text(
+                            "View Previous Bills",
+                            style: TextStyle(
+                              color: royal,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          onPressed: () async {
+                            if (phoneCtrl.text.length != 10 || customerCtrl.text.isEmpty) {
+                              _showMessage("Enter phone number and customer name");
+                              return;
+                            }
+
+                            await fetchBillsByCustomer(customerCtrl.text);
+
+                            if (customerBills.isEmpty) {
+                              _showMessage("No previous bills found");
+                              return;
+                            }
+
+                            _showBillsBottomSheet();
+                          },
+                        ),
+                      ),
+
+
+                      labeledField(
+                        label: "Doctor",
+                        field: TextFormField(
+                          controller: doctorCtrl,
+                          cursorColor: royal,
+                          style: TextStyle(color: royal),
+                          decoration: _inputDecoration("Doctor name"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: royal,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: royal,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    onPressed: submitBill,
+                    child: const Text(
+                      "Submit",
+                      style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
-                  onPressed: submitBill,
-                  child: const Text(
-                    "Submit",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
                 ),
-              ),
 
-              const SizedBox(height: 40),
-            ],
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
+],
         ),
 
-      ),
       ],
           ),
         ),

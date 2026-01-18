@@ -48,6 +48,7 @@ dependencies:
   permission_handler: ^12.0.1
   excel: ^4.0.6
   file_picker: ^10.3.8
+  file_saver: ^0.3.1
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +76,7 @@ flutter:
     - assets/fonts/NotoSansTamil-Bold.ttf
     - assets/logo.png
     - assets/medicine.xlsx
+    - assets/medicinebatch.xlsx
 
   fonts:
     - family: Good Times

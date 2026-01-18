@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'bulk_upload.dart';
+import 'bulk_tab.dart';
 import 'reorder/reorder_list.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -299,7 +299,7 @@ class _OtherManagePageState extends State<OtherManagePage> {
                 ),
                 _buildManageButton(
                   icon: Icons.upload_file,
-                  label: "Bulk Upload Medicine",
+                  label: "Bulk Upload",
                   onTap: () {
                     Navigator.push(
                       context,
@@ -349,6 +349,7 @@ class _OtherManagePageState extends State<OtherManagePage> {
       ),
     );
   }
+
 
   Widget _buildManageButton({
     required IconData icon,
