@@ -125,6 +125,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
           children: [
             _buildHallCard(),
             SizedBox(height: 20 * boxScale),
+
+            Align(
+              alignment: Alignment.center,
+              child: _buildBillingServiceCard(screenWidth),
+            ),
+            SizedBox(height: 20 * boxScale),
             Align(
               alignment: Alignment.center,
               child: _buildBookingServiceCard(
@@ -324,6 +330,63 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  Widget _buildBillingServiceCard(double screenWidth) {
+    final double buttonSize = 70.0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: royal, width: 1.5),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Text(
+                  "Billing",
+                  style: TextStyle(
+                    color: royal,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Icon(Icons.arrow_drop_down, color: royal, size: 40),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                _buildManageButton(
+                  icon: Icons.file_copy,
+                  label: "Billing",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => BillingPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBookingServiceCard(double screenWidth) {
     final double buttonSize = 70.0;
 
@@ -361,18 +424,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               spacing: 16,
               runSpacing: 16,
               children: [
-                _buildManageButton(
-                  icon: Icons.file_copy,
-                  label: "Billing",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => BillingPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
                 _buildManageButton(
                   icon: Icons.history,
                   label: "Billing History",

@@ -7,6 +7,7 @@ import 'config.dart';
 import 'edit_profile.dart';
 import 'profile.dart';
 import 'change_password.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const Color royalblue = Color(0xFFE18F5B);
 const Color royal = Color(0xFF875C3F);
@@ -180,13 +181,40 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
           // Footer
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             alignment: Alignment.center,
-            color: Colors.white, // beige footer background
-            child: Text(
-              '© ${DateTime.now().year} Ramchin Technologies Private Limited',
-              style: TextStyle(color: royal, fontSize: 12),
-              textAlign: TextAlign.center,
+            color: Colors.white,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    const url = 'https://hallbookingpolicy.ramchintech.com';
+                    final uri = Uri.parse(url);
+
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  child: Text(
+                    'Privacy Policy',
+                    style: TextStyle(
+                      color: royal,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '© ${DateTime.now().year} Ramchin Technologies Private Limited',
+                  style: TextStyle(color: royal, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ],

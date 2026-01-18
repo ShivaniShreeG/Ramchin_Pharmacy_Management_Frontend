@@ -30,6 +30,8 @@ class _BillingPageState extends State<BillingPage> {
   bool isFetchingCustomers = false;
   final FocusNode medicineFocus = FocusNode();
   final FocusNode qtyFocus = FocusNode();
+  int highlightedIndex = -1;
+  final FocusNode suggestionFocus = FocusNode();
 
   final TextEditingController customerCtrl = TextEditingController();
   final TextEditingController phoneCtrl = TextEditingController();
@@ -696,6 +698,32 @@ class _BillingPageState extends State<BillingPage> {
     );
   }
 
+  void _selectMedicine(Map<String, dynamic> med) {
+    selectedMedicine = med;
+    medicineCtrl.text = med['name'];
+    medicineSuggestions.clear();
+    highlightedIndex = -1;
+
+    selectedBatches = (med['batches'] as List<dynamic>)
+        .where((b) =>
+    (b as Map<String, dynamic>)['available_qty'] != null &&
+        ((b as Map<String, dynamic>)['available_qty'] as int) > 0)
+        .map((b) => b as Map<String, dynamic>)
+        .toList();
+
+    if (selectedBatches.isEmpty) {
+      _showMessage("No stock available");
+      return;
+    }
+
+    setState(() {});
+
+    FocusScope.of(context).unfocus(); // release RawKeyboardListener
+    Future.microtask(() {
+      FocusScope.of(context).requestFocus(qtyFocus);
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -897,18 +925,46 @@ class _BillingPageState extends State<BillingPage> {
                                           flex: 2,
                                           child: labeledField(
                                             label: "Medicine",
-                                            field: TextFormField(
-                                              controller: medicineCtrl,
-                                              cursorColor: royal,
-                                              focusNode: medicineFocus,
-                                              textInputAction: TextInputAction.next,
-                                              onFieldSubmitted: (_) {
-                                                FocusScope.of(context).requestFocus(qtyFocus);
+                                            field: RawKeyboardListener(
+                                              focusNode: suggestionFocus,
+                                              onKey: (event) {
+                                                if (medicineSuggestions.isEmpty) return;
+
+                                                if (event is RawKeyDownEvent) {
+                                                  if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                                    setState(() {
+                                                      highlightedIndex =
+                                                          (highlightedIndex + 1) % medicineSuggestions.length;
+                                                    });
+                                                  }
+
+                                                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                                                    setState(() {
+                                                      highlightedIndex =
+                                                          (highlightedIndex - 1 + medicineSuggestions.length) %
+                                                              medicineSuggestions.length;
+                                                    });
+                                                  }
+
+                                                  if (event.logicalKey == LogicalKeyboardKey.enter &&
+                                                      highlightedIndex >= 0) {
+                                                    _selectMedicine(medicineSuggestions[highlightedIndex]);
+                                                  }
+                                                }
                                               },
-                                              style: const TextStyle(color: royal),
-                                              decoration: _inputDecoration("Search medicine"),
-                                              onChanged: fetchMedicines,
+                                              child: TextFormField(
+                                                controller: medicineCtrl,
+                                                focusNode: medicineFocus,
+                                                cursorColor: royal,
+                                                style: TextStyle(color: royal),
+                                                onChanged: (val) {
+                                                  highlightedIndex = -1;
+                                                  fetchMedicines(val);
+                                                },
+                                                decoration: _inputDecoration("Search medicine"),
+                                              ),
                                             ),
+
                                           ),
                                         ),
 
@@ -990,10 +1046,10 @@ class _BillingPageState extends State<BillingPage> {
                                       itemBuilder: (_, i) {
                                         final med = medicineSuggestions[i];
                                         final batches = med['batches'] as List<dynamic>;
+                                        final bool isHighlighted = i == highlightedIndex;
 
                                         return InkWell(
                                           onTap: () {
-                                            // ✅ Select medicine
                                             selectedMedicine = med;
                                             medicineCtrl.text = med['name'];
                                             medicineSuggestions.clear();
@@ -1013,20 +1069,17 @@ class _BillingPageState extends State<BillingPage> {
                                             // 🔹 Move focus to Quantity field
                                             FocusScope.of(context).requestFocus(qtyFocus);
                                           },
-                                          child: Container(
+
+                                              child: Container(
                                             margin: const EdgeInsets.symmetric(vertical: 6),
                                             padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(color: royal.withValues(alpha: 0.4)),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: royal.withValues(alpha: 0.12),
-                                                  blurRadius: 4,
-                                                ),
-                                              ],
-                                            ),
+                                                decoration: BoxDecoration(
+                                              color: isHighlighted
+                                              ? royal.withValues(alpha: 0.15)
+                                              : Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: royal),
+                                        ),
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
@@ -1077,6 +1130,26 @@ class _BillingPageState extends State<BillingPage> {
                                       ),
                                     ),
                                   ),
+                                const SizedBox(height: 10),
+
+                                SizedBox(
+                                  width: 200,
+                                  height: 40,
+                                  child: OutlinedButton.icon(
+                                    icon: const Icon(Icons.add, color: royal),
+                                    label: const Text(
+                                      "Add Item",
+                                      style: TextStyle(color: royal),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: royal),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: addMedicineItem,
+                                  ),
+                                ),
 
                                 if (billItems.isNotEmpty) ...[
                                   const SizedBox(height: 10),
@@ -1176,24 +1249,6 @@ class _BillingPageState extends State<BillingPage> {
                                   }),
                                 ],
 
-                                SizedBox(
-                                  width: 200,
-                                  height: 40,
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.add, color: royal),
-                                    label: const Text(
-                                      "Add Item",
-                                      style: TextStyle(color: royal),
-                                    ),
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: royal),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    onPressed: addMedicineItem,
-                                  ),
-                                ),
 
                                 const SizedBox(height: 10),
                                 const Divider(thickness:0.5,color: royal),
