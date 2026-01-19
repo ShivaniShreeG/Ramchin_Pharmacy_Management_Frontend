@@ -949,6 +949,7 @@ class _InventoryPageState extends State<InventoryPage> {
     double sellingPerUnit = 0;
     double sellingPerQuantity = 0;
     double purchasePerUnit = 0;
+
     double purchasePerQuantity = 0;
     double gstPerQuantity = 0;
     double baseAmount = 0;
@@ -1144,7 +1145,16 @@ class _InventoryPageState extends State<InventoryPage> {
       );
     }
 
+    double purchasePricePerUnit() {
+      final rate = double.tryParse(ratePerQtyCtrl.text) ?? 0;
+      final unit = double.tryParse(unitCtrl.text) ?? 0;
+      if (unit == 0) return 0;
+      return rate / unit;
+    }
+
     bool isFormValid() {
+      final mrp = double.tryParse(mrpCtrl.text) ?? 0;
+
       return
         nameCtrl.text.trim().isNotEmpty &&
             !isNameTaken &&
@@ -1166,8 +1176,8 @@ class _InventoryPageState extends State<InventoryPage> {
             profitCtrl.text.trim().isNotEmpty &&
             (double.tryParse(profitCtrl.text) ?? 0) >= 0 &&
 
-            mrpCtrl.text.trim().isNotEmpty &&
-            (double.tryParse(mrpCtrl.text) ?? 0) > 0 &&
+            mrp > 0 &&
+            mrp >= purchasePricePerUnit() &&   // ✅ call function 🔥 IMPORTANT RULE
 
             supplierFound &&
             selectedSupplierId != null &&
@@ -1176,25 +1186,13 @@ class _InventoryPageState extends State<InventoryPage> {
 
             mfgDate != null &&
             expDate != null &&
-            expDate!.isAfter(mfgDate!) ;
-
+            expDate!.isAfter(mfgDate!);
     }
 
 
     return StatefulBuilder(
       builder: (context, setLocalState) {
 
-        void calculateStock() {
-          final qty = double.tryParse(quantityCtrl.text) ?? 0;
-          final freeQty = double.tryParse(freeQtyCtrl.text) ?? 0;
-          final unit = double.tryParse(unitCtrl.text) ?? 0;
-
-          totalQuantity = qty + freeQty;     // ✅ TOTAL QTY
-          totalStock = totalQuantity * unit;      // ✅ TOTAL STOCK
-
-
-          setLocalState(() {});
-        }
 
         void calculatePurchaseValues() {
           final qty = double.tryParse(quantityCtrl.text) ?? 0;
@@ -1239,6 +1237,19 @@ class _InventoryPageState extends State<InventoryPage> {
 
         }
 
+        void calculateStock() {
+          final qty = double.tryParse(quantityCtrl.text) ?? 0;
+          final freeQty = double.tryParse(freeQtyCtrl.text) ?? 0;
+          final unit = double.tryParse(unitCtrl.text) ?? 0;
+
+          totalQuantity = qty + freeQty;     // ✅ TOTAL QTY
+          totalStock = totalQuantity * unit;      // ✅ TOTAL STOCK
+
+          calculatePurchaseValues();
+
+          setLocalState(() {});
+        }
+
         void resetForm() {
           nameCtrl.clear();
           ndcCtrl.clear();
@@ -1281,7 +1292,6 @@ class _InventoryPageState extends State<InventoryPage> {
           phoneDebounce?.cancel();
           setLocalState(() {});
         }
-
         return Card(
           color: Colors.white,
           margin: const EdgeInsets.all(10),
@@ -2459,18 +2469,6 @@ class _InventoryPageState extends State<InventoryPage> {
           );
         }
 
-        void calculateStock() {
-          final qty = double.tryParse(quantityCtrl.text) ?? 0;
-          final freeQty = double.tryParse(freeQtyCtrl.text) ?? 0;
-          final unit = double.tryParse(unitCtrl.text) ?? 0;
-
-          totalQuantity = qty + freeQty;     // ✅ TOTAL QTY
-          totalStock = totalQuantity * unit;      // ✅ TOTAL STOCK
-
-
-          setLocalState(() {});
-        }
-
         void calculatePurchaseValues() {
           final qty = double.tryParse(quantityCtrl.text) ?? 0;
           final rate = double.tryParse(ratePerQtyCtrl.text) ?? 0;
@@ -2514,6 +2512,18 @@ class _InventoryPageState extends State<InventoryPage> {
 
         }
 
+        void calculateStock() {
+          final qty = double.tryParse(quantityCtrl.text) ?? 0;
+          final freeQty = double.tryParse(freeQtyCtrl.text) ?? 0;
+          final unit = double.tryParse(unitCtrl.text) ?? 0;
+
+          totalQuantity = qty + freeQty;     // ✅ TOTAL QTY
+          totalStock = totalQuantity * unit;      // ✅ TOTAL STOCK
+
+          setLocalState(() {});
+        }
+
+
         Future<bool> validateBatchBackend(String batchNo) async {
           if (selectedMedicineId == null || batchNo.isEmpty) {
             return true; // allow typing
@@ -2535,7 +2545,16 @@ class _InventoryPageState extends State<InventoryPage> {
           return true; // fallback allow
         }
 
+        double purchasePricePerUnit() {
+          final rate = double.tryParse(ratePerQtyCtrl.text) ?? 0;
+          final unit = double.tryParse(unitCtrl.text) ?? 0;
+          if (unit == 0) return 0;
+          return rate / unit;
+        }
+
         bool isFormValid() {
+          final mrp = double.tryParse(mrpCtrl.text) ?? 0;
+
           return selectedMedicineId != null &&
               batchCtrl.text.isNotEmpty &&
               !isBatchTaken &&   // ✅ disable if batch exists
@@ -2551,8 +2570,8 @@ class _InventoryPageState extends State<InventoryPage> {
               profitCtrl.text.trim().isNotEmpty &&
               (double.tryParse(profitCtrl.text) ?? 0) >= 0 &&
 
-              mrpCtrl.text.trim().isNotEmpty &&
-              (double.tryParse(mrpCtrl.text) ?? 0) > 0 &&
+              mrp > 0 &&
+              mrp >= purchasePricePerUnit() &&   // ✅ call function
 
               supplierFound &&
               selectedSupplierId != null &&

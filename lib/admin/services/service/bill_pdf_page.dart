@@ -43,6 +43,9 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
     final tamilFont = pw.Font.ttf(await rootBundle.load("assets/fonts/NotoSansTamil-Regular.ttf"));
     final tamilFontBold = pw.Font.ttf(await rootBundle.load("assets/fonts/NotoSansTamil-Bold.ttf"));
     final hall = widget.shopDetails;
+    final gst = hall?['gst_number'] ?? '';
+    final dl = hall?['dl_number'] ?? '';
+    final tin = hall?['tin_number'] ?? '';
 
     final billItems = (widget.item['items'] as List<dynamic>?)
         ?.map((e) => Map<String, dynamic>.from(e))
@@ -104,6 +107,12 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                             'Email: ${hall!['email']}',
                             style: pw.TextStyle(font: tamilFont),
                           ),
+                        if (gst.isNotEmpty)
+                          pw.Text('GST No: $gst', style: pw.TextStyle(font: tamilFont)),
+                        if (dl.isNotEmpty)
+                          pw.Text('DL No: $dl', style: pw.TextStyle(font: tamilFont)),
+                        if (tin.isNotEmpty)
+                          pw.Text('TIN No: $tin', style: pw.TextStyle(font: tamilFont)),
                       ],
                     ),
                   ),

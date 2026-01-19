@@ -1,14 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'bulk_tab.dart';
-import 'reorder/reorder_list.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../public/config.dart';
 import 'app_payment.dart';
 import 'submit.dart';
-import 'add_medicines.dart';
-import 'stock_management.dart';
 import 'supplier.dart';
 
 const Color royalblue = Color(0xFF854929);
@@ -286,50 +282,6 @@ class _OtherManagePageState extends State<OtherManagePage> {
               spacing: 16,
               runSpacing: 16,
               children: [
-                _buildManageButton(
-                  icon: Icons.local_hospital,
-                  label: "Medicines",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const InventoryPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.upload_file,
-                  label: "Bulk Upload",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const BulkUploadPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.inventory_2_outlined,
-                  label: "Stock",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const StockPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.storage,
-                  label: "Reorder Medicine",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ReorderPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
                 _buildManageButton(
                   icon: Icons.people_alt_rounded,
                   label: "Supplier",

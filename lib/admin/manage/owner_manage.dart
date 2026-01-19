@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:frontend/admin/manage/bulk_tab.dart';
+import 'edit_hall.dart';
 import 'supplier.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,9 +8,7 @@ import '../../public/config.dart';
 import 'create_admin.dart';
 import 'app_payment.dart';
 import 'submit.dart';
-import 'stock_management.dart';
-import 'add_medicines.dart';
-import 'reorder/reorder_list.dart';
+
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -300,45 +298,12 @@ class _OwnerPageState extends State<OwnerPage> {
                   size: buttonSize,
                 ),
                 _buildManageButton(
-                  icon: Icons.local_hospital,
-                  label: "Medicines",
+                  icon: Icons.add_business,
+                  label: "Edit Shop",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const InventoryPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon:Icons.upload_file,
-                  label: "Bulk Upload",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const BulkUploadPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.inventory_2_outlined,
-                  label: "Stock",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const StockPage()),
-                    );
-                  },
-                  size: buttonSize,
-                ),
-                _buildManageButton(
-                  icon: Icons.storage,
-                  label: "Reorder Medicine",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ReorderPage()),
+                      MaterialPageRoute(builder: (context) => const EditHallPage()),
                     );
                   },
                   size: buttonSize,

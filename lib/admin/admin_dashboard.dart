@@ -15,6 +15,10 @@ import 'services/service/medicine_history.dart';
 import 'services/service/sales_summary.dart';
 import 'services/service/medicine_values.dart';
 import 'services/service/available_medicine.dart';
+import 'manage/reorder/reorder_list.dart';
+import 'manage/stock_management.dart';
+import 'manage/add_medicines.dart';
+import 'manage/bulk_tab.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -131,6 +135,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: _buildBillingServiceCard(screenWidth),
             ),
             SizedBox(height: 20 * boxScale),
+
+            Align(
+              alignment: Alignment.center,
+              child: _buildStockServiceCard(screenWidth),
+            ),
+            SizedBox(height: 20 * boxScale),
+            Align(
+              alignment: Alignment.center,
+              child: _buildReportsCard(
+                  screenWidth),
+
+            ),
+            SizedBox(height: 20 * boxScale),
+
+            Align(
+              alignment: Alignment.center,
+              child: _buildviewServiceCard(screenWidth),
+            ),
+
+            SizedBox(height: 20 * boxScale),
+
             Align(
               alignment: Alignment.center,
               child: _buildBookingServiceCard(
@@ -216,6 +241,93 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportsCard(double screenWidth) {
+    final buttonSize = 70.0;
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(
+          color: royal,
+          width: 1.5,
+        ),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Reports",
+                  style: TextStyle(
+                    color: royal,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {},
+                  child: const Icon(
+                    Icons.arrow_drop_down,
+                    color: royal,
+                    size: 40,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                _buildManageButton(
+                  icon: Icons.bar_chart,
+                  label: "Sales Report",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => SalesReportPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.storage,
+                  label: "Reorder Medicine",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ReorderPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.list_alt,
+                  label: "Ordered Medicine",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ReorderPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+
+              ],
             ),
           ],
         ),
@@ -406,7 +518,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [
                 Text(
-                  "Services",
+                  "History",
                   style: TextStyle(
                     color: royal,
                     fontSize: 20,
@@ -448,18 +560,65 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                   size: buttonSize,
                 ),
+
+
                 _buildManageButton(
-                  icon: Icons.bar_chart,
-                  label: "Sales Report",
+                  icon: Icons.people_alt_rounded,
+                  label: "Customer History",
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => SalesReportPage()),
+                          builder: (context) => CustomerHistoryPage()),
                     );
                   },
                   size: buttonSize,
                 ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildviewServiceCard(double screenWidth) {
+    final double buttonSize = 70.0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: royal, width: 1.5),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Text(
+                  "View",
+                  style: TextStyle(
+                    color: royal,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Icon(Icons.arrow_drop_down, color: royal, size: 40),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 16,
+              children: [
                 _buildManageButton(
                   icon: Icons.medical_services, // ✅ medicine-related icon
                   label: "Stock Value",      // Button label
@@ -486,14 +645,80 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                   size: buttonSize,
                 ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStockServiceCard(double screenWidth) {
+    final double buttonSize = 70.0;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: royal, width: 1.5),
+      ),
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Text(
+                  "Stock Management",
+                  style: TextStyle(
+                    color: royal,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Icon(Icons.arrow_drop_down, color: royal, size: 40),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 16,
+              children: [
                 _buildManageButton(
-                  icon: Icons.people_alt_rounded,
-                  label: "Customer History",
+                  icon: Icons.local_hospital,
+                  label: "Medicines",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => CustomerHistoryPage()),
+                      MaterialPageRoute(builder: (context) => const InventoryPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon:Icons.upload_file,
+                  label: "Bulk Upload",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const BulkUploadPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.inventory_2_outlined,
+                  label: "Stock",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const StockPage()),
                     );
                   },
                   size: buttonSize,

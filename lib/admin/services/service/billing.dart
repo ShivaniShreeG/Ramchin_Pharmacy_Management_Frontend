@@ -32,6 +32,14 @@ class _BillingPageState extends State<BillingPage> {
   final FocusNode qtyFocus = FocusNode();
   int highlightedIndex = -1;
   final FocusNode suggestionFocus = FocusNode();
+  final FocusNode phoneFocus = FocusNode();
+  final FocusNode customerFocus = FocusNode();
+  final FocusNode doctorFocus = FocusNode();
+  final FocusNode paymentFocus = FocusNode();
+  final FocusNode submitFocus = FocusNode();
+  bool isSubmitFocused = false;
+  int customerHighlightIndex = -1;
+  final FocusNode customerSuggestionFocus = FocusNode();
 
   final TextEditingController customerCtrl = TextEditingController();
   final TextEditingController phoneCtrl = TextEditingController();
@@ -62,12 +70,19 @@ class _BillingPageState extends State<BillingPage> {
   void initState() {
     super.initState();
     loadShopId();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      phoneFocus.requestFocus(); // 🔥 start here
+    });
   }
 
   @override
   void dispose() {
     medicineFocus.dispose();
     qtyFocus.dispose();
+    phoneFocus.dispose();
+    customerFocus.dispose();
+    doctorFocus.dispose();
+    submitFocus.dispose();
     super.dispose();
   }
 
@@ -467,6 +482,7 @@ class _BillingPageState extends State<BillingPage> {
           ),
         );
         clearBillingForm();
+        FocusScope.of(context).requestFocus(phoneFocus);
 
       } else {
         _showMessage("Failed to create bill: ${res.statusCode}");
@@ -717,11 +733,23 @@ class _BillingPageState extends State<BillingPage> {
     }
 
     setState(() {});
-
     FocusScope.of(context).unfocus(); // release RawKeyboardListener
     Future.microtask(() {
       FocusScope.of(context).requestFocus(qtyFocus);
     });
+  }
+
+  void _selectCustomer(Map<String, dynamic> customer) {
+    customerCtrl.text = customer['customer_name'];
+
+    showCustomerDropdown = false;
+    customerSuggestions.clear();
+    customerHighlightIndex = -1;
+
+    setState(() {});
+
+    /// 🔁 Move focus next
+    FocusScope.of(context).requestFocus(doctorFocus);
   }
 
 
@@ -784,6 +812,11 @@ class _BillingPageState extends State<BillingPage> {
                                         field: TextFormField(
                                           controller: phoneCtrl,
                                           cursorColor: royal,
+                                          focusNode: phoneFocus,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) {
+                                            FocusScope.of(context).requestFocus(customerFocus);
+                                          },
                                           style: TextStyle(color: royal),
                                           keyboardType: TextInputType.phone,
                                           inputFormatters: [
@@ -812,48 +845,91 @@ class _BillingPageState extends State<BillingPage> {
                                     Expanded(
                                       child: labeledField(
                                         label: "Customer Name",
-                                        field: TextFormField(
-                                          controller: customerCtrl,
-                                          style: TextStyle(color: royal),
-                                          cursorColor: royal,
-                                          decoration: _inputDecoration("Customer name"),
-                                          validator: (v) => v == null || v.isEmpty ? "Required" : null,
+                                        field: RawKeyboardListener(
+                                          focusNode: customerSuggestionFocus,
+                                          onKey: (event) {
+                                            if (!showCustomerDropdown || customerSuggestions.isEmpty) return;
+
+                                            if (event is RawKeyDownEvent) {
+                                              if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                                setState(() {
+                                                  customerHighlightIndex =
+                                                      (customerHighlightIndex + 1) % customerSuggestions.length;
+                                                });
+                                              }
+
+                                              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                                                setState(() {
+                                                  customerHighlightIndex =
+                                                      (customerHighlightIndex - 1 + customerSuggestions.length) %
+                                                          customerSuggestions.length;
+                                                });
+                                              }
+
+                                              if (event.logicalKey == LogicalKeyboardKey.enter &&
+                                                  customerHighlightIndex >= 0) {
+                                                _selectCustomer(customerSuggestions[customerHighlightIndex]);
+                                              }
+                                            }
+                                          },
+                                          child: TextFormField(
+                                            controller: customerCtrl,
+                                            focusNode: customerFocus,
+                                            textInputAction: TextInputAction.next,
+                                            cursorColor: royal,
+                                            style: const TextStyle(color: royal),
+                                            decoration: _inputDecoration("Customer name"),
+                                            onChanged: (val) {
+                                              customerHighlightIndex = -1;
+                                            },
+                                            onFieldSubmitted: (_) {
+                                              FocusScope.of(context).requestFocus(doctorFocus);
+                                            },
+                                          ),
                                         ),
                                       ),
+
                                     ),
                                   ],
                                 ),
 
                                 if (showCustomerDropdown)
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 6),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: royal.withValues(alpha: 0.4)),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      itemCount: customerSuggestions.length,
-                                      itemBuilder: (_, i) {
-                                        final c = customerSuggestions[i];
-                                        return ListTile(
-                                          title: Text(
-                                            c['customer_name'],
-                                            style: const TextStyle(color: royal),
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: customerSuggestions.length,
+                                    itemBuilder: (_, i) {
+                                      final c = customerSuggestions[i];
+                                      final bool isHighlighted = i == customerHighlightIndex;
+
+                                      return InkWell(
+                                        onTap: () => _selectCustomer(c),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: isHighlighted
+                                                ? royal.withValues(alpha: 0.15)
+                                                : Colors.white,
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          subtitle: Text(
-                                            "Last visit: ${c['last_bill_date'].toString().substring(0, 10)}",
-                                            style: const TextStyle(fontSize: 12),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                c['customer_name'],
+                                                style: const TextStyle(
+                                                  color: royal,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              Text(
+                                                "Last visit: ${c['last_bill_date'].toString().substring(0, 10)}",
+                                                style: const TextStyle(fontSize: 12),
+                                              ),
+                                            ],
                                           ),
-                                          onTap: () {
-                                            customerCtrl.text = c['customer_name'];
-                                            showCustomerDropdown = false;
-                                            customerSuggestions.clear();
-                                            setState(() {});
-                                          },
-                                        );
-                                      },
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   ),
 
                                 const SizedBox(height: 16),
@@ -866,6 +942,11 @@ class _BillingPageState extends State<BillingPage> {
                                         field: TextFormField(
                                           controller: doctorCtrl,
                                           cursorColor: royal,
+                                          focusNode: doctorFocus,
+                                          textInputAction: TextInputAction.next,
+                                          onFieldSubmitted: (_) {
+                                            FocusScope.of(context).requestFocus(medicineFocus);
+                                          },
                                           style: TextStyle(color: royal),
                                           decoration: _inputDecoration("Doctor name"),
                                         ),
@@ -1264,6 +1345,7 @@ class _BillingPageState extends State<BillingPage> {
                                         label: "Payment",
                                         field: DropdownButtonFormField<String>(
                                           initialValue: paymentMode,
+                                          focusNode: paymentFocus, // 🔥 REQUIRED
                                           decoration: _inputDecoration("Payment mode"),
                                           dropdownColor: Colors.white,
                                           icon: const Icon(
@@ -1322,22 +1404,34 @@ class _BillingPageState extends State<BillingPage> {
                           ),
 
                           const SizedBox(height: 30),
-
-                          SizedBox(
-                            width: 200,
-                            height: 50,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: royal,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                          Focus(
+                            focusNode: submitFocus,
+                            onFocusChange: (hasFocus) {
+                              setState(() {
+                                isSubmitFocused = hasFocus;
+                              });
+                            },
+                            child: SizedBox(
+                              width: 200,
+                              height: 50,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: isSubmitFocused
+                                      ? Colors.green   // 🔥 Focus color
+                                      : royal,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: isSubmitFocused
+                                        ? const BorderSide(color: Colors.green, width: 2)
+                                        : BorderSide.none,
+                                  ),
                                 ),
-                              ),
-                              onPressed: submitBill,
-                              child: const Text(
-                                "Submit",
-                                style: TextStyle(fontSize: 16, color: Colors.white),
+                                onPressed: submitBill,
+                                child: const Text(
+                                  "Submit",
+                                  style: TextStyle(fontSize: 16, color: Colors.white),
+                                ),
                               ),
                             ),
                           ),

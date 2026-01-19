@@ -386,6 +386,11 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
       };
     }).toList();
 
+    calculatedRows = List.generate(
+      controllers.length,
+          (_) => <String, dynamic>{},
+    );
+
     for (int i = 0; i < controllers.length; i++) {
       medicineNameAvailability[i] = false;
     }
@@ -568,19 +573,40 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
     final rate = double.tryParse(r["Rate_per_quantity"]!.text) ?? 0;
     final gst = double.tryParse(r["GST"]!.text) ?? 0;
     final profit = double.tryParse(r["Profit"]!.text) ?? 0;
+    final mrp = double.tryParse(r["MRP"]!.text) ?? 0;
 
     final totalQty = qty + free;
-    final stock = totalQty * unit;
-    final base = qty * rate;
-    final gstAmt = base * gst / 100;
-    final purchase = base + gstAmt;
-    final sellQty = (purchase / qty) * (1 + profit / 100);
+    final totalStock = totalQty * unit;
+
+    final baseAmount = qty * rate;
+    final gstPerQty = rate * gst / 100;
+    final totalGst = gstPerQty * qty;
+    final purchasePrice = baseAmount + totalGst;
+
+    final purchasePerQty = qty == 0 ? 0 : purchasePrice / qty;
+    final purchasePerUnit = unit == 0 ? 0 : purchasePerQty / unit;
+
+    var sellingPerQty =
+        purchasePerQty * (1 + profit / 100);
+
+    if (mrp > 0 && sellingPerQty > mrp) {
+      sellingPerQty = mrp;
+    }
+
+    final sellingPerUnit = unit == 0 ? 0 : sellingPerQty / unit;
 
     setState(() {
       calculatedRows[i] = {
-        "total_stock": stock,
-        "purchase_price": purchase,
-        "selling_price": sellQty,
+        "totalQty": totalQty,
+        "totalStock": totalStock,
+        "gstPerQty": gstPerQty,
+        "baseAmount": baseAmount,
+        "totalGst": totalGst,
+        "purchasePrice": purchasePrice,
+        "purchasePerQty": purchasePerQty,
+        "purchasePerUnit": purchasePerUnit,
+        "sellingPrice": sellingPerQty,
+        "sellingPerUnit": sellingPerUnit,
       };
     });
   }
@@ -845,7 +871,10 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
     );
   }
 
-  DataCell editInt(TextEditingController c) =>
+  DataCell editInt(
+      TextEditingController c,
+      int rowIndex,
+      ) =>
       DataCell(
         SizedBox(
           width: 90,
@@ -858,7 +887,9 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
               isDense: true,
               border: InputBorder.none,
             ),
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              recalcRow(rowIndex); // 🔥 force recalculation
+            },
           ),
         ),
       );
@@ -1096,7 +1127,9 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
                           ],
                           rows: List.generate(controllers.length, (i) {
                             final r = controllers[i];
-                            final calc = calculateValues(r);
+                            final calc = calculatedRows[i].isNotEmpty
+                                ? calculatedRows[i]
+                                : calculateValues(r);
 
                             DataCell edit(TextEditingController c) =>
                                 DataCell(
@@ -1132,9 +1165,9 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
                               edit(r["HSN_code"]!),
                               datePickerCell(controller: r["MFG_Date"]!, label: "MFG"),
                               datePickerCell(controller: r["EXP_Date"]!, label: "EXP"),
-                              editInt(r["Quantity"]!),
-                              editInt(r["Free_quantity"]!),
-                              editInt(r["Unit"]!),
+                              editInt(r["Quantity"]!,i),
+                              editInt(r["Free_quantity"]!,i),
+                              editInt(r["Unit"]!,i),
                               editCurrency(r["Rate_per_quantity"]!), // Rate
                               editPercent(r["GST"]!),               // GST %
                               editCurrency(r["MRP"]!),              // MRP

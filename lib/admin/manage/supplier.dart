@@ -243,9 +243,7 @@ class _SupplierPageState extends State<SupplierPage> {
   bool get _canSubmitSupplier {
     final name = _nameController.text.trim();
     final phone = _phoneController.text.trim();
-    final email = _emailController.text.trim();
-
-    return name.isNotEmpty && (phone.isNotEmpty || email.isNotEmpty);
+    return name.isNotEmpty && phone.isNotEmpty;
   }
 
   Widget _supplierForm() {
@@ -618,6 +616,24 @@ class _SupplierPageState extends State<SupplierPage> {
                     ),
                   ),
                   const SizedBox(height: 6),
+
+                  if (s["id"] != null && s["id"].toString().isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.perm_identity_rounded, size: 16, color: royalLight),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              s["id"].toString(),
+                              style: TextStyle(color: royal),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   // Phone
                   Row(
