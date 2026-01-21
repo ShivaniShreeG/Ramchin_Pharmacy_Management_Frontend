@@ -7,7 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../public/config.dart'; // baseUrl must be defined here
+import '../../../../services/config.dart'; // baseUrl must be defined here
 import 'package:flutter/services.dart' show rootBundle;
 import '../../../../public/main_navigation.dart';
 

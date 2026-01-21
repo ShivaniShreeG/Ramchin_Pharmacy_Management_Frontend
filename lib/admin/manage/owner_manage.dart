@@ -4,7 +4,7 @@ import 'edit_hall.dart';
 import 'supplier.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../public/config.dart';
+import '../../services/config.dart';
 import 'create_admin.dart';
 import 'app_payment.dart';
 import 'submit.dart';

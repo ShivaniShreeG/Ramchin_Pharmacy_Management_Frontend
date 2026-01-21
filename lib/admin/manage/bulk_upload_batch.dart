@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:excel/excel.dart' as excel;
 import 'package:file_picker/file_picker.dart';
-import '../../public/config.dart';
+import '../../services/config.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/foundation.dart'; // ✅ For kIsWeb
 

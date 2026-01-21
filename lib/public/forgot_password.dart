@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'config.dart';
+import '../services/config.dart';
 import 'login_page.dart';
 
 const Color royalblue = Color(0xFF854929);

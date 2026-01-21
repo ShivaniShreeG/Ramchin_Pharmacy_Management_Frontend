@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../public/config.dart';
+import '../../../services/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'sales_report.dart';
 

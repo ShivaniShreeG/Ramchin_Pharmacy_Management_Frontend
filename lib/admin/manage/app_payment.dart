@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../public/config.dart';
+import '../../services/config.dart';
 import 'package:intl/intl.dart';
 import '../../public/main_navigation.dart';
 

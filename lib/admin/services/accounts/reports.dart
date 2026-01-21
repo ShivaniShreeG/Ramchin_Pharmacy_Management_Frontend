@@ -4,7 +4,7 @@ import '../../services/accounts/reports/monthly_report_page.dart';
 import 'reports/yearly_report_page.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../../public/config.dart';
+import '../../../services/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../public/main_navigation.dart';
 import 'reports/daily_report.dart';

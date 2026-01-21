@@ -11,7 +11,7 @@ import 'app_drawer.dart';
 import 'message.dart';
 import 'app_navbar.dart';
 import 'login_page.dart';
-import '../public/config.dart';
+import '../services/config.dart';
 import 'dart:io';
 
 

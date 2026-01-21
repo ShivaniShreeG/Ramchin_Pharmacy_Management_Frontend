@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../public/config.dart';
+import '../../../services/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'package:flutter/services.dart';
 import 'bill_pdf_page.dart';
@@ -751,7 +751,6 @@ class _BillingPageState extends State<BillingPage> {
     /// 🔁 Move focus next
     FocusScope.of(context).requestFocus(doctorFocus);
   }
-
 
   @override
   Widget build(BuildContext context) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'login_page.dart';
-import 'config.dart';
+import '../services/config.dart';
 import 'edit_profile.dart';
 import 'profile.dart';
 import 'change_password.dart';
@@ -189,7 +189,7 @@ class _AppDrawerState extends State<AppDrawer> {
               children: [
                 GestureDetector(
                   onTap: () async {
-                    const url = 'https://hallbookingpolicy.ramchintech.com';
+                    const url = 'https://pharmacypolicy.ramchintech.com';
                     final uri = Uri.parse(url);
 
                     if (await canLaunchUrl(uri)) {

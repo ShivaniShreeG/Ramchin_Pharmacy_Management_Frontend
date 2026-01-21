@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'services/service/customer_history.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../public/config.dart';
+import '../services/config.dart';
 import 'services/accounts/add_income_page.dart';
 import 'services/accounts/add_expense.dart';
 import 'services/accounts/view_finance.dart';

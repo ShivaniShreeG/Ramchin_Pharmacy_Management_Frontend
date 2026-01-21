@@ -57,6 +57,20 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
       hallLogo = base64Decode(hall['logo']);
     }
 
+    String formatBillDate(String? isoDate) {
+      if (isoDate == null || isoDate.isEmpty) return '';
+
+      final date = DateTime.parse(isoDate).toLocal();
+
+      return "${date.day.toString().padLeft(2, '0')}-"
+          "${date.month.toString().padLeft(2, '0')}-"
+          "${date.year} "
+          "${date.hour.toString().padLeft(2, '0')}:"
+          "${date.minute.toString().padLeft(2, '0')}";
+    }
+    final String createdAt =
+    formatBillDate(widget.billData['created_at']?.toString());
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -144,7 +158,7 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Expanded(
-                          child: pw.Column(
+                          child:pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
                               pw.Text('Bill No : ${widget.billData['bill_id']}'),
@@ -152,18 +166,20 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                               pw.Text('Phone : ${widget.item['phone'] ?? ""}'),
                             ],
                           ),
+
                         ),
                         pw.SizedBox(width: 70),
                         pw.Expanded(
                           child: pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              if (widget.item['doctor_name'] != null &&
-                                  widget.item['doctor_name'].toString().isNotEmpty)
-                                pw.Text('Doctor : ${widget.item['doctor_name']}'),
+                              if (createdAt.isNotEmpty)
+                                pw.Text('Billed At : $createdAt'),
                               pw.Text('Billed By : ${widget.userId ?? ""}'),
                               pw.Text("Payment Mode: ${widget.item['payment_mode']}"),
-                            ],
+                              if (widget.item['doctor_name'] != null &&
+                                  widget.item['doctor_name'].toString().isNotEmpty)
+                                pw.Text('Doctor : ${widget.item['doctor_name']}'),                            ],
                           ),
                         ),
                       ],
@@ -242,14 +258,14 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(4),
                           child: pw.Text(
-                            'Rs. ${e['unit_price']}',
+                            'Rs. ${(double.tryParse(e['unit_price'].toString()) ?? 0).toStringAsFixed(2)}',
                             textAlign: pw.TextAlign.right,
                           ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(4),
                           child: pw.Text(
-                            'Rs. ${e['total_price']}',
+                            'Rs. ${(double.tryParse(e['total_price'].toString()) ?? 0).toStringAsFixed(2)}',
                             textAlign: pw.TextAlign.right,
                           ),
                         ),
@@ -263,7 +279,7 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
               pw.Align(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Text(
-                  "Grand Total: Rs.${widget.item['total']}",
+                  "Grand Total: Rs.${(double.tryParse(widget.item['total'].toString()) ?? 0).toStringAsFixed(2)}",
                   style: pw.TextStyle(
                     fontSize: 14,
                     color: royal,
