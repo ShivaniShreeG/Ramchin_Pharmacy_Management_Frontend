@@ -114,6 +114,18 @@ class _ReorderPageState extends State<ReorderPage> {
     }
   }
 
+  Future<void> _reloadPage() async {
+    setState(() => isLoading = true);
+
+    await Future.wait([
+      fetchReorderMedicines(),
+      fetchSupplierWiseReorder(),
+      _fetchSuppliers(),
+    ]);
+
+    setState(() => isLoading = false);
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -282,7 +294,7 @@ class _ReorderPageState extends State<ReorderPage> {
             ),
             const SizedBox(height: 30),
 
-            if (_suppliers.isNotEmpty)
+            if (medicines.isNotEmpty)
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -297,8 +309,8 @@ class _ReorderPageState extends State<ReorderPage> {
 
             const SizedBox(height: 12),
 
-            /// 🔹 SUPPLIER LIST (FROM SUPPLIERS API)
-            ListView.builder(
+                    if ( medicines.isNotEmpty)
+                      ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _suppliers.length,
@@ -323,17 +335,21 @@ class _ReorderPageState extends State<ReorderPage> {
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16,color: royal,),
 
                     /// ✅ SEND SELECTED SUPPLIER + ALL REORDER MEDICINES
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => SupplierReorderDetailPage(
                             shopDetails: shopDetails,
-                            supplier: supplier,        // ✅ selected supplier
-                            medicines: medicines,      // ✅ ALL reorder medicines
+                            supplier: supplier,
+                            medicines: medicines,
                           ),
                         ),
                       );
+
+                      if (result == true) {
+                        _reloadPage(); // ✅ refresh everything
+                      }
                     },
                   ),
                 );

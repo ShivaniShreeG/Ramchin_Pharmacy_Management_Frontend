@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/admin/manage/ordered/ordered_list.dart';
+import 'package:frontend/admin/manage/ordered_history.dart';
 import 'services/service/customer_history.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -321,7 +323,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ReorderPage()),
+                      MaterialPageRoute(builder: (context) => const OrderedMedicinesPage()),
                     );
                   },
                   size: buttonSize,
@@ -570,6 +572,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => CustomerHistoryPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.list_alt,
+                  label: "Ordered History",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => ReceivedOrdersHistoryPage()),
                     );
                   },
                   size: buttonSize,

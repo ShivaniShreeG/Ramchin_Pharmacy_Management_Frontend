@@ -22,7 +22,10 @@ class _BillingPageState extends State<BillingPage> {
   int? shopId;
   bool isLoading = true;
   Map<String, dynamic>? shopDetails;
+  Map<String, dynamic>? adminDetails;
   final _formKey = GlobalKey<FormState>();
+  String? adminName;
+
   List<Map<String, dynamic>> billItems = [];
   List<Map<String, dynamic>> customerSuggestions = [];
   List<Map<String, dynamic>> customerBills = [];
@@ -168,6 +171,7 @@ class _BillingPageState extends State<BillingPage> {
     userId = prefs.getString('userId');
 
     await _fetchHallDetails();
+    await _fetchAdminDetails();
 
     setState(() {
       isLoading = false; // ✅ STOP LOADING
@@ -434,61 +438,19 @@ class _BillingPageState extends State<BillingPage> {
     setState(() {});
   }
 
-  Future<void> submitBill() async {
-    if (!_formKey.currentState!.validate()) return;
-    double toTwoDecimals(num value) {
-      return double.parse(value.toStringAsFixed(2));
-    }
-
-    final body = {
-      "shop_id": shopId,
-      "user_id": userId,
-      "customer_name": customerCtrl.text,
-      "phone": phoneCtrl.text,
-      "doctor_name": doctorCtrl.text.isEmpty ? null : doctorCtrl.text,
-      "total": toTwoDecimals(billTotal),
-      "payment_mode": paymentMode,
-      "items": billItems.map((e) => {
-        "medicine_id": e['medicine_id'],
-        "medicine_name":e['medicine_name'],
-        "batch_id": e['batch_id'],
-        "quantity": e['quantity'],
-        "unit_price": toTwoDecimals(e['unit_price']),
-        "total_price":toTwoDecimals( e['total_price']),
-      }).toList(),
-    };
-
+  Future<void> _fetchAdminDetails() async {
     try {
-      final res = await http.post(
-        Uri.parse("$baseUrl/billing"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(body),
-      );
+      final url = Uri.parse('$baseUrl/details/$shopId/admins/$userId');
+      final response = await http.get(url);
 
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final response = jsonDecode(res.body);
-
-        _showMessage("Bill created successfully");
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BillDetailsPage(
-              item: body, // ✅ contains medicine_name
-              billData: response,
-              shopDetails: shopDetails,
-              userId: userId,
-            ),
-          ),
-        );
-        clearBillingForm();
-        FocusScope.of(context).requestFocus(phoneFocus);
-
-      } else {
-        _showMessage("Failed to create bill: ${res.statusCode}");
+      if (response.statusCode == 200) {
+        adminDetails = jsonDecode(response.body);
+        adminName = adminDetails!['name']; // ✅ extract name
       }
     } catch (e) {
-      _showMessage("Error: $e");
+      _showMessage("Error fetching admin details: $e");
+    } finally {
+      setState(() {});
     }
   }
 
@@ -750,6 +712,83 @@ class _BillingPageState extends State<BillingPage> {
 
     /// 🔁 Move focus next
     FocusScope.of(context).requestFocus(doctorFocus);
+  }
+
+  Future<void> submitBill() async {
+    if (!_formKey.currentState!.validate()) return;
+    double toTwoDecimals(num value) {
+      return double.parse(value.toStringAsFixed(2));
+    }
+    final uiItemData = {
+      "shop_id": shopId,
+      "user_id": userId,
+      "customer_name": customerCtrl.text,
+      "phone": phoneCtrl.text,
+      "doctor_name": doctorCtrl.text.isEmpty ? null : doctorCtrl.text,
+      "total": toTwoDecimals(billTotal),
+      "payment_mode": paymentMode,
+      "items": billItems.map((e) => {
+        "medicine_id": e['medicine_id'],
+        "medicine_name": e['medicine_name'],
+        "batch_id": e['batch_id'],
+        "batch_no": e['batch_no'],   // ✅ UI ONLY
+        "rack_no": e['rack_no'],     // ✅ UI ONLY
+        "quantity": e['quantity'],
+        "unit_price": toTwoDecimals(e['unit_price']),
+        "total_price": toTwoDecimals(e['total_price']),
+      }).toList(),
+    };
+
+    final body = {
+      "shop_id": shopId,
+      "user_id": userId,
+      "customer_name": customerCtrl.text,
+      "phone": phoneCtrl.text,
+      "doctor_name": doctorCtrl.text.isEmpty ? null : doctorCtrl.text,
+      "total": toTwoDecimals(billTotal),
+      "payment_mode": paymentMode,
+      "items": billItems.map((e) => {
+        "medicine_id": e['medicine_id'],
+        "medicine_name":e['medicine_name'],
+        "batch_id": e['batch_id'],
+        "quantity": e['quantity'],
+        "unit_price": toTwoDecimals(e['unit_price']),
+        "total_price":toTwoDecimals( e['total_price']),
+      }).toList(),
+    };
+
+    try {
+      final res = await http.post(
+        Uri.parse("$baseUrl/billing"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(body),
+      );
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final response = jsonDecode(res.body);
+
+        _showMessage("Bill created successfully");
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BillDetailsPage(
+              item: uiItemData, // ✅ contains medicine_name
+              billData: response,
+              shopDetails: shopDetails,
+              userId: adminName ?? "",
+            ),
+          ),
+        );
+        clearBillingForm();
+        FocusScope.of(context).requestFocus(phoneFocus);
+
+      } else {
+        _showMessage("Failed to create bill: ${res.statusCode}");
+      }
+    } catch (e) {
+      _showMessage("Error: $e");
+    }
   }
 
   @override

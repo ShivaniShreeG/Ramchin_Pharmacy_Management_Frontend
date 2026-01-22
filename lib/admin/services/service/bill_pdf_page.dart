@@ -37,7 +37,6 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
     pdfFuture = _buildBillPdf(); // ✅ build ONCE
   }
 
-  /// 🔹 BUILD PDF
   Future<Uint8List> _buildBillPdf() async {
     final pdf = pw.Document();
     final tamilFont = pw.Font.ttf(await rootBundle.load("assets/fonts/NotoSansTamil-Regular.ttf"));
@@ -190,24 +189,32 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
               ),
               pw.SizedBox(height: 25),
               pw.Table(
-                border: pw.TableBorder.all(width: 0.5,color: royal),
+                border: pw.TableBorder.all(width: 0.5, color: royal),
                 columnWidths: {
-                  0: const pw.FlexColumnWidth(3),
-                  1: const pw.FlexColumnWidth(1),
-                  2: const pw.FlexColumnWidth(2),
-                  3: const pw.FlexColumnWidth(2),
+                  0: const pw.FlexColumnWidth(3), // Medicine
+                  1: const pw.FlexColumnWidth(2), // Batch No
+                  2: const pw.FlexColumnWidth(1), // Qty
+                  3: const pw.FlexColumnWidth(2), // Price
+                  4: const pw.FlexColumnWidth(2), // Total
                 },
                 children: [
                   pw.TableRow(
-                    // header row – white background
                     decoration: const pw.BoxDecoration(
-                      color: PdfColors.white, // <-- was grey300
+                      color: PdfColors.white,
                     ),
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(4),
                         child: pw.Text(
                           'Medicine',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(4),
+                        child: pw.Text(
+                          'Batch',
+                          textAlign: pw.TextAlign.center,
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
                       ),
@@ -241,12 +248,19 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                   ...billItems.map(
                         (e) => pw.TableRow(
                       decoration: const pw.BoxDecoration(
-                        color: PdfColors.white, // optional, default is white
+                        color: PdfColors.white,
                       ),
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(4),
                           child: pw.Text(e['medicine_name'] ?? ''),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text(
+                            e['batch_no']?.toString() ?? '-',
+                            textAlign: pw.TextAlign.center,
+                          ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(4),
@@ -258,14 +272,14 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(4),
                           child: pw.Text(
-                            'Rs. ${(double.tryParse(e['unit_price'].toString()) ?? 0).toStringAsFixed(2)}',
+                            '₹ ${(double.tryParse(e['unit_price'].toString()) ?? 0).toStringAsFixed(2)}',
                             textAlign: pw.TextAlign.right,
                           ),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(4),
                           child: pw.Text(
-                            'Rs. ${(double.tryParse(e['total_price'].toString()) ?? 0).toStringAsFixed(2)}',
+                            '₹ ${(double.tryParse(e['total_price'].toString()) ?? 0).toStringAsFixed(2)}',
                             textAlign: pw.TextAlign.right,
                           ),
                         ),
@@ -274,12 +288,13 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                   ),
                 ],
               ),
+
               pw.Divider(thickness: 1,color: royal),
               pw.SizedBox(height: 8),
               pw.Align(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Text(
-                  "Grand Total: Rs.${(double.tryParse(widget.item['total'].toString()) ?? 0).toStringAsFixed(2)}",
+                  "Grand Total: ₹ ${(double.tryParse(widget.item['total'].toString()) ?? 0).toStringAsFixed(2)}",
                   style: pw.TextStyle(
                     fontSize: 14,
                     color: royal,
@@ -287,6 +302,19 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
                   ),
                 ),
               ),
+              pw.SizedBox(height: 8),
+
+              pw.Center(
+                child: pw.Text(
+                  "Wishing you a speedy recovery!",
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontStyle: pw.FontStyle.italic,
+                    color: royal,
+                  ),
+                ),
+              ),
+
               pw.SizedBox(height: 8),
             ],
           );
@@ -344,14 +372,14 @@ class _BillDetailsPageState extends State<BillDetailsPage> {
         buffer.writeln(
           "${i + 1}. ${m['medicine_name'] ?? ''}\n"
               "    Qty   : ${m['quantity']}\n"
-              "    Price : Rs. ${m['unit_price']}\n"
-              "    Total : Rs. ${m['total_price']}\n",
+              "    Price : ₹ ${m['unit_price']}\n"
+              "    Total : ₹ ${m['total_price']}\n",
         );
       }
     }
 
     buffer.writeln("---------------------------");
-    buffer.writeln("GRAND TOTAL : Rs. ${item['total'] ?? ''}");
+    buffer.writeln("GRAND TOTAL : ₹ ${item['total'] ?? ''}");
     buffer.writeln("");
     buffer.writeln("Thank you for choosing us 🙏");
     buffer.writeln("```");

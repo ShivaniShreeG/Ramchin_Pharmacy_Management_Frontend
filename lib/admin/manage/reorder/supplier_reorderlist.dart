@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'supplier_reorder_pdf_page.dart';
 import '../../../public/main_navigation.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../../../services/config.dart';
 
 const Color royal = Color(0xFF875C3F);
 
@@ -38,6 +42,88 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
     }
   }
 
+  void _submitReorder() async {
+    final List<Map<String, dynamic>> items = [];
+
+    for (var m in widget.medicines) {
+      final id = m['medicine_id'];
+
+      if (!selectedMedicines.contains(id)) continue;
+
+      final qty = int.tryParse(qtyControllers[id]!.text) ?? 0;
+      if (qty > 0) {
+        items.add({
+          "medicine_id": id,
+          "quantity": qty,
+        });
+      }
+    }
+
+    if (items.isEmpty) return;
+
+    // 🔔 CONFIRMATION DIALOG
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: Border.all(color: royal),
+          title: const Text('Confirm Reorder'),
+          content: SingleChildScrollView(
+            child: Text(_buildConfirmMessage(items)),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel',style: TextStyle(color: royal),),
+              onPressed: () => Navigator.pop(ctx, false),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: royal),
+              child: const Text('Confirm',style: TextStyle(color: Colors.white),),
+              onPressed: () => Navigator.pop(ctx, true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    // 🔥 API CALL
+    final payload = {
+      "supplier_id": widget.supplier['id'],
+      "items": items,
+    };
+
+    final shopId = widget.shopDetails!['shop_id'];
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/reorder/order/$shopId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Reorder submitted successfully")),
+        );
+
+        // ✅ MOVE TO GENERATE REORDER LIST PAGE
+        _goToGeneratePage(items);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed: ${response.body}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+
   @override
   void dispose() {
     for (var c in qtyControllers.values) {
@@ -64,22 +150,41 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
     }
   }
 
-  void _generatePdf() {
-    final List<Map<String, dynamic>> finalList = [];
+  String _buildConfirmMessage(List<Map<String, dynamic>> items) {
+    final buffer = StringBuffer();
 
-    for (var m in widget.medicines) {
-      final id = m['medicine_id'];
-      if (!selectedMedicines.contains(id)) continue;
+    buffer.writeln(
+      'Do you want to order the following medicines from ${widget.supplier['name']}?\n',
+    );
 
-      final qty = int.tryParse(qtyControllers[id]!.text) ?? 0;
-      if (qty > 0) {
-        finalList.add({...m, 'required_qty': qty});
-      }
+    for (final item in items) {
+      final medicine = widget.medicines.firstWhere(
+            (m) => m['medicine_id'] == item['medicine_id'],
+      );
+
+      buffer.writeln(
+        '• ${medicine['medicine_name']}  ×  ${item['quantity']}',
+      );
     }
 
-    if (finalList.isEmpty) return;
+    return buffer.toString();
+  }
 
-    Navigator.push(
+  Future<void> _goToGeneratePage(List<Map<String, dynamic>> items) async {
+    final List<Map<String, dynamic>> finalList = [];
+
+    for (final item in items) {
+      final medicine = widget.medicines.firstWhere(
+            (m) => m['medicine_id'] == item['medicine_id'],
+      );
+
+      finalList.add({
+        ...medicine,
+        'required_qty': item['quantity'],
+      });
+    }
+
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => SupplierReorderPdfPage(
@@ -89,6 +194,9 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
         ),
       ),
     );
+
+    Navigator.pop(context, result); // 🔥 passes true back
+
   }
 
   @override
@@ -173,6 +281,9 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
                               cursorColor: royal,
                               style: TextStyle(color: royal),
                               keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly, // ✅ ONLY DIGITS
+                              ],
                               decoration: InputDecoration(
                                 labelText: "Required Quantity",
                                 labelStyle: TextStyle(color: royal),
@@ -196,24 +307,14 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
                     ),
                   );
                 }),
-
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text("Generate List"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: royal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        onPressed: isAllQtyEntered ? _generatePdf : null,
-                      ),
-                    ),
+                ElevatedButton(
+                  child:  Text("Submit Reorder"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: royal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
+                  onPressed: isAllQtyEntered ? _submitReorder : null,
                 ),
               ],
             ),

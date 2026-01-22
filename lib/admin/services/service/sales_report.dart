@@ -168,6 +168,13 @@ class _SalesReportPdfPageState extends State<SalesReportPdfPage> {
                 headerDecoration: pw.BoxDecoration(color: royal),
                 cellAlignment: pw.Alignment.centerLeft,
                 cellPadding: const pw.EdgeInsets.all(6),
+                cellAlignments: {
+                  0: pw.Alignment.centerLeft,   // Medicine
+                  1: pw.Alignment.center,       // Units
+                  2: pw.Alignment.center,       // Strips
+                  3: pw.Alignment.centerRight,  // Sales
+                  4: pw.Alignment.centerRight,  // Profit
+                },
                 headers: ['Medicine', 'Units', 'Strips', 'Sales', 'Profit'],
                 data: medicineWise.map((m) {
                   return [

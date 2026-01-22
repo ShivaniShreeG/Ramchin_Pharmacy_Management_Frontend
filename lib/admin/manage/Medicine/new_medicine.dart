@@ -106,6 +106,10 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
     }
   }
 
+  double truncateTo2Decimals(double value) {
+    return (value * 100).truncate() / 100;
+  }
+
   void calculatePurchaseValues() {
     final qty = double.tryParse(quantityCtrl.text) ?? 0;
     final rate = double.tryParse(ratePerQtyCtrl.text) ?? 0;
@@ -113,7 +117,6 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
     final unit = double.tryParse(unitCtrl.text) ?? 0;
     final mrp = double.tryParse(mrpCtrl.text) ?? 0;
     final profitPercent = double.tryParse(profitCtrl.text) ?? 0;
-
 
     if (qty <= 0 || unit <= 0) {
       purchasePerUnit = 0;
@@ -123,30 +126,30 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
       setState(() {});
       return;
     }
-    baseAmount = qty * rate;
+
+    baseAmount = truncateTo2Decimals(qty * rate);
 
     // GST
-    gstPerQuantity = rate * gstPercent / 100;
-    totalGstAmount = gstPerQuantity * qty;
+    gstPerQuantity = truncateTo2Decimals(rate * gstPercent / 100);
+    totalGstAmount = truncateTo2Decimals(gstPerQuantity * qty);
 
     // PURCHASE PRICE
-    purchasePrice = baseAmount + totalGstAmount;
-    purchasePerQuantity = purchasePrice / qty;   // ✔ strip price
-    purchasePerUnit = purchasePerQuantity / unit; // ✔ tablet price
-    if (purchasePerQuantity <= 0 || qty <= 0) return;
+    purchasePrice = truncateTo2Decimals(baseAmount + totalGstAmount);
+    purchasePerQuantity = truncateTo2Decimals(purchasePrice / qty);
+    purchasePerUnit = truncateTo2Decimals(purchasePerQuantity / unit);
 
     // Profit-based selling
     final calculatedSelling =
         purchasePerQuantity + (purchasePerQuantity * profitPercent / 100);
 
-    // ✅ MRP CAP
-    sellingPerQuantity = calculatedSelling > mrp ? mrp : calculatedSelling;
+    // MRP CAP
+    sellingPerQuantity = truncateTo2Decimals(
+        calculatedSelling > mrp ? mrp : calculatedSelling);
 
-    // Quantity price
-    sellingPerUnit = sellingPerQuantity / unit;
+    // Selling per unit
+    sellingPerUnit = truncateTo2Decimals(sellingPerQuantity / unit);
+
     setState(() {});
-    // TOTAL STOCK
-
   }
 
   void calculateStock() {
@@ -161,7 +164,6 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
 
     setState(() {});
   }
-
 
   Future<void> submitMedicine() async {
     if (!isFormValid()) return;

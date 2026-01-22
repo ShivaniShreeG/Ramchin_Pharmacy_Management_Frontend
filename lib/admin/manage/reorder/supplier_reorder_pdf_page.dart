@@ -189,8 +189,13 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return WillPopScope(
+        onWillPop: () async {
+          Navigator.pop(context, true); // ✅ return success to previous page
+          return false; // prevent default back
+        },
+        child: Scaffold(
+          appBar: AppBar(
         backgroundColor: royal,
         title: const Text("Reorder PDF", style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -241,7 +246,6 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
 
-              /// PRINT
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -279,7 +283,7 @@ class _SupplierReorderPdfPageState extends State<SupplierReorderPdfPage> {
           ),
         ),
       ),
-
+        ),
     );
   }
 }
