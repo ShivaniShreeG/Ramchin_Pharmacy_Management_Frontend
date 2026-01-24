@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-
-const Color royalblue = Color(0xFF854929);
-const Color royal = Color(0xFF875C3F);
-const Color royalLight = Color(0xFF916542);
+import '../widget/color_theme.dart';
 
 class BottomNavbar extends StatelessWidget {
   final int currentIndex;

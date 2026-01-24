@@ -685,7 +685,7 @@ class _BillingPageState extends State<BillingPage> {
     selectedBatches = (med['batches'] as List<dynamic>)
         .where((b) =>
     (b as Map<String, dynamic>)['available_qty'] != null &&
-        ((b as Map<String, dynamic>)['available_qty'] as int) > 0)
+        ((b)['available_qty'] as int) > 0)
         .map((b) => b as Map<String, dynamic>)
         .toList();
 
@@ -837,6 +837,7 @@ class _BillingPageState extends State<BillingPage> {
                   children: [
                        Column(
                         children: [
+
                           _sectionCard(
                             title: "Billing Details",
                             child: Column(

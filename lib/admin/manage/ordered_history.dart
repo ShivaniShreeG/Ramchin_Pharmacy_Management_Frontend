@@ -201,7 +201,7 @@ class _ReceivedOrdersHistoryPageState extends State<ReceivedOrdersHistoryPage> {
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<int>(
-                    value: selectedMonth,
+                    initialValue: selectedMonth,
                     dropdownColor: Colors.white,
                     iconEnabledColor: royal,   // ✅ arrow color
                     iconDisabledColor: royal,  // ✅ if disabled
@@ -224,7 +224,7 @@ class _ReceivedOrdersHistoryPageState extends State<ReceivedOrdersHistoryPage> {
                   const SizedBox(height: 14),
 
                   DropdownButtonFormField<int>(
-                    value: selectedYear,
+                    initialValue: selectedYear,
                     dropdownColor: Colors.white,
                     iconEnabledColor: royal,   // ✅ arrow color
                     iconDisabledColor: royal,  // ✅ if disabled

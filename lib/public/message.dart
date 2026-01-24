@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/config.dart';
-import '../admin/manage/app_payment.dart';
-
-const Color royalblue = Color(0xFF854929);
-const Color royal = Color(0xFF875C3F);
-const Color royalLight = Color(0xFF916542);
+import '../admin/manage/app_payment.dart' hide royal;
+import '../widget/color_theme.dart';
 
 class AdminMessagesPage extends StatefulWidget {
   const AdminMessagesPage({super.key});

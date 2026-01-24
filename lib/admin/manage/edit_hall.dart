@@ -215,15 +215,14 @@ class _EditHallPageState extends State<EditHallPage> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: royal,
-                      backgroundImage: _selectedImage != null
-                          ? FileImage(_selectedImage!)
-                          : (_base64Logo != null
+                      backgroundImage: _base64Logo != null
                           ? MemoryImage(base64Decode(_base64Logo!))
-                          : null) as ImageProvider?,
-                      child: _selectedImage == null && _base64Logo == null
+                          : null,
+                      child: _base64Logo == null
                           ? const Icon(Icons.add_a_photo, color: Colors.white, size: 40)
                           : null,
                     ),
+
                   ),
                 ),
                 const SizedBox(height: 16),

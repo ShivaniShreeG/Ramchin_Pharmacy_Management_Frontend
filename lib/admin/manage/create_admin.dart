@@ -17,7 +17,6 @@ class CreateAdminPage extends StatefulWidget {
 
 class _CreateAdminPageState extends State<CreateAdminPage> {
   final _formKey = GlobalKey<FormState>();
-
   final _userIdController = TextEditingController();
   final _passwordController = TextEditingController(text: "abc123");
   String _designation = "Staff";
@@ -146,7 +145,7 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     if (shopId == null) return;
 
     try {
-      final url = Uri.parse("$baseUrl/admins/$shopId");
+      final url = Uri.parse("$baseUrl/admins/user/details/active/$shopId");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -235,7 +234,8 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
         _showMessage("✅ Admin $userId deleted successfully");
        
       } else {
-        _showMessage("❌ Failed to delete admin: ${response.body}");
+        final responseData = jsonDecode(response.body);
+        _showMessage("❌ ${responseData['message']}");
       }
     } catch (e) {
       _showMessage("❌ Error deleting admin: $e");
@@ -604,6 +604,20 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
     );
   }
 
+  Future<void> _fetchHallDetails(int shopId) async {
+    try {
+      final url = Uri.parse('$baseUrl/shops/$shopId');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        shopDetails = jsonDecode(response.body);
+      }
+    } catch (e) {
+      _showMessage("Error fetching hall details: $e");
+    } finally {
+      setState(() {});
+    }
+  }
+
   Widget _buildAdminCard(Map<String, dynamic> admin) {
     return Card(
       elevation: 2,
@@ -682,30 +696,30 @@ class _CreateAdminPageState extends State<CreateAdminPage> {
         ? (screenWidth - 16 * 2 - 12) / 2 // 2 per row
         : screenWidth; // 1 per row
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: _admins.map((admin) {
-        return SizedBox(
-          width: isWide ? cardWidth : double.infinity,
-          child: _buildAdminCard(admin),
-        );
-      }).toList(),
-    );
-  }
+    // Filter out the current user
+    final prefs = SharedPreferences.getInstance();
+    return FutureBuilder<SharedPreferences>(
+      future: prefs,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox();
+        final currentUserId = snapshot.data!.getString("userId");
 
-  Future<void> _fetchHallDetails(int shopId) async {
-    try {
-      final url = Uri.parse('$baseUrl/shops/$shopId');
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        shopDetails = jsonDecode(response.body);
-      }
-    } catch (e) {
-      _showMessage("Error fetching hall details: $e");
-    } finally {
-      setState(() {});
-    }
+        final adminsToShow = _admins
+            .where((admin) => admin["user_id"] != currentUserId)
+            .toList();
+
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: adminsToShow.map((admin) {
+            return SizedBox(
+              width: isWide ? cardWidth : double.infinity,
+              child: _buildAdminCard(admin),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 
   Widget labeledTanRow({

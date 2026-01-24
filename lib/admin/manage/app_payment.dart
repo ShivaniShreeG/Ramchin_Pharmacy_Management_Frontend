@@ -25,8 +25,8 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   List<dynamic> paymentHistory = [];
   int? shopId;
   Map<String, dynamic>? shopData;
+  bool isPaymentInProgress = false;
 
-  
   String formatDate(String dateStr) {
     try {
       final date = DateTime.parse(dateStr);
@@ -121,6 +121,9 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   }
 
   void _startRazorpay(Map<String, dynamic> payment) {
+    setState(() {
+      isPaymentInProgress = true;
+    });
     final total = payment['totalAmount'] ?? payment['amount'] ?? 0;
 
     final options = {
@@ -137,11 +140,15 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
     try {
       _razorpay.open(options);
     } catch (e) {
+      isPaymentInProgress = false;
       _showMessage("Razorpay error: $e");
     }
   }
 
   Future<void> _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    setState(() {
+      isPaymentInProgress = false;
+    });
     _showMessage("✅ Payment Successful!");
     if (currentPayment != null) {
       await _updatePaymentStatus(
@@ -154,6 +161,9 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
   }
 
   Future<void> _handlePaymentError(PaymentFailureResponse response) async {
+    setState(() {
+      isPaymentInProgress = false;
+    });
     _showMessage("❌ Payment Failed: ${response.message}");
     if (currentPayment != null) {
       await _updatePaymentStatus(currentPayment!['id'], 'FAILED', null);
@@ -213,25 +223,36 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("App Payment"),
-        backgroundColor: royal,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.home, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MainNavigation(initialIndex: 2)),
-              );
-            },
+    return WillPopScope(
+        onWillPop: () async {
+          // ❌ Disable back during payment
+          if (isPaymentInProgress) {
+            _showMessage("Payment in progress. Please wait.");
+            return false;
+          }
+          return true;
+        },
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            automaticallyImplyLeading: !isPaymentInProgress, // ⛔ hide back arrow
+            title: const Text("App Payment"),
+            backgroundColor: royal,
+            foregroundColor: Colors.white,
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.home, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MainNavigation(initialIndex: 2)),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: royal))
           : RefreshIndicator(
@@ -272,7 +293,9 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
                 ),
                 elevation: 4,
               ),
-              onPressed: canPay() ? _handlePaymentAction : null,
+              onPressed: (!isPaymentInProgress && canPay())
+                  ? _handlePaymentAction
+                  : null,
             ),
 
             const SizedBox(height: 24),
@@ -311,6 +334,7 @@ class _AppPaymentPageState extends State<AppPaymentPage> {
               ),
           ),
       ),
+    ),
     );
   }
 

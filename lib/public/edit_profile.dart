@@ -4,10 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../services/config.dart';
 import 'package:flutter/services.dart';
-
-const Color royalblue = Color(0xFF854929);
-const Color royal = Color(0xFF875C3F);
-const Color royalLight = Color(0xFF916542);
+import '../widget/color_theme.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});

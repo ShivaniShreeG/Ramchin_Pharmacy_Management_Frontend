@@ -6,10 +6,6 @@ import '../../../services/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'package:intl/intl.dart';
 
-
-const Color royalblue = Color(0xFF854929);
-const Color royal = Color(0xFF875C3F);
-
 class BatchDetailPage extends StatefulWidget {
   final Map medicine;
   final Map batch;

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/config.dart';
 import '../../public/main_navigation.dart';
+import 'view_status.dart';
 
 const Color royalblue = Color(0xFF854929);
 const Color royal = Color(0xFF875C3F);
@@ -86,7 +87,6 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -125,7 +125,33 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 10),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  icon: Icon(Icons.list_alt, color: royal, size: 20),
+                  label: Text(
+                    "View Status",
+                    style: TextStyle(color: royal, fontSize: 14),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    backgroundColor: royalLight.withOpacity(0.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => TicketStatusPage()),
+                    );
+                  },
+                ),
+              ),
               const SizedBox(height: 60),
+
               Icon(Icons.support_agent, color: royal, size: 60),
               const SizedBox(height: 20),
               Text(
@@ -208,7 +234,6 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
                   onPressed: _isLoading ? null : _submitTicket,
                 ),
               ),
-
               const SizedBox(height: 50),
             ],
           ),

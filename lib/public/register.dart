@@ -412,14 +412,16 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
                       onTap: _pickImage,
                       child: CircleAvatar(
                         radius: 50,
-                        backgroundColor: royal.withValues(alpha: 0.3),
-                        backgroundImage:
-                        _pickedImage != null ? FileImage(_pickedImage!) : null,
-                        child: _pickedImage == null
+                        backgroundColor: royal.withAlpha(80),
+                        backgroundImage: _pickedImageBase64 != null
+                            ? MemoryImage(base64Decode(_pickedImageBase64!))
+                            : null,
+                        child: _pickedImageBase64 == null
                             ? Icon(Icons.add_a_photo, color: royal, size: 40)
                             : null,
                       ),
                     ),
+
                     const SizedBox(height: 8),
                     Text(
                       "Tap to upload shop logo",

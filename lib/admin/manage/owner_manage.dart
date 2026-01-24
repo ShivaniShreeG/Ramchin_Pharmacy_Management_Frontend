@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:frontend/admin/manage/active_user.dart';
 import 'edit_hall.dart';
 import 'supplier.dart';
 import 'package:http/http.dart' as http;
@@ -293,6 +294,17 @@ class _OwnerPageState extends State<OwnerPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const CreateAdminPage()),
+                    );
+                  },
+                  size: buttonSize,
+                ),
+                _buildManageButton(
+                  icon: Icons.manage_accounts,
+                  label: "Activate Staff",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AdminStatusPage()),
                     );
                   },
                   size: buttonSize,

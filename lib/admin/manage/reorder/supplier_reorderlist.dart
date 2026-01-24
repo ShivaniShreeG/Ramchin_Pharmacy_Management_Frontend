@@ -106,22 +106,42 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Reorder submitted successfully")),
-        );
+        showMessage("Reorder submitted successfully");
 
         // ✅ MOVE TO GENERATE REORDER LIST PAGE
         _goToGeneratePage(items);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed: ${response.body}")),
-        );
+        showMessage("Failed: ${response.body}");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      showMessage("Error: $e");
     }
+  }
+
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+        backgroundColor: royal,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -194,8 +214,8 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
         ),
       ),
     );
-
-    Navigator.pop(context, result); // 🔥 passes true back
+    if(!mounted)return;
+    Navigator.pop(context, result);
 
   }
 
@@ -308,13 +328,13 @@ class _SupplierReorderDetailPageState extends State<SupplierReorderDetailPage> {
                   );
                 }),
                 ElevatedButton(
-                  child:  Text("Submit Reorder"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: royal,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: isAllQtyEntered ? _submitReorder : null,
+                  child:  Text("Submit Reorder"),
                 ),
               ],
             ),

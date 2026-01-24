@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../public/main_navigation.dart';
 import '../../../services/config.dart';
 
-const Color royal = Color(0xFF875C3F);
+const royal = Color(0xFF875C3F);
 
 class OrderedMedicinesPage extends StatefulWidget {
   const OrderedMedicinesPage({super.key});
@@ -18,13 +18,11 @@ class _OrderedMedicinesPageState extends State<OrderedMedicinesPage> {
   bool isLoading = true;
   int? shopId;
   Map<String, dynamic>? shopDetails;
-
   List<Map<String, dynamic>> allOrders = [];
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // ✅ key: order_id
   final Map<int, bool> allOrderSelection = {};
 
   @override
@@ -118,6 +116,32 @@ class _OrderedMedicinesPageState extends State<OrderedMedicinesPage> {
     );
   }
 
+  void showMessage(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+        backgroundColor: royal,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _submitReceivedOrders(List<Map<String, dynamic>> orders) async {
     try {
       final payloadOrders = orders.map((o) {
@@ -132,23 +156,17 @@ class _OrderedMedicinesPageState extends State<OrderedMedicinesPage> {
       );
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Orders received successfully")),
-        );
+        showMessage("Orders received successfully");
 
         allOrderSelection.clear();
 
         await _fetchAllOrders();
         setState(() {});
       } else {
-        debugPrint("Receive failed: ${res.statusCode} ${res.body}");
-        throw Exception("Failed to submit orders");
+        showMessage("Failed to submit orders");
       }
     } catch (e) {
-      debugPrint("Submit error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Something went wrong")),
-      );
+      showMessage("Something went wrong");
     }
   }
 
@@ -270,7 +288,6 @@ class _OrderedMedicinesPageState extends State<OrderedMedicinesPage> {
       }) {
     final medicine = order['medicine'] ?? {};
     final supplier = order['supplier'] ?? {};
-
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),

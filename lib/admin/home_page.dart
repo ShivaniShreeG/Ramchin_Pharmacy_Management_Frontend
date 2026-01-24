@@ -365,7 +365,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-
   Widget _buildCurrentBalanceBox(double cash, double textScale, double boxScale) {
     return Container(
       decoration: BoxDecoration(

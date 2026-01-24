@@ -228,23 +228,38 @@ class _ManagePageState extends State<ManagePage> with RouteAware {
             const SizedBox(height: 16),
             _buildTextField(_addressController, 'Address', maxLines: 2),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.upload, color: royal),
-              label: const Text("Upload Logo", style: TextStyle(color: royal)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-              ),
-            ),
-            if (_pickedImageBase64 != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor:Colors.white,
-                  backgroundImage: MemoryImage(base64Decode(_pickedImageBase64!)),
+            // ElevatedButton.icon(
+            //   onPressed: _pickImage,
+            //   icon: const Icon(Icons.upload, color: royal),
+            //   label: const Text("Upload Logo", style: TextStyle(color: royal)),
+            //   style: ElevatedButton.styleFrom(
+            //     backgroundColor: Colors.white,
+            //   ),
+            // ),
+            // if (_pickedImageBase64 != null)
+              Center(
+                child: GestureDetector(
+                  onTap: _pickImage, // tap to pick new logo
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: royal.withAlpha(80),
+                    backgroundImage: _pickedImageBase64 != null
+                        ? MemoryImage(base64Decode(_pickedImageBase64!))
+                        : null,
+                    child: _pickedImageBase64 == null
+                        ? Icon(Icons.add_a_photo, color: royal, size: 40)
+                        : null,
+                  ),
                 ),
               ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                "Tap to select/change logo",
+                style: TextStyle(color: royal.withAlpha(180), fontSize: 14),
+              ),
+            ),
+
             const SizedBox(height: 24),
             _isLoading
                 ? const CircularProgressIndicator(color: royal)
