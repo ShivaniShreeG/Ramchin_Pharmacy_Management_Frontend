@@ -803,7 +803,7 @@ class _ExistingMedicineWidgetState extends State<ExistingMedicineWidget> {
                     summaryBox(
                       width: columnWidth,
                       isDesktop: isDesktop,
-                      text: "Total Quantity: ₹$totalQuantity"
+                      text: "Total Quantity: $totalQuantity"
                     ),
                     const SizedBox(height: 14),
                     Center(
