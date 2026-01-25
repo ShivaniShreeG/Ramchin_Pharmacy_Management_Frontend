@@ -300,6 +300,21 @@ class _StockPageState extends State<StockPage> {
 
   Widget batchCardFullUI(Map<String, dynamic> batch) {
     final medicine = batch['medicine'];
+    final Map<String, dynamic>? purchaseDetails =
+    batch['purchase_details'] as Map<String, dynamic>?;
+    final bool hasPurchasedDetails =
+        shouldShow(batch['quantity']) ||
+            shouldShow(batch['free_quantity']) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['rate_per_quantity'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['gst_percent'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['gst_per_quantity'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['base_amount'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['total_gst_amount'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['purchase_price'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['purchase_date'])) ||
+            shouldShow(batch['supplier']?['name']) ||
+            shouldShow(batch['supplier']?['phone']) ||
+            shouldShow(batch['HSN']);
 
     return Card(
       elevation: 4,
@@ -425,9 +440,8 @@ class _StockPageState extends State<StockPage> {
               ),
             ),
 
-
-            /// 🔹 Purchase details
-            Container(
+            if (hasPurchasedDetails)
+              Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -468,24 +482,24 @@ class _StockPageState extends State<StockPage> {
                             infoRow("Purchased Quantity", batch['quantity'].toString()),
                           if (shouldShow(batch['free_quantity']))
                             infoRow("Free Quantity", batch['free_quantity'].toString()),
-                          if (shouldShow(batch['purchase_details']['rate_per_quantity']))
-                            infoRow("Rate/ Quantity", "₹${batch['purchase_details']['rate_per_quantity']}"),
-                          if (shouldShow(batch['purchase_details']['gst_percent']))
-                            infoRow("GST %/Quantity", "${batch['purchase_details']['gst_percent']}%"),
-                          if (shouldShow(batch['purchase_details']['gst_per_quantity']))
-                            infoRow("GST Amount/Quantity", "₹${batch['purchase_details']['gst_per_quantity']}"),
-                          if (shouldShow(batch['purchase_details']['base_amount']))
-                            infoRow("Base Amount", "₹${batch['purchase_details']['base_amount']}"),
-                          if (shouldShow(batch['purchase_details']['total_gst_amount']))
-                            infoRow("Total GST Amount", "₹${batch['purchase_details']['total_gst_amount']}"),
-                          if (shouldShow(batch['purchase_details']['purchase_price']))
-                            infoRow("Purchased price", "₹${batch['purchase_details']['purchase_price']}"),
+                          if (purchaseDetails != null &&shouldShow(purchaseDetails['rate_per_quantity']))
+                            infoRow("Rate/ Quantity", "₹${purchaseDetails['rate_per_quantity']}"),
+                          if (purchaseDetails != null &&shouldShow(purchaseDetails['gst_percent']))
+                            infoRow("GST %/Quantity", "${purchaseDetails['gst_percent']}%"),
+                          if (purchaseDetails != null &&shouldShow(purchaseDetails['gst_per_quantity']))
+                            infoRow("GST Amount/Quantity", "₹${purchaseDetails['gst_per_quantity']}"),
+                          if (purchaseDetails != null &&shouldShow(purchaseDetails['base_amount']))
+                            infoRow("Base Amount", "₹${purchaseDetails['base_amount']}"),
+                          if (purchaseDetails != null &&shouldShow(purchaseDetails['total_gst_amount']))
+                            infoRow("Total GST Amount", "₹${purchaseDetails['total_gst_amount']}"),
+                          if (purchaseDetails != null &&shouldShow(purchaseDetails['purchase_price']))
+                            infoRow("Purchased price", "₹${purchaseDetails['purchase_price']}"),
                           if (shouldShow(batch['supplier']?['name']))
                             infoRow("Supplier Name", batch['supplier']?['name'] ?? "-",),
                           if (shouldShow(batch['supplier']?['phone']))
                             infoRow("Supplier Phone", batch['supplier']?['phone'] ?? "-",),
-                          if (shouldShow(batch['purchase_details']['purchase_date']))
-                            infoRow("Date", formatDate(batch['purchase_details']['purchase_date'])),
+                          if (purchaseDetails != null && shouldShow(purchaseDetails['purchase_date']))
+                            infoRow("Date", formatDate(purchaseDetails['purchase_date'])),
 
                         ],
                       ),

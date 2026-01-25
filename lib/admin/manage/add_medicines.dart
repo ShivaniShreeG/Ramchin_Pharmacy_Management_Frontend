@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../services/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'dart:async';
+import 'Medicine/existinng_medicine.dart';
 import 'Medicine/new_medicine.dart';
 import 'Medicine/new_batch.dart';
 
@@ -29,6 +30,7 @@ class InventoryPageState extends State<InventoryPage> {
   List<Map<String, dynamic>> filteredMedicines = [];
   List<String> backendCategories = [];
   bool isCategoryLoading = false;
+  bool showExistingMedicine = false;
 
 
   @override
@@ -534,8 +536,28 @@ class InventoryPageState extends State<InventoryPage> {
   Widget batchTileImproved({
     required Map<String, dynamic> batch,
     required String medicineName,
-  }) {
+
+  })
+  {
+    final Map<String, dynamic>? purchaseDetails =
+    batch['purchase_details'] as Map<String, dynamic>?;
+    final bool hasPurchasedDetails =
+        shouldShow(batch['quantity']) ||
+            shouldShow(batch['free_quantity']) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['rate_per_quantity'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['gst_percent'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['gst_per_quantity'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['base_amount'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['total_gst_amount'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['purchase_price'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['purchase_date'])) ||
+            shouldShow(batch['supplier']?['name']) ||
+            shouldShow(batch['supplier']?['phone']) ||
+            shouldShow(batch['HSN']);
+
     return Container(
+
+
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -553,6 +575,7 @@ class InventoryPageState extends State<InventoryPage> {
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           title: Row(
             children: [
+
               Expanded(
                 child: Text(
                   "${batch['batch_no']}",
@@ -677,7 +700,8 @@ class InventoryPageState extends State<InventoryPage> {
                   const SizedBox(width: 32),
 
                   // ================= PURCHASED DETAILS =================
-                  Expanded(
+                  if (hasPurchasedDetails)
+                    Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -694,35 +718,35 @@ class InventoryPageState extends State<InventoryPage> {
                           infoRow("Purchased Quantity", batch['quantity'].toString()),
                         if (shouldShow(batch['free_quantity']))
                           infoRow("Free Quantity", batch['free_quantity'].toString()),
-                        if (shouldShow(batch['purchase_details']['rate_per_quantity']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['rate_per_quantity']))
                           infoRow(
                             "Rate / Quantity",
-                            "₹${batch['purchase_details']['rate_per_quantity']}",
+                            "₹${purchaseDetails['rate_per_quantity']}",
                           ),
-                        if (shouldShow(batch['purchase_details']['gst_percent']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['gst_percent']))
                           infoRow(
                             "GST %",
-                            "${batch['purchase_details']['gst_percent']}%",
+                            "${purchaseDetails['gst_percent']}%",
                           ),
-                        if (shouldShow(batch['purchase_details']['gst_per_quantity']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['gst_per_quantity']))
                           infoRow(
                             "GST Amount / Qty",
-                            "₹${batch['purchase_details']['gst_per_quantity']}",
+                            "₹${purchaseDetails['gst_per_quantity']}",
                           ),
-                        if (shouldShow(batch['purchase_details']['base_amount']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['base_amount']))
                           infoRow(
                             "Base Amount",
-                            "₹${batch['purchase_details']['base_amount']}",
+                            "₹${purchaseDetails['base_amount']}",
                           ),
-                        if (shouldShow(batch['purchase_details']['total_gst_amount']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['total_gst_amount']))
                           infoRow(
                             "Total GST Amount",
-                            "₹${batch['purchase_details']['total_gst_amount']}",
+                            "₹${purchaseDetails['total_gst_amount']}",
                           ),
-                        if (shouldShow(batch['purchase_details']['purchase_price']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['purchase_price']))
                           infoRow(
                             "Purchased Price",
-                            "₹${batch['purchase_details']['purchase_price']}",
+                            "₹${purchaseDetails['purchase_price']}",
                           ),
                         if (shouldShow(batch['supplier']?['name']))
                           infoRow("Supplier Name", batch['supplier']?['name'] ?? "-"),
@@ -730,10 +754,10 @@ class InventoryPageState extends State<InventoryPage> {
                           infoRow("Supplier Phone", batch['supplier']?['phone'] ?? "-"),
                         if (shouldShow(batch['HSN']))
                           infoRow("HSN Code", batch['HSN'] ?? "-"),
-                        if (shouldShow(batch['purchase_details']['purchase_date']))
+                        if (purchaseDetails != null && shouldShow(purchaseDetails['purchase_date']))
                           infoRow(
                             "Purchase Date",
-                            formatDate(batch['purchase_details']['purchase_date']),
+                            formatDate(purchaseDetails['purchase_date']),
                           ),
                       ],
                     ),
@@ -801,8 +825,8 @@ class InventoryPageState extends State<InventoryPage> {
                               ),
 
                               const SizedBox(height: 12),
-
-                              Column(
+                              if (hasPurchasedDetails)
+                                Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Center(
@@ -820,24 +844,24 @@ class InventoryPageState extends State<InventoryPage> {
                                         infoRowMob("Purchased Quantity", batch['quantity'].toString()),
                                       if (shouldShow(batch['free_quantity']))
                                         infoRowMob("Free Quantity", batch['free_quantity'].toString()),
-                                      if (shouldShow(batch['purchase_details']['rate_per_quantity']))
-                                        infoRowMob("Rate/ Quantity", "₹${batch['purchase_details']['rate_per_quantity']}"),
-                                      if (shouldShow(batch['purchase_details']['gst_percent']))
-                                        infoRowMob("GST %/Quantity", "${batch['purchase_details']['gst_percent']}%"),
-                                      if (shouldShow(batch['purchase_details']['gst_per_quantity']))
-                                        infoRowMob("GST Amount/Quantity", "₹${batch['purchase_details']['gst_per_quantity']}"),
-                                      if (shouldShow(batch['purchase_details']['base_amount']))
-                                        infoRowMob("Base Amount", "₹${batch['purchase_details']['base_amount']}"),
-                                      if (shouldShow(batch['purchase_details']['total_gst_amount']))
-                                        infoRowMob("Total GST Amount", "₹${batch['purchase_details']['total_gst_amount']}"),
-                                      if (shouldShow(batch['purchase_details']['purchase_price']))
-                                        infoRowMob("Purchased price", "₹${batch['purchase_details']['purchase_price']}"),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['rate_per_quantity']))
+                                        infoRowMob("Rate/ Quantity", "₹${purchaseDetails['rate_per_quantity']}"),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['gst_percent']))
+                                        infoRowMob("GST %/Quantity", "${purchaseDetails['gst_percent']}%"),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['gst_per_quantity']))
+                                        infoRowMob("GST Amount/Quantity", "₹${purchaseDetails['gst_per_quantity']}"),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['base_amount']))
+                                        infoRowMob("Base Amount", "₹${purchaseDetails['base_amount']}"),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['total_gst_amount']))
+                                        infoRowMob("Total GST Amount", "₹${purchaseDetails['total_gst_amount']}"),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['purchase_price']))
+                                        infoRowMob("Purchased price", "₹${purchaseDetails['purchase_price']}"),
                                       if (shouldShow(batch['supplier']?['name']))
                                         infoRowMob("Supplier Name", batch['supplier']?['name'] ?? "-",),
                                       if (shouldShow(batch['supplier']?['phone']))
                                         infoRowMob("Supplier Phone", batch['supplier']?['phone'] ?? "-",),
-                                      if (shouldShow(batch['purchase_details']['purchase_date']))
-                                        infoRowMob("Date", formatDate(batch['purchase_details']['purchase_date'])),
+                                      if (purchaseDetails != null && shouldShow(purchaseDetails['purchase_date']))
+                                        infoRowMob("Date", formatDate(purchaseDetails['purchase_date'])),
                                     ],
                                   ),
                                 ],
@@ -988,13 +1012,9 @@ class InventoryPageState extends State<InventoryPage> {
                 style: outlinedRoyalButton,
                 onPressed: () {
                   setState(() {
-                    // Toggle medicine form
                     showAddMedicine = !showAddMedicine;
-
-                    // Close batch form
                     showAddBatch = false;
-
-                    // Clear forms when opening/closing
+                    showExistingMedicine = false;
                   });
                 },
                 child: Text(
@@ -1008,12 +1028,9 @@ class InventoryPageState extends State<InventoryPage> {
                 style: outlinedRoyalButton,
                 onPressed: () {
                   setState(() {
-                    // Toggle batch form
                     showAddBatch = !showAddBatch;
-
-                    // Close medicine form
                     showAddMedicine = false;
-
+                    showExistingMedicine = false;
                   });
                 },
                 child: Text(
@@ -1022,6 +1039,31 @@ class InventoryPageState extends State<InventoryPage> {
               ),
             ),
           ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // 🔹 NEW BUTTON
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: SizedBox(
+            width: double.infinity,  // ← makes button full-width
+            child: ElevatedButton(
+              style: outlinedRoyalButton,
+              onPressed: () {
+                setState(() {
+                  showExistingMedicine = !showExistingMedicine;
+                  showAddMedicine = false;
+                  showAddBatch = false;
+                });
+              },
+              child: Text(
+                showExistingMedicine
+                    ? "Close Existing Medicines"
+                    : "Add Existing Medicine",
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -1085,6 +1127,13 @@ class InventoryPageState extends State<InventoryPage> {
                       shopId: shopId.toString(),
                       fetchMedicines: fetchMedicines,
                       onClose: (val) => setState(() => showAddMedicine = val),
+                      categories: backendCategories,
+                    ),
+                  if (showExistingMedicine)
+                    ExistingMedicineWidget(
+                      shopId: shopId.toString(),
+                      fetchMedicines: fetchMedicines,
+                      onClose: (val) => setState(() => showExistingMedicine = val),
                       categories: backendCategories,
                     ),
                   if (showAddBatch)

@@ -162,6 +162,66 @@ class _AddBatchFormState extends State<AddBatchForm> {
     );
   }
 
+  Future<void> submitBatch() async {
+    if (!isFormValid()) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => confirmBatchDialog(),
+    );
+
+    if (ok != true) return;
+
+    double d2(double value) => double.parse(value.toStringAsFixed(2));
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/inventory/medicine/$selectedMedicineId/batch"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "shop_id": widget.shopId,
+        "batch_no": batchCtrl.text,
+        "mfg_date": mfgDate?.toIso8601String(),
+        "exp_date": expDate?.toIso8601String(),
+        "rack_no": rackCtrl.text,
+        "quantity": int.parse(quantityCtrl.text),
+        "free_quantity": int.tryParse(freeQtyCtrl.text) ?? 0,
+        "total_quantity": d2(totalQuantity),
+        "unit": int.parse(unitCtrl.text),
+        "total_stock": d2(totalStock),
+        "mrp": d2(double.parse(mrpCtrl.text)),
+        "supplier_id": selectedSupplierId,
+        "hsncode": hsnCtrl.text,
+        "purchase_details": {
+          "purchase_date": purchaseDate.toIso8601String(),
+          "rate_per_quantity": d2(double.parse(ratePerQtyCtrl.text)),
+          "gst_percent": d2(double.tryParse(gstCtrl.text) ?? 0),
+          "gst_per_quantity": d2(gstPerQuantity),
+          "base_amount": d2(baseAmount),
+          "total_gst_amount": d2(totalGstAmount),
+          "purchase_price": d2(purchasePrice),
+        },
+        "purchase_price_per_unit": d2(purchasePerUnit),
+        "purchase_price_per_quantity": d2(purchasePerQuantity),
+        "selling_price_per_unit": d2(sellingPerUnit),
+        "selling_price_per_quantity": d2(sellingPerQuantity),
+        "profit_percent": d2(double.tryParse(profitCtrl.text) ?? 0),
+        "reason": "New Batch",
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      // ✅ Only reset and close on success
+      resetForm();
+      widget.onClose(false);
+      widget.fetchMedicines();
+    } else {
+      // ❌ Show error if submission fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to submit batch. Please try again.")),
+      );
+    }
+  }
+
   double truncateTo2Decimals(double value) {
     return (value * 100).truncate() / 100;
   }
@@ -1183,9 +1243,7 @@ class _AddBatchFormState extends State<AddBatchForm> {
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isFormValid() ? royal : Colors.grey,
-                            // enabled/disabled color
                             foregroundColor: isFormValid() ? Colors.white : royal,
-                            // text color
                             elevation: 0,
                             side: BorderSide(
                               color: isFormValid() ? royal : Colors.grey.shade700,
@@ -1196,58 +1254,7 @@ class _AddBatchFormState extends State<AddBatchForm> {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          onPressed: isFormValid()
-                              ? () async {
-                            final ok = await showDialog<bool>(
-                              context: context,
-                              builder: (_) => confirmBatchDialog(),
-                            );
-                            double d2(double value) =>
-                                double.parse(value.toStringAsFixed(2));
-                            if (ok != true) return;
-                            await http.post(
-                              Uri.parse(
-                                  "$baseUrl/inventory/medicine/$selectedMedicineId/batch"),
-                              headers: {"Content-Type": "application/json"},
-                              body: jsonEncode({
-                                "shop_id": widget.shopId,
-                                "batch_no": batchCtrl.text,
-                                "mfg_date": mfgDate?.toIso8601String(),
-                                "exp_date": expDate?.toIso8601String(),
-                                "rack_no": rackCtrl.text,
-                                "quantity": int.parse(quantityCtrl.text),
-                                "free_quantity": int.tryParse(freeQtyCtrl.text) ?? 0,
-                                "total_quantity": d2(totalQuantity),
-                                "unit": int.parse(unitCtrl.text),
-                                "total_stock": d2(totalStock),
-                                "mrp": d2(double.parse(mrpCtrl.text)),
-                                "supplier_id": selectedSupplierId,
-                                "hsncode": hsnCtrl.text,
-
-                                "purchase_details": {
-                                  "purchase_date": purchaseDate.toIso8601String(),
-                                  "rate_per_quantity": d2(double.parse(ratePerQtyCtrl.text)),
-                                  "gst_percent": d2(double.tryParse(gstCtrl.text) ?? 0),
-                                  "gst_per_quantity": d2(gstPerQuantity),
-                                  "base_amount": d2(baseAmount),
-                                  "total_gst_amount": d2(totalGstAmount),
-                                  "purchase_price": d2(purchasePrice),
-                                },
-
-                                "purchase_price_per_unit": d2(purchasePerUnit),
-                                "purchase_price_per_quantity": d2(purchasePerQuantity),
-                                "selling_price_per_unit": d2(sellingPerUnit),
-                                "selling_price_per_quantity": d2(sellingPerQuantity),
-                                "profit_percent": d2(double.tryParse(profitCtrl.text) ?? 0),
-                                "reason": "New Batch",
-                              }),
-                            );
-
-                            resetForm();
-                            widget.onClose(false);
-                            widget.fetchMedicines();
-                          }
-                              : null,
+                          onPressed: isFormValid() ? submitBatch : null,
                           child: const Text("Submit Batch"),
                         ),
                       ),

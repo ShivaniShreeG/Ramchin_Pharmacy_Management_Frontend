@@ -178,7 +178,7 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
     final finalCategory =
     isOtherCategory ? otherCategoryCtrl.text.trim() : selectedCategory;
 
-    await http.post(
+    final response = await http.post(
       Uri.parse("$baseUrl/inventory/medicine"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
@@ -201,25 +201,37 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
         "hsncode": hsnCtrl.text,
         "purchase_details": {
           "purchase_date": purchaseDate.toIso8601String(),
-          "rate_per_quantity":
-          double.tryParse(ratePerQtyCtrl.text) ?? 0,
+          "rate_per_quantity": double.tryParse(ratePerQtyCtrl.text) ?? 0,
           "gst_percent": double.tryParse(gstCtrl.text) ?? 0,
           "gst_per_quantity": double.parse(gstPerQuantity.toStringAsFixed(2)),
           "base_amount": double.parse(baseAmount.toStringAsFixed(2)),
           "total_gst_amount": double.parse(totalGstAmount.toStringAsFixed(2)),
           "purchase_price": double.parse(purchasePrice.toStringAsFixed(2)),
         },
-        "purchase_price_per_unit": double.parse(purchasePerUnit.toStringAsFixed(2)),
-        "purchase_price_per_quantity": double.parse(purchasePerQuantity.toStringAsFixed(2)),
-        "selling_price_per_unit": double.parse(sellingPerUnit.toStringAsFixed(2)),
-        "selling_price_per_quantity": double.parse(sellingPerQuantity.toStringAsFixed(2)),
-        "profit_percent": double.tryParse(profitCtrl.text) ?? 0
+        "purchase_price_per_unit":
+        double.parse(purchasePerUnit.toStringAsFixed(2)),
+        "purchase_price_per_quantity":
+        double.parse(purchasePerQuantity.toStringAsFixed(2)),
+        "selling_price_per_unit":
+        double.parse(sellingPerUnit.toStringAsFixed(2)),
+        "selling_price_per_quantity":
+        double.parse(sellingPerQuantity.toStringAsFixed(2)),
+        "profit_percent": double.tryParse(profitCtrl.text) ?? 0,
       }),
     );
 
-    resetForm();
-    widget.onClose(false);
-    widget.fetchMedicines();
+    // ✅ SUCCESS ONLY
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      resetForm();
+      widget.onClose(false);   // 👈 close only on success
+      widget.fetchMedicines();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to add medicine. Please try again."),
+        ),
+      );
+    }
   }
 
   void resetForm() {

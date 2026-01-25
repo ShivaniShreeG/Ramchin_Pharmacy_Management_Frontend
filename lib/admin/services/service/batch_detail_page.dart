@@ -275,9 +275,31 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
     );
   }
 
+  bool shouldShow(dynamic value) {
+    if (value == null) return false;
+    if (value is String && value.trim().isEmpty) return false;
+    if (value is num && value == 0) return false;
+    return true;
+  }
+
   Widget _infoCard() {
     final m = widget.medicine;
     final b = widget.batch;
+    final Map<String, dynamic>? purchaseDetails =
+    b['purchase_details'] as Map<String, dynamic>?;
+    final bool hasPurchasedDetails =
+        shouldShow(b['quantity']) ||
+            shouldShow(b['free_quantity']) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['rate_per_quantity'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['gst_percent'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['gst_per_quantity'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['base_amount'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['total_gst_amount'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['purchase_price'])) ||
+            (purchaseDetails != null && shouldShow(purchaseDetails['purchase_date'])) ||
+            shouldShow(b['supplier']?['name']) ||
+            shouldShow(b['supplier']?['phone']) ||
+            shouldShow(b['HSN']);
 
     return Card(
       elevation: 4,
@@ -353,25 +375,60 @@ class _BatchDetailPageState extends State<BatchDetailPage> {
               "MRP",
               b['mrp'] != null ? "₹${b['mrp']}" : null,
             ),
-            _infoRowIfNotEmpty("Profit %", "${b['profit']}%"),
+            _infoRowIfNotEmpty(
+              "Profit %",
+              b['profit'] != null ? "${b['profit']}%" : null,
+            ),
+            if(hasPurchasedDetails)
+              const Divider(height: 24,color: royal,),
 
-            const Divider(height: 24,color: royal,),
-
-            /// ───── PURCHASE & SUPPLIER ─────
-            _cardSectionTitle("Purchased Details", Icons.store),
-            _infoRowIfNotEmpty("Supplier Name", b['supplier']['name']),
-            _infoRowIfNotEmpty("Supplier Phone", b['supplier']['phone']),
+            if(hasPurchasedDetails)
+              _cardSectionTitle("Purchased Details", Icons.store),
+            _infoRowIfNotEmpty("Supplier Name", b['supplier']?['name']),
+            _infoRowIfNotEmpty("Supplier Phone", b['supplier']?['phone']),
             _infoRowIfNotEmpty("HSN Code", b['HSN']),
             _infoRowIfNotEmpty("Purchased Quantity", b['quantity']),
             _infoRowIfNotEmpty("Free Quantity", b['free_quantity']),
-            _infoRowIfNotEmpty("Rate/ Quantity", b['purchase_details']['rate_per_quantity'] != null ? "₹${b['purchase_details']['rate_per_quantity']}" : null,),
-            _infoRowIfNotEmpty("GST %/Quantity", b['purchase_details']['gst_percent'] != null ? "${b['purchase_details']['gst_percent']}%" : null,),
-            _infoRowIfNotEmpty("GST Amount/Quantity", b['purchase_details']['gst_per_quantity'] != null ? "₹${b['purchase_details']['gst_per_quantity']}" : null,),
-            _infoRowIfNotEmpty("Base Amount", b['purchase_details']['base_amount'] != null ? "₹${b['purchase_details']['base_amount']}" : null,),
-            _infoRowIfNotEmpty("Total GST Amount", b['purchase_details']['total_gst_amount'] != null ? "₹${b['purchase_details']['total_gst_amount']}" : null,),
-            _infoRowIfNotEmpty("Purchase Price", b['purchase_details']['purchase_price'] != null ? "₹${b['purchase_details']['purchase_price']}" : null,),
-            _infoRowIfNotEmpty("Purchase Date", _formatDate(b['purchase_details']['purchase_date'])),
-
+            _infoRowIfNotEmpty(
+              "Rate/ Quantity",
+              purchaseDetails?['rate_per_quantity'] != null
+                  ? "₹${purchaseDetails?['rate_per_quantity']}"
+                  : null,
+            ),
+            _infoRowIfNotEmpty(
+              "GST %/Quantity",
+              purchaseDetails?['gst_percent'] != null
+                  ? "${purchaseDetails?['gst_percent']}%"
+                  : null,
+            ),
+            _infoRowIfNotEmpty(
+              "GST Amount/Quantity",
+              purchaseDetails?['gst_per_quantity'] != null
+                  ? "₹${purchaseDetails?['gst_per_quantity']}"
+                  : null,
+            ),
+            _infoRowIfNotEmpty(
+              "Base Amount",
+              purchaseDetails?['base_amount'] != null
+                  ? "₹${purchaseDetails?['base_amount']}"
+                  : null,
+            ),
+            _infoRowIfNotEmpty(
+              "Total GST Amount",
+              purchaseDetails?['total_gst_amount'] != null
+                  ? "₹${purchaseDetails?['total_gst_amount']}"
+                  : null,
+            ),
+            _infoRowIfNotEmpty(
+              "Purchase Price",
+              purchaseDetails?['purchase_price'] != null
+                  ? "₹${purchaseDetails?['purchase_price']}"
+                  : null,
+            ),
+            _infoRowIfNotEmpty(
+              "Purchase Date",
+              _formatDate(purchaseDetails?['purchase_date']),
+            ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../public/main_navigation.dart';
+import 'bulk_upload_exist.dart';
 import 'bulk_upload_medicine.dart'; // import your medicine page
 import 'bulk_upload_batch.dart'; // import your batch page
 
@@ -18,11 +19,13 @@ class _BulkUploadPageState extends State<BulkUploadPage> {
   final List<String> _appBarTitles = const [
     "Medicine Bulk Upload",
     "Batch Bulk Upload",
+    "Exist Medicine Bulk Upload"
   ];
 
   final List<Widget> _pages = const [
     BulkUploadMedicinePage(),
     BulkUploadBatchPage(),
+    BulkUploadMedicineExistPage(),
   ];
 
   void _onTabTapped(int index) {
@@ -70,6 +73,10 @@ class _BulkUploadPageState extends State<BulkUploadPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.upload_file),
             label: "Batch",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.upload_rounded),
+            label: "Exist_Medicine",
           ),
         ],
       ),

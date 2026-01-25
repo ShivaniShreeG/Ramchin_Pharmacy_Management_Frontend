@@ -1,0 +1,10 @@
+^D:\NEW FOLDER\PHARMACY_MANAGEMENT\FRONTEND\BUILD\WINDOWS\X64\CMAKEFILES\2E00CB5B15D226FA1A389A5EA6756CED\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" "-SD:/New folder/pharmacy_management/frontend/windows" "-BD:/New folder/pharmacy_management/frontend/build/windows/x64" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "D:/New folder/pharmacy_management/frontend/build/windows/x64/RamchinPharmacyManagement.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
