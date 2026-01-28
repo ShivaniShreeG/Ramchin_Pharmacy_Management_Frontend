@@ -21,7 +21,7 @@ class CreateHallOwnerPage extends StatefulWidget {
 class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
   final _formKey = GlobalKey<FormState>();
   bool _loading = false;
-  File? _pickedImage;
+  File? pickedImage;
   String? _pickedImageBase64;
   bool verifying = false;
 
@@ -82,7 +82,7 @@ class _CreateHallOwnerPageState extends State<CreateHallOwnerPage> {
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
-        _pickedImage = File(pickedFile.path);
+        pickedImage = File(pickedFile.path);
         _pickedImageBase64 = base64Encode(bytes);
       });
     }

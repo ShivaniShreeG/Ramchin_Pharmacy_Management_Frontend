@@ -324,6 +324,7 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
   late List<Map<String, dynamic>> calculatedRows;
   Map<String, String> supplierNameCache = {};
   Map<int, bool?> medicineNameAvailability = {};
+  Map<int, bool> duplicateMedicine = {};
 
   int? shopId;
 
@@ -394,6 +395,10 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
     for (int i = 0; i < controllers.length; i++) {
       medicineNameAvailability[i] = false;
     }
+    for (int i = 0; i < controllers.length; i++) {
+      duplicateMedicine[i] = false;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       validateAllMedicineNames();
     });
@@ -459,6 +464,31 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
       return name;
     }
     return null;
+  }
+
+  void validateDuplicateMedicines() {
+    final nameMap = <String, List<int>>{};
+
+    for (int i = 0; i < controllers.length; i++) {
+      final name = controllers[i]["MEDICINE_NAME"]!.text.trim().toLowerCase();
+      if (name.isEmpty) continue;
+
+      nameMap.putIfAbsent(name, () => []).add(i);
+    }
+
+    // reset
+    for (int i = 0; i < controllers.length; i++) {
+      duplicateMedicine[i] = false;
+    }
+
+    // mark duplicates
+    nameMap.forEach((_, indexes) {
+      if (indexes.length > 1) {
+        for (final i in indexes) {
+          duplicateMedicine[i] = true;
+        }
+      }
+    });
   }
 
   Map<String, double> calculateValues(Map<String, TextEditingController> r) {
@@ -646,7 +676,9 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
-                suffixIcon: medicineNameAvailability[rowIndex] == null
+                suffixIcon: duplicateMedicine[rowIndex] == true
+                    ? const Icon(Icons.error, color: Colors.orange, size: 18)
+                    : medicineNameAvailability[rowIndex] == null
                     ? const SizedBox(
                   width: 16,
                   height: 16,
@@ -661,6 +693,7 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
                       : Colors.red,
                   size: 18,
                 ),
+
               ),
               onChanged: (value) {
                 if (debounce?.isActive ?? false) debounce!.cancel();
@@ -677,6 +710,8 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
                   if (controller.text.trim() == value.trim()) {
                     setState(() {
                       medicineNameAvailability[rowIndex] = available;
+                      validateDuplicateMedicines(); // 🔥 ADD THIS
+
                     });
                   }
                 });
@@ -977,10 +1012,10 @@ class _BulkBatchMedicineUploadState extends State<BulkBatchMedicineUpload> {
 
       // Medicine & Supplier validation
       final medicineValid = medicineNameAvailability[i] == true;
-      final supplierValid =
-      supplierNameCache.containsKey("$shopId-${r["Supplier_id"]!.text}");
+      final supplierValid = supplierNameCache.containsKey("$shopId-${r["Supplier_id"]!.text}");
+      final noDuplicate = duplicateMedicine[i] == false;
 
-      if (!medicineValid || !supplierValid) return false;
+      if (!medicineValid || !supplierValid|| !noDuplicate) return false;
     }
 
     return true;

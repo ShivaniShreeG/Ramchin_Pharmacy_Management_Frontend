@@ -38,7 +38,6 @@ class _ExistingMedicineWidgetState extends State<ExistingMedicineWidget> {
 
   DateTime? mfgDate;
   DateTime? expDate;
-  DateTime purchaseDate = DateTime.now();
 
   final batchCtrl = TextEditingController(text: "01");
   final rackCtrl = TextEditingController();
@@ -188,7 +187,6 @@ class _ExistingMedicineWidgetState extends State<ExistingMedicineWidget> {
 
     mfgDate = null;
     expDate = null;
-    purchaseDate = DateTime.now();
 
     totalQuantity = 0;
     totalStock = 0;
@@ -289,14 +287,12 @@ class _ExistingMedicineWidgetState extends State<ExistingMedicineWidget> {
                     mfgDate?.toLocal().toString().split(' ')[0] ?? "-"),
                 infoTile("EXP Date",
                     expDate?.toLocal().toString().split(' ')[0] ?? "-"),
-                infoTile("Purchase Date",
-                    purchaseDate.toLocal().toString().split(' ')[0]),
 
                 const Divider(color: royal),
 
                 /// 🔹 STOCK
                 infoTile("Total Quantity", totalQuantity.toString()),
-                infoTile("Unit / Qty", unitCtrl.text),
+                infoTile("Unit Per Pack", unitCtrl.text),
                 infoTile("Total Stock", totalStockCtrl.text),
 
 
@@ -345,6 +341,9 @@ class _ExistingMedicineWidgetState extends State<ExistingMedicineWidget> {
           unitCtrl.text.trim().isNotEmpty &&
           unitValue > 0 &&
           stockValue >= 0 &&
+          sellingPerUnit > 0 &&
+          sellingPerQuantity > 0 &&
+
           mfgDate != null &&
           expDate != null &&
           expDate!.isAfter(mfgDate!);

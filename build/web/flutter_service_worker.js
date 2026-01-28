@@ -3,8 +3,8 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"assets/AssetManifest.bin": "6d8503bcd6d48780909022473b9447c3",
-"assets/AssetManifest.bin.json": "07cdb681c29be2d4c69782b62170be93",
+const RESOURCES = {"assets/AssetManifest.bin": "dd4a874bd2f0f3b0a0ce5bb2fdd5db4b",
+"assets/AssetManifest.bin.json": "d3fc5fe32f450f68b2547bf0692cc583",
 "assets/assets/fonts/NotoSansTamil-Bold.ttf": "7526079191b411cac08291541e4b14d8",
 "assets/assets/fonts/NotoSansTamil-Regular.ttf": "ef60ee4b035cd3cabf5ff8003606a840",
 "assets/assets/good%2520times%2520rg.ttf": "39636dd7d7cd4a3a84d9a73a23b30770",
@@ -12,8 +12,9 @@ const RESOURCES = {"assets/AssetManifest.bin": "6d8503bcd6d48780909022473b9447c3
 "assets/assets/medicine.xlsx": "892dba9a4dfe763ec4ec14d5a77bc85e",
 "assets/assets/medicinebatch.xlsx": "37d82d6e9f96f3e6a47f10695296d73f",
 "assets/assets/medicine_exist.xlsx": "18eb89620d2008ce2b4466a5a7772083",
+"assets/assets/medicine_exist_batch.xlsx": "87ec77509b3c8d9613403904ea439bbc",
 "assets/FontManifest.json": "de5a7c324c63b6dc1a52645d518123b5",
-"assets/fonts/MaterialIcons-Regular.otf": "94d915babb8bd4566f478477c5878a57",
+"assets/fonts/MaterialIcons-Regular.otf": "fac65ad888a36973c0ef2e629fbe25fd",
 "assets/NOTICES": "5be573f414d990b48343ab9638b471a6",
 "assets/packages/cupertino_icons/assets/CupertinoIcons.ttf": "33b7d9392238c04c131b6ce224e13711",
 "assets/packages/fluttertoast/assets/toastify.css": "a85675050054f179444bc5ad70ffc635",
@@ -34,7 +35,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "6d8503bcd6d48780909022473b9447c3
 "canvaskit/skwasm_heavy.wasm": "b0be7910760d205ea4e011458df6ee01",
 "favicon.png": "1449f2b84897b875934a4e0ce1c6c9a3",
 "flutter.js": "24bc71911b75b5f8135c949e27a2984e",
-"flutter_bootstrap.js": "c645e95f3079d43b934ee72a7003134d",
+"flutter_bootstrap.js": "b70f664db2033a0aa019536a3991bf8e",
 "icons/1.png": "ac9a721a12bbc803b44f645561ecb1e1",
 "icons/2.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/3.png": "c457ef57daa1d16f64b27b786ec2ea3c",
@@ -45,7 +46,7 @@ const RESOURCES = {"assets/AssetManifest.bin": "6d8503bcd6d48780909022473b9447c3
 "icons/Icon-maskable-512.png": "2998e84fb751a850505a44e2be1c67b7",
 "index.html": "708439649f66728cf6202203164d2f10",
 "/": "708439649f66728cf6202203164d2f10",
-"main.dart.js": "6c9375ae4cf6f38fd15a69c2d2bcfa96",
+"main.dart.js": "6b14cabb8d70a8b2406687ed5b641382",
 "manifest.json": "2f9afad04da7f2a7cd48479475c94738",
 "version.json": "eaabc96ee7b210f1cace1c622f80eeca"};
 // The application shell files that are downloaded before a service worker can

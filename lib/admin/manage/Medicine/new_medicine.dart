@@ -367,7 +367,7 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
                     freeQtyCtrl.text.trim() != "0")
                   infoTile("Free Qty", freeQtyCtrl.text),
                 infoTile("Total Quantity", totalQuantity.toString()),
-                infoTile("Unit / Qty", unitCtrl.text),
+                infoTile("Unit Per Pack", unitCtrl.text),
                 infoTile("Total Stock", totalStock.toString()),
 
                 const Divider(color: royal),
@@ -919,7 +919,7 @@ class _AddMedicineFormState extends State<AddMedicineForm> {
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
-                        label: "Unit",
+                        label: "Unit Per Pack",
                         field: TextFormField(
                           controller: unitCtrl,
                           focusNode: unitFocus,

@@ -239,6 +239,7 @@ class _BulkUploadMedicineExistPageState extends State<BulkUploadMedicineExistPag
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       backgroundColor: Colors.white,
       body: isLoadingShop
           ? const Center(child: CircularProgressIndicator())
@@ -319,6 +320,7 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
   late List<Map<String, dynamic>> calculatedRows;
   Map<int, bool?> medicineNameAvailability = {};
   Map<int, String?> lastEditedField = {};
+  Map<int, bool> duplicateMedicine = {};
 
   int? shopId;
 
@@ -370,6 +372,7 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
 
     for (int i = 0; i < controllers.length; i++) {
       medicineNameAvailability[i] = false;
+      duplicateMedicine[i] = false;
 
       // 🔥 IMPORTANT PART
       if (controllers[i]["sellingPrice"]!.text.isNotEmpty &&
@@ -381,6 +384,7 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       validateAllMedicineNames();
+      validateDuplicateMedicines(); // 🔥 ADD THIS
     });
   }
 
@@ -422,6 +426,9 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
 
       setState(() {
         medicineNameAvailability[i] = available;
+      });
+      setState(() {
+        validateDuplicateMedicines();
       });
     }
   }
@@ -482,6 +489,31 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
         ],
       ),
     );
+  }
+
+  void validateDuplicateMedicines() {
+    final nameMap = <String, List<int>>{};
+
+    for (int i = 0; i < controllers.length; i++) {
+      final name = controllers[i]["MEDICINE_NAME"]!.text.trim().toLowerCase();
+      if (name.isEmpty) continue;
+
+      nameMap.putIfAbsent(name, () => []).add(i);
+    }
+
+    // reset
+    for (int i = 0; i < controllers.length; i++) {
+      duplicateMedicine[i] = false;
+    }
+
+    // mark duplicates
+    nameMap.forEach((_, indexes) {
+      if (indexes.length > 1) {
+        for (final i in indexes) {
+          duplicateMedicine[i] = true;
+        }
+      }
+    });
   }
 
   Map<String, dynamic> calculateValues(
@@ -545,7 +577,7 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
     return
       // ✅ medicine name must be valid
       medicineNameAvailability[i] == true &&
-
+          duplicateMedicine[i] == false &&
           // ❗ REQUIRED fields (except NDC)
           notEmpty("MEDICINE_NAME") &&
           notEmpty("Category") &&
@@ -609,7 +641,9 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
-                suffixIcon: medicineNameAvailability[rowIndex] == null
+                suffixIcon: duplicateMedicine[rowIndex] == true
+                    ? const Icon(Icons.error, color: Colors.orange, size: 18)
+                    : medicineNameAvailability[rowIndex] == null
                     ? const SizedBox(
                   width: 16,
                   height: 16,
@@ -624,6 +658,7 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
                       : Colors.red,
                   size: 18,
                 ),
+
               ),
               onChanged: (value) {
                 if (debounce?.isActive ?? false) debounce!.cancel();
@@ -640,6 +675,7 @@ class _BulkBatchMedicineExistUploadState extends State<BulkBatchMedicineExistUpl
                   if (controller.text.trim() == value.trim()) {
                     setState(() {
                       medicineNameAvailability[rowIndex] = available;
+                      validateDuplicateMedicines(); // 🔥 ADD THIS
                     });
                   }
                 });

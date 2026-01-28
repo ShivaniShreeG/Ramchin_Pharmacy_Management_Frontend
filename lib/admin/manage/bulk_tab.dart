@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/admin/manage/bulk_tab_new_medicine.dart';
 import '../../public/main_navigation.dart';
-import 'bulk_upload_exist.dart';
-import 'bulk_upload_medicine.dart'; // import your medicine page
-import 'bulk_upload_batch.dart'; // import your batch page
+import 'bulk_tab_exist.dart';
 
 class BulkUploadPage extends StatefulWidget {
   const BulkUploadPage({super.key});
@@ -17,16 +16,16 @@ class _BulkUploadPageState extends State<BulkUploadPage> {
   final Color royal = const Color(0xFF875C3F);
 
   final List<String> _appBarTitles = const [
-    "Medicine Bulk Upload",
-    "Batch Bulk Upload",
-    "Exist Medicine Bulk Upload"
+    "New Medicine Bulk Upload",
+    "Exist Medicine Bulk Upload",
   ];
 
+
   final List<Widget> _pages = const [
-    BulkUploadMedicinePage(),
-    BulkUploadBatchPage(),
-    BulkUploadMedicineExistPage(),
+    BulkUploadNewTabsPage(),
+    BulkUploadExistTabsPage(), // 👈 nested tabs here
   ];
+
 
   void _onTabTapped(int index) {
     setState(() {
@@ -68,16 +67,13 @@ class _BulkUploadPageState extends State<BulkUploadPage> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.medical_services_outlined),
-            label: "Medicine",
+            label: "New_Medicine",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.upload_file),
-            label: "Batch",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.upload_rounded),
             label: "Exist_Medicine",
           ),
+
         ],
       ),
     );

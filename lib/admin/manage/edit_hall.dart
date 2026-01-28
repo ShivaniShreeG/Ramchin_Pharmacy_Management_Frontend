@@ -26,7 +26,7 @@ class _EditHallPageState extends State<EditHallPage> {
   bool _isFetching = true;
   bool _isLoading = false;
   String? _base64Logo;
-  File? _selectedImage;
+  File? selectedImage;
   int? shopId;
 
   @override
@@ -101,7 +101,7 @@ class _EditHallPageState extends State<EditHallPage> {
     if (picked != null) {
       final bytes = await picked.readAsBytes();
       setState(() {
-        _selectedImage = File(picked.path);
+        selectedImage = File(picked.path);
         _base64Logo = base64Encode(bytes);
       });
     }

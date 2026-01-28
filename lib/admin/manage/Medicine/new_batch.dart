@@ -210,12 +210,12 @@ class _AddBatchFormState extends State<AddBatchForm> {
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      // ✅ Only reset and close on success
+
       resetForm();
       widget.onClose(false);
       widget.fetchMedicines();
     } else {
-      // ❌ Show error if submission fails
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to submit batch. Please try again.")),
       );
@@ -432,7 +432,7 @@ class _AddBatchFormState extends State<AddBatchForm> {
                     freeQtyCtrl.text.trim() != "0")
                   infoTile("Free Qty", freeQtyCtrl.text),
                 infoTile("Total Quantity", totalQuantity.toString()),
-                infoTile("Unit / Qty", unitCtrl.text),
+                infoTile("Unit Per Pack", unitCtrl.text),
                 infoTile("Total Stock", totalStock.toString()),
 
                 const Divider(color: royal),
@@ -819,7 +819,7 @@ class _AddBatchFormState extends State<AddBatchForm> {
                     SizedBox(
                       width: fieldWidth(constraints),
                       child: labeledField(
-                        label: "Unit",
+                        label: "Unit Per Pack",
                         field: TextFormField(
                           controller: unitCtrl,
                           keyboardType: TextInputType.number,

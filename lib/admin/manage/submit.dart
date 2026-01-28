@@ -137,7 +137,7 @@ class _SubmitTicketPageState extends State<SubmitTicketPage> {
                   ),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    backgroundColor: royalLight.withOpacity(0.2),
+                    backgroundColor: royalLight.withValues(alpha: 0.2),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

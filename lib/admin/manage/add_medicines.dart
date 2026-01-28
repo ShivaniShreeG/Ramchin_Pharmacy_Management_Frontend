@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../services/config.dart';
 import '../../../../public/main_navigation.dart';
 import 'dart:async';
+import 'Medicine/existing_batch.dart';
 import 'Medicine/existinng_medicine.dart';
 import 'Medicine/new_medicine.dart';
 import 'Medicine/new_batch.dart';
@@ -31,6 +32,7 @@ class InventoryPageState extends State<InventoryPage> {
   List<String> backendCategories = [];
   bool isCategoryLoading = false;
   bool showExistingMedicine = false;
+  bool showExistingMedicineBatch = false; // ✅ NEW
 
 
   @override
@@ -680,7 +682,7 @@ class InventoryPageState extends State<InventoryPage> {
                         if (shouldShow(batch['expiry_date']))
                           infoRow("Expiry Date", formatDate(batch['expiry_date'])),
                         if (shouldShow(batch['unit']))
-                          infoRow("Unit", batch['unit'].toString()),
+                          infoRow("Unit Per Pack", batch['unit'].toString()),
                         if (shouldShow(batch['purchase_price_quantity']))
                           infoRow("Purchase Price/Qty", "₹${batch['purchase_price_quantity']}"),
                         if (shouldShow(batch['purchase_price_unit']))
@@ -806,7 +808,7 @@ class InventoryPageState extends State<InventoryPage> {
                                       if (shouldShow(batch['HSN']))
                                         infoRowMob("HSN Code", batch['HSN'] ?? "-"),
                                       if (shouldShow(batch['unit']))
-                                        infoRowMob("Unit", batch['unit'].toString()),
+                                        infoRowMob("Unit Per Pack", batch['unit'].toString()),
                                       if (shouldShow(batch['purchase_price_quantity']))
                                         infoRowMob("Purchase Price/Qty", "₹${batch['purchase_price_quantity']}"),
                                       if (shouldShow(batch['purchase_price_unit']))
@@ -1015,6 +1017,8 @@ class InventoryPageState extends State<InventoryPage> {
                     showAddMedicine = !showAddMedicine;
                     showAddBatch = false;
                     showExistingMedicine = false;
+                    showExistingMedicineBatch = false;
+
                   });
                 },
                 child: Text(
@@ -1031,6 +1035,8 @@ class InventoryPageState extends State<InventoryPage> {
                     showAddBatch = !showAddBatch;
                     showAddMedicine = false;
                     showExistingMedicine = false;
+                    showExistingMedicineBatch = false;
+
                   });
                 },
                 child: Text(
@@ -1055,6 +1061,8 @@ class InventoryPageState extends State<InventoryPage> {
                   showExistingMedicine = !showExistingMedicine;
                   showAddMedicine = false;
                   showAddBatch = false;
+                  showExistingMedicineBatch = false;
+
                 });
               },
               child: Text(
@@ -1065,6 +1073,33 @@ class InventoryPageState extends State<InventoryPage> {
             ),
           ),
         ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: SizedBox(
+            width: double.infinity,  // ← makes button full-width
+            child: ElevatedButton(
+              style: outlinedRoyalButton,
+              onPressed: () {
+                setState(() {
+                  showExistingMedicineBatch = !showExistingMedicineBatch;
+
+                  showExistingMedicine = false;
+                  showAddMedicine = false;
+                  showAddBatch = false;
+
+                });
+              },
+              child: Text(
+                showExistingMedicine
+                    ? "Close Existing Medicines Batch"
+                    : "Add Existing Medicine Batch",
+              ),
+            ),
+          ),
+        ),
+
+
       ],
     );
   }
@@ -1136,13 +1171,21 @@ class InventoryPageState extends State<InventoryPage> {
                       onClose: (val) => setState(() => showExistingMedicine = val),
                       categories: backendCategories,
                     ),
-                  if (showAddBatch)
+
+    if (showAddBatch)
                     AddBatchForm(
                       shopId: shopId.toString(),
                       fetchMedicines: fetchMedicines,
                       onClose: (val) => setState(() => showAddBatch = val),
                       medicines: medicines,
                     ),
+    if (showExistingMedicineBatch)
+    ExistingMedicineBatchForm(
+    shopId: shopId.toString(),
+    fetchMedicines: fetchMedicines,
+    onClose: (val) => setState(() => showExistingMedicineBatch = val),
+    medicines: medicines,
+    ),
                   const Divider(color: royal,),
                   if (medicines.isEmpty)
                     const Padding(

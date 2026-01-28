@@ -78,6 +78,7 @@ flutter:
     - assets/medicine.xlsx
     - assets/medicinebatch.xlsx
     - assets/medicine_exist.xlsx
+    - assets/medicine_exist_batch.xlsx
 
   fonts:
     - family: Good Times

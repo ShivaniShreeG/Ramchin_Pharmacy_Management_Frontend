@@ -223,30 +223,30 @@ class _AdminStatusPageState extends State<AdminStatusPage> {
                     },
 
                     // 🔘 Thumb (circle)
-                    thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.selected)) {
+                    thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(WidgetState.selected)) {
                         return Colors.white;
                       }
                       return Colors.white;
                     }),
 
                     // 🟤 Track (background)
-                    trackColor: MaterialStateProperty.resolveWith<Color>((states) {
-                      if (states.contains(MaterialState.selected)) {
+                    trackColor: WidgetStateProperty.resolveWith<Color>((states) {
+                      if (states.contains(WidgetState.selected)) {
                         return royal; // ACTIVE
                       }
-                      return royal.withOpacity(0.35); // INACTIVE
+                      return royal.withValues(alpha: 0.35); // INACTIVE
                     }),
 
                     // ✨ Optional: subtle border effect
-                    trackOutlineColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                    trackOutlineColor: WidgetStateProperty.resolveWith<Color?>((states) {
                       return royal;
                     }),
                   ),
                   Text(
                     isActive ? "Active" : "Inactive",
                     style: TextStyle(
-                      color: isActive ? royal : royal.withOpacity(0.6),
+                      color: isActive ? royal : royal.withValues(alpha: 0.6),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),

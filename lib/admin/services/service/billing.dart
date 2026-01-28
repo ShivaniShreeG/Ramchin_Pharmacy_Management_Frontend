@@ -716,6 +716,40 @@ class _BillingPageState extends State<BillingPage> {
 
   Future<void> submitBill() async {
     if (!_formKey.currentState!.validate()) return;
+    if (customerCtrl.text.trim().isEmpty) {
+      _showMessage("Customer name is required");
+      FocusScope.of(context).requestFocus(customerFocus);
+      return;
+    }
+
+    if (phoneCtrl.text.trim().length != 10 ||
+        !RegExp(r'^[0-9]{10}$').hasMatch(phoneCtrl.text)) {
+      _showMessage("Enter a valid 10-digit phone number");
+      FocusScope.of(context).requestFocus(phoneFocus);
+      return;
+    }
+    if (billItems.isEmpty) {
+      _showMessage("Add at least one item to the bill");
+      return;
+    }
+
+    if (billTotal <= 0) {
+      _showMessage("Bill total must be greater than 0");
+      return;
+    }
+
+    // 🔍 Validate each item
+    for (final item in billItems) {
+      if (item['medicine_id'] == null ||
+          item['batch_id'] == null ||
+          item['quantity'] == null ||
+          item['quantity'] <= 0 ||
+          item['unit_price'] == null ||
+          item['unit_price'] <= 0) {
+        _showMessage("Invalid item data in bill");
+        return;
+      }
+    }
     double toTwoDecimals(num value) {
       return double.parse(value.toStringAsFixed(2));
     }
@@ -789,6 +823,14 @@ class _BillingPageState extends State<BillingPage> {
     } catch (e) {
       _showMessage("Error: $e");
     }
+  }
+
+  bool canSubmitBill() {
+    return _formKey.currentState?.validate() == true &&
+        customerCtrl.text.trim().isNotEmpty &&
+        RegExp(r'^[0-9]{10}$').hasMatch(phoneCtrl.text) &&
+        billItems.isNotEmpty &&
+        billTotal > 0 ;
   }
 
   @override
@@ -1466,7 +1508,7 @@ class _BillingPageState extends State<BillingPage> {
                                         : BorderSide.none,
                                   ),
                                 ),
-                                onPressed: submitBill,
+                                onPressed: canSubmitBill() ? submitBill : null,
                                 child: const Text(
                                   "Submit",
                                   style: TextStyle(fontSize: 16, color: Colors.white),
